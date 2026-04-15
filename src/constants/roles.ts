@@ -1,0 +1,5 @@
+export type RoleCode = 'ADMIN_TOTAL' | 'ADMIN_EMPRESA' | 'VENDEDOR_EMPRESA'
+
+export const ROLES_VENTAS_OPERACION: RoleCode[] = ['ADMIN_TOTAL', 'ADMIN_EMPRESA', 'VENDEDOR_EMPRESA']
+export const ROLES_ADMIN: RoleCode[] = ['ADMIN_TOTAL', 'ADMIN_EMPRESA']
+export const ROLES_ADMIN_TOTAL: RoleCode[] = ['ADMIN_TOTAL']
