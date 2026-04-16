@@ -58,21 +58,27 @@ const BloquesHorariosTab = forwardRef<BloquesHorariosTabHandle>(function Bloques
 
   const openCreate = () => {
     setEditingItem(null)
-    form.resetFields()
-    form.setFieldsValue({ Activo: true })
     setOpen(true)
   }
 
   const openEdit = (record: BloqueHorarioDto) => {
     setEditingItem(record)
-    form.setFieldsValue({
-      Nombre: record.Nombre,
-      HoraInicio: dayjs(record.HoraInicio, TIME_FORMAT),
-      HoraFin: dayjs(record.HoraFin, TIME_FORMAT),
-      Activo: record.Activo,
-    })
     setOpen(true)
   }
+
+  useEffect(() => {
+    if (open && !editingItem) {
+      form.resetFields()
+      form.setFieldsValue({ Activo: true })
+    } else if (open && editingItem) {
+      form.setFieldsValue({
+        Nombre: editingItem.Nombre,
+        HoraInicio: dayjs(editingItem.HoraInicio, TIME_FORMAT),
+        HoraFin: dayjs(editingItem.HoraFin, TIME_FORMAT),
+        Activo: editingItem.Activo,
+      })
+    }
+  }, [open, editingItem, form])
 
   useImperativeHandle(ref, () => ({
     openCreate,
@@ -112,7 +118,7 @@ const BloquesHorariosTab = forwardRef<BloquesHorariosTabHandle>(function Bloques
 
   return (
     <>
-      <Card className="tms-page-table-card" loading={loading}>
+      <Card className="tms-page-table-card" variant="borderless" style={{ boxShadow: 'none' }} loading={loading}>
         {isMobile ? (
           items.length > 0 ? (
             <div style={{ display: 'grid', gap: 10 }}>

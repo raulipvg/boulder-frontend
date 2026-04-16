@@ -82,15 +82,20 @@ const TarifasTab = forwardRef<TarifasTabHandle, TarifasTabProps>(function Tarifa
 
   const openCreate = () => {
     setEditingItem(null)
-    form.resetFields()
-    form.setFieldsValue({
-      VigenciaDesde: dayjs(),
-      VigenciaHasta: dayjs().add(1, 'month'),
-      Activo: true,
-      TipoClienteId: getTipoClienteIdByCodigo(clienteFiltro),
-    })
     setOpen(true)
   }
+
+  useEffect(() => {
+    if (open && !editingItem) {
+      form.resetFields()
+      form.setFieldsValue({
+        VigenciaDesde: dayjs(),
+        VigenciaHasta: dayjs().add(1, 'month'),
+        Activo: true,
+        TipoClienteId: getTipoClienteIdByCodigo(clienteFiltro),
+      })
+    }
+  }, [open, editingItem, clienteFiltro, form])
 
   const openEdit = (record: TarifaDto) => {
     setEditingItem(record)
@@ -115,12 +120,6 @@ const TarifasTab = forwardRef<TarifasTabHandle, TarifasTabProps>(function Tarifa
   useEffect(() => {
     void load()
   }, [clienteFiltro])
-
-  useEffect(() => {
-    if (open && !editingItem) {
-      form.setFieldValue('TipoClienteId', getTipoClienteIdByCodigo(clienteFiltro))
-    }
-  }, [clienteFiltro, editingItem, form, open])
 
   const columns: ColumnsType<TarifaDto> = [
     { title: 'Producto', dataIndex: 'ProductoNombre', key: 'ProductoNombre' },
@@ -148,7 +147,7 @@ const TarifasTab = forwardRef<TarifasTabHandle, TarifasTabProps>(function Tarifa
 
   return (
     <>
-      <Card className="tms-page-table-card" loading={loading}>
+      <Card className="tms-page-table-card" variant="borderless" style={{ boxShadow: 'none' }} loading={loading}>
         {isMobile ? (
           items.length > 0 ? (
             <div style={{ display: 'grid', gap: 10 }}>
@@ -261,10 +260,10 @@ const TarifasTab = forwardRef<TarifasTabHandle, TarifasTabProps>(function Tarifa
             <Input type="number" />
           </Form.Item>
           <Form.Item name="VigenciaDesde" label="Vigencia desde" rules={[{ required: true }]}>
-            <DatePicker style={{ width: '100%' }} defaultValue={dayjs()} />
+            <DatePicker style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="VigenciaHasta" label="Vigencia hasta" rules={[{ required: true }]}>
-            <DatePicker style={{ width: '100%' }} defaultValue={dayjs().add(1, 'month')} />
+            <DatePicker style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="Activo" label="Activo" valuePropName="checked">
             <Switch />

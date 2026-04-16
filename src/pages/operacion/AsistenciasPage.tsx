@@ -121,7 +121,7 @@ export default function AsistenciasPage() {
       />
 
       <Card className="tms-page-table-card">
-        <Space direction="vertical" style={{ width: '100%' }} size="large">
+        <Space orientation="vertical" style={{ width: '100%' }} size="large">
           <InputNumber
             placeholder="ID sesion"
             style={{ width: isMobile ? '100%' : 220 }}

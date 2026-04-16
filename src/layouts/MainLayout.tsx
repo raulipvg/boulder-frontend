@@ -284,11 +284,10 @@ export default function MainLayout() {
         placement="top"
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
-        height="calc(100vh - 64px)"
         closable={false}
         styles={{
+          wrapper: { height: 'calc(100vh - 64px)', marginTop: 64 },
           body: { padding: 0, background: 'var(--tms-drawer-bg)' },
-          wrapper: { marginTop: 64 },
         }}
       >
         {menuContent}

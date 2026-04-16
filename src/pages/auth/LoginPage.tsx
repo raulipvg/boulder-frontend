@@ -19,7 +19,7 @@ export default function LoginPage() {
         boxShadow: '0 10px 36px rgba(17, 24, 39, 0.24)',
       }}
     >
-      <Space direction="vertical" size={2} style={{ marginBottom: 20 }}>
+      <Space orientation="vertical" size={2} style={{ marginBottom: 20 }}>
         <Typography.Title level={3} style={{ margin: 0, color: '#374151' }}>
           ERP Boulder
         </Typography.Title>

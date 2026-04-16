@@ -1,4 +1,4 @@
-import { EditOutlined } from '@ant-design/icons'
+import { CheckOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons'
 import {
   Alert,
   App as AntdApp,
@@ -14,6 +14,7 @@ import {
   Table,
   Tag,
   Tooltip,
+  Typography,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
@@ -284,29 +285,59 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
   const columns: ColumnsType<ProductoDto> = [
     { title: 'Producto', dataIndex: 'NombreComercial', key: 'NombreComercial' },
     { title: 'Tipo base', dataIndex: 'TipoProductoBaseCodigo', key: 'TipoProductoBaseCodigo', responsive: ['md'] },
-    { title: 'Modo precio', dataIndex: 'ModoPrecio', key: 'ModoPrecio', responsive: ['lg'] },
-    { title: 'Precio fijo', dataIndex: 'PrecioFijo', key: 'PrecioFijo', responsive: ['lg'] },
     {
-      title: 'Tarifa asociada',
+      title: 'Modo',
+      dataIndex: 'ModoPrecio',
+      key: 'ModoPrecio',
+      responsive: ['lg'],
+      render: (value) => <Typography.Text italic>{value}</Typography.Text>,
+    },
+    {
+      title: 'Precio',
+      key: 'PrecioFijo',
+      responsive: ['lg'],
+      render: (_, record) =>
+        record.ModoPrecio === 'tarifa' ? (
+          'Varios'
+        ) : (
+          <strong>${record.PrecioFijo?.toLocaleString('es-CL')}</strong>
+        ),
+    },
+    {
+      title: 'Tarifa',
       key: 'TarifaAsociada',
       responsive: ['md'],
-      render: (_, record) => yesNoTag(record.TarifaAsociada, 'Sí', 'No'),
+      align: 'center',
+      render: (_, record) =>
+        record.TarifaAsociada ? (
+          <CheckOutlined style={{ color: '#52c41a', fontSize: 16 }} />
+        ) : (
+          <CloseOutlined style={{ color: '#999999', fontSize: 16 }} />
+        ),
     },
     {
       title: 'POS',
       key: 'VisiblePos',
       responsive: ['sm'],
-      render: (_, record) => yesNoTag(record.VisiblePos, 'Sí', 'No'),
+      align: 'center',
+      render: (_, record) =>
+        record.VisiblePos ? (
+          <CheckOutlined style={{ color: '#52c41a', fontSize: 16 }} />
+        ) : (
+          <CloseOutlined style={{ color: '#999999', fontSize: 16 }} />
+        ),
     },
     {
       title: 'Activo',
       key: 'Activo',
       responsive: ['sm'],
+      align: 'center',
       render: (_, record) => yesNoTag(record.Activo, 'Activo', 'Inactivo'),
     },
     {
-      title: 'Acciones',
+      title: 'ACCIONES',
       key: 'acciones',
+      align: 'center',
       render: (_, record) => (
         <Tooltip title="Editar">
           <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
@@ -317,7 +348,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
 
   return (
     <>
-      <Card className="tms-page-table-card" loading={loading}>
+      <Card className="tms-page-table-card" variant="borderless" style={{ boxShadow: 'none' }} loading={loading} >
         {isMobile ? (
           items.length > 0 ? (
             <div style={{ display: 'grid', gap: 10 }}>
@@ -328,9 +359,19 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
                       <div style={{ fontWeight: 600 }}>{record.NombreComercial}</div>
                       <div style={{ color: '#6b7280', fontSize: 12 }}>{record.TipoProductoBaseCodigo}</div>
                       <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {yesNoTag(record.VisiblePos, 'POS', 'No POS')}
+                        {record.VisiblePos ? (
+                          <CheckOutlined style={{ color: '#52c41a', fontSize: 16 }} />
+                        ) : (
+                          <CloseOutlined style={{ color: '#999999', fontSize: 16 }} />
+                        )}
+                        <span style={{ marginLeft: 4 }}>POS</span>
                         {yesNoTag(record.Activo, 'Activo', 'Inactivo')}
-                        {yesNoTag(record.TarifaAsociada, 'Con tarifa', 'Sin tarifa')}
+                        {record.TarifaAsociada ? (
+                          <CheckOutlined style={{ color: '#52c41a', fontSize: 16 }} />
+                        ) : (
+                          <CloseOutlined style={{ color: '#999999', fontSize: 16 }} />
+                        )}
+                        <span style={{ marginLeft: 4 }}>Tarifa</span>
                       </div>
                     </div>
 
