@@ -22,7 +22,7 @@ import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 import { administracionService } from '../../../services/administracion/administracionService'
-import type { ClaseDto, LookupDto, ProductoDto, TarifaProductoResumenDto } from '../../../types/models'
+import type { ClaseDto, LookupDto, ProductoDto, TarifaProductoResumenDto, TipoClienteDto } from '../../../types/models'
 import { getApiErrorMessage } from '../../../utils/getApiErrorMessage'
 
 export interface ProductosTabHandle {
@@ -82,6 +82,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
 
   const [items, setItems] = useState<ProductoDto[]>([])
   const [tipos, setTipos] = useState<LookupDto[]>([])
+  const [tiposCliente, setTiposCliente] = useState<TipoClienteDto[]>([])
   const [bloques, setBloques] = useState<LookupDto[]>([])
   const [clases, setClases] = useState<ClaseDto[]>([])
   const [loading, setLoading] = useState(true)
@@ -96,8 +97,12 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
   const [tarifaEditing, setTarifaEditing] = useState<TarifaProductoResumenDto | null>(null)
   const [tarifaSubmitting, setTarifaSubmitting] = useState(false)
   const [tarifaTodoHorario, setTarifaTodoHorario] = useState(false)
+  const [tarifasBatchOpen, setTarifasBatchOpen] = useState(false)
+  const [tarifasBatchProductoId, setTarifasBatchProductoId] = useState<number | null>(null)
+  const [tarifasBatchSubmitting, setTarifasBatchSubmitting] = useState(false)
   const [form] = Form.useForm()
   const [tarifaForm] = Form.useForm()
+  const [tarifasBatchForm] = Form.useForm()
 
   const selectedTipoProductoBaseId = Form.useWatch('TipoProductoBaseId', form)
   const selectedModoPrecio = Form.useWatch('ModoPrecio', form)
@@ -129,17 +134,29 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
   const isProductoCaja = selectedTipoCodigo === 'PRODUCTO_CAJA'
   const isTicketIndividual = selectedTipoCodigo === 'TICKET_INDIVIDUAL'
 
+  const createTarifaBatchRowDefault = () => ({
+    TipoClienteId: undefined,
+    TipoDias: [] as string[],
+    TodoHorario: true,
+    BloqueHorarioComercialId: undefined,
+    Precio: undefined,
+    VigenciaRango: [dayjs(), dayjs().add(1, 'month')],
+    Activo: true,
+  })
+
   const load = async () => {
     setLoading(true)
     try {
-      const [productos, tiposBase, bloquesData, clasesData] = await Promise.all([
+      const [productos, tiposBase, tiposClienteData, bloquesData, clasesData] = await Promise.all([
         administracionService.getProductos(),
         administracionService.getTiposProductoBase(),
+        administracionService.getTiposCliente(),
         administracionService.getBloques(),
         administracionService.getClases(),
       ])
       setItems(productos)
       setTipos(tiposBase)
+      setTiposCliente(tiposClienteData)
       setBloques(bloquesData)
       setClases(clasesData)
       setExpandedRowKeys([])
@@ -278,7 +295,11 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
     }
 
     if (!loadingTarifas && !tarifas.length) {
-      return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Sin tarifas asociadas" />
+      return (
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Sin tarifas asociadas">
+          <Button type="primary" onClick={() => openTarifasBatch(record.ProductoEmpresaId)}>Asociar tarifas</Button>
+        </Empty>
+      )
     }
 
     return (
@@ -310,6 +331,27 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
     setTarifaOpen(true)
   }
 
+  const openTarifasBatch = (productoEmpresaId: number) => {
+    setTarifasBatchProductoId(productoEmpresaId)
+    tarifasBatchForm.setFieldsValue({
+      Tarifas: [createTarifaBatchRowDefault()],
+    })
+    setTarifasBatchOpen(true)
+  }
+
+  const closeTarifasBatchModal = () => {
+    setTarifasBatchOpen(false)
+    setTarifasBatchProductoId(null)
+    tarifasBatchForm.resetFields()
+  }
+
+  const closeTarifaModal = () => {
+    setTarifaOpen(false)
+    setTarifaEditing(null)
+    setTarifaTodoHorario(false)
+    tarifaForm.resetFields()
+  }
+
   const handleTarifaSubmit = async (values: Record<string, unknown>) => {
     if (!tarifaEditing) return
     setTarifaSubmitting(true)
@@ -332,19 +374,96 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
 
       await administracionService.updateTarifa(tarifaEditing.TarifaProductoId, payload)
       message.success('Tarifa actualizada correctamente.')
-      setTarifaOpen(false)
-      setTarifaEditing(null)
-      setTarifaTodoHorario(false)
-      tarifaForm.resetFields()
 
-      const expandedKey = expandedRowKeys[0]
-      if (expandedKey) {
-        void loadTarifasByProducto(expandedKey, true)
-      }
+      closeTarifaModal()
+      await load()
+      setExpandedRowKeys([tarifaEditing.ProductoEmpresaId])
+      await loadTarifasByProducto(tarifaEditing.ProductoEmpresaId, true)
     } catch (error) {
       message.error(getApiErrorMessage(error, 'No se pudo actualizar la tarifa.'))
     } finally {
       setTarifaSubmitting(false)
+    }
+  }
+
+  const handleTarifasBatchSubmit = async (values: Record<string, unknown>) => {
+    if (!tarifasBatchProductoId) return
+
+    const tarifasRaw = (values.Tarifas as Array<Record<string, unknown>> | undefined) ?? []
+    if (!tarifasRaw.length) {
+      message.error('Debes agregar al menos una línea de tarifa.')
+      return
+    }
+
+    const duplicates = new Set<string>()
+
+    const tarifasPayload = tarifasRaw.map((linea, index) => {
+      const lineNumber = index + 1
+      const tipoClienteId = Number(linea.TipoClienteId)
+      const tipoDiasValue = linea.TipoDias as string[] | undefined
+      const tipoDias = Array.isArray(tipoDiasValue) ? DAY_OPTIONS.filter((day) => tipoDiasValue.includes(day)) : []
+      const vigenciaRango = linea.VigenciaRango as dayjs.Dayjs[] | undefined
+      const todoHorario = Boolean(linea.TodoHorario)
+      const bloqueHorarioComercialId = todoHorario ? null : (linea.BloqueHorarioComercialId ?? null)
+
+      if (!Number.isFinite(tipoClienteId) || tipoClienteId <= 0) {
+        throw new Error(`Línea ${lineNumber}: Debes seleccionar tipo de cliente.`)
+      }
+
+      if (!tipoDias.length) {
+        throw new Error(`Línea ${lineNumber}: Debes seleccionar al menos un día.`)
+      }
+
+      if (!vigenciaRango || vigenciaRango.length !== 2) {
+        throw new Error(`Línea ${lineNumber}: Debes definir vigencia desde y hasta.`)
+      }
+
+      const precio = Number(linea.Precio)
+      if (!Number.isFinite(precio) || precio <= 0) {
+        throw new Error(`Línea ${lineNumber}: El precio debe ser mayor a 0.`)
+      }
+
+      if (!todoHorario && !bloqueHorarioComercialId) {
+        throw new Error(`Línea ${lineNumber}: Debes seleccionar un bloque horario o marcar Todo horario.`)
+      }
+
+      const vigenciaDesde = vigenciaRango[0].format('YYYY-MM-DD')
+      const vigenciaHasta = vigenciaRango[1].format('YYYY-MM-DD')
+      const duplicateKey = `${tipoClienteId}|${bloqueHorarioComercialId ?? 'ALL'}|${tipoDias.join(',')}|${vigenciaDesde}|${vigenciaHasta}`
+
+      if (duplicates.has(duplicateKey)) {
+        throw new Error(`Línea ${lineNumber}: Duplicada con otra línea (tipo cliente, bloque, días y vigencia).`)
+      }
+
+      duplicates.add(duplicateKey)
+
+      return {
+        TipoClienteId: tipoClienteId,
+        TipoDia: tipoDias.join(','),
+        BloqueHorarioComercialId: bloqueHorarioComercialId,
+        Precio: precio,
+        VigenciaDesde: vigenciaDesde,
+        VigenciaHasta: vigenciaHasta,
+        Activo: linea.Activo ?? true,
+      }
+    })
+
+    setTarifasBatchSubmitting(true)
+    try {
+      await administracionService.createTarifasBatch({
+        ProductoEmpresaId: tarifasBatchProductoId,
+        Tarifas: tarifasPayload,
+      })
+
+      message.success('Tarifas asociadas correctamente.')
+      closeTarifasBatchModal()
+      await load()
+      setExpandedRowKeys([tarifasBatchProductoId])
+      await loadTarifasByProducto(tarifasBatchProductoId, true)
+    } catch (error) {
+      message.error(getApiErrorMessage(error, 'No se pudieron asociar las tarifas.'))
+    } finally {
+      setTarifasBatchSubmitting(false)
     }
   }
 
@@ -712,8 +831,11 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
                 await administracionService.updateProducto(editingItem.ProductoEmpresaId, payload)
                 message.success('Producto actualizado correctamente.')
               } else {
-                await administracionService.createProducto(payload)
+                const createdProducto = await administracionService.createProducto(payload)
                 message.success('Producto creado correctamente.')
+                if (payload.ModoPrecio === 'tarifa') {
+                  openTarifasBatch(createdProducto.ProductoEmpresaId)
+                }
               }
 
               setOpen(false)
@@ -825,6 +947,12 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
               showIcon
               message="El producto no tiene tarifa activa asociada"
               description="Mientras no tenga una tarifa activa asociada, este producto no puede estar activo ni visible en POS."
+              action={editingItem ? <Button type="link" onClick={() => {
+                setOpen(false)
+                openTarifasBatch(editingItem.ProductoEmpresaId)
+              }}>
+                Asociar tarifas
+              </Button> : undefined}
             />
           )}
         </Form>
@@ -832,12 +960,8 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
 
       <Modal
         open={tarifaOpen}
-        title="Editar tarifa"
-        onCancel={() => {
-          setTarifaOpen(false)
-          setTarifaEditing(null)
-          setTarifaTodoHorario(false)
-        }}
+        title={tarifaEditing ? 'Editar tarifa' : 'Asociar tarifa'}
+        onCancel={closeTarifaModal}
         onOk={() => tarifaForm.submit()}
         confirmLoading={tarifaSubmitting}
         destroyOnHidden
@@ -878,6 +1002,129 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
           <Form.Item name="Activo" label="Activa" valuePropName="checked">
             <Switch />
           </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        open={tarifasBatchOpen}
+        title="Asociar tarifas"
+        onCancel={closeTarifasBatchModal}
+        onOk={() => tarifasBatchForm.submit()}
+        confirmLoading={tarifasBatchSubmitting}
+        destroyOnHidden
+        width={860}
+      >
+        <Form form={tarifasBatchForm} layout="vertical" onFinish={handleTarifasBatchSubmit}>
+          <Form.List name="Tarifas">
+            {(fields, { add, remove }) => (
+              <div style={{ display: 'grid', gap: 12 }}>
+                {fields.map((field) => (
+                  <Card key={field.key} size="small" style={{ borderColor: '#e5e7eb' }}>
+                    <div style={{ display: 'grid', gap: 10 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <Form.Item
+                          name={[field.name, 'TipoClienteId']}
+                          label="Tipo de cliente"
+                          rules={[{ required: true, message: 'Selecciona tipo de cliente.' }]}
+                        >
+                          <Select options={tiposCliente.map((tipo) => ({ value: tipo.TipoClienteId, label: tipo.Nombre }))} />
+                        </Form.Item>
+
+                        <Form.Item
+                          name={[field.name, 'Precio']}
+                          label="Precio"
+                          rules={[
+                            { required: true, message: 'Ingresa precio.' },
+                            {
+                              validator: async (_, value) => {
+                                if (value == null || Number(value) > 0) return
+                                throw new Error('El precio debe ser mayor a 0.')
+                              },
+                            },
+                          ]}
+                        >
+                          <Input type="number" />
+                        </Form.Item>
+                      </div>
+
+                      <Form.Item
+                        name={[field.name, 'TipoDias']}
+                        label="Días aplicables"
+                        rules={[{ required: true, type: 'array', min: 1, message: 'Selecciona al menos un día.' }]}
+                      >
+                        <Checkbox.Group options={DAY_OPTIONS.map((day) => ({ value: day, label: day }))} />
+                      </Form.Item>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, alignItems: 'flex-end' }}>
+                        <Form.Item shouldUpdate noStyle>
+                          {({ getFieldValue }) => {
+                            const todoHorario = Boolean(getFieldValue(['Tarifas', field.name, 'TodoHorario']))
+                            return (
+                              <Form.Item
+                                name={[field.name, 'BloqueHorarioComercialId']}
+                                label="Bloque horario"
+                                rules={todoHorario ? undefined : [{ required: true, message: 'Selecciona un bloque horario.' }]}
+                              >
+                                <Select
+                                  allowClear
+                                  disabled={todoHorario}
+                                  options={bloques.map((bloque) => ({ value: bloque.Id, label: bloque.Nombre }))}
+                                />
+                              </Form.Item>
+                            )
+                          }}
+                        </Form.Item>
+
+                        <Form.Item name={[field.name, 'TodoHorario']} label="Todo horario" valuePropName="checked" initialValue={true}>
+                          <Switch
+                            onChange={(checked) => {
+                              if (checked) {
+                                tarifasBatchForm.setFieldValue(['Tarifas', field.name, 'BloqueHorarioComercialId'], undefined)
+                              }
+                            }}
+                          />
+                        </Form.Item>
+
+                        <Form.Item name={[field.name, 'Activo']} label="Activa" valuePropName="checked" initialValue={true}>
+                          <Switch />
+                        </Form.Item>
+                      </div>
+
+                      <Form.Item
+                        name={[field.name, 'VigenciaRango']}
+                        label="Vigencia"
+                        rules={[{ required: true, message: 'Selecciona vigencia desde y hasta.' }]}
+                      >
+                        <DatePicker.RangePicker style={{ width: '100%' }} format="DD-MM-YYYY" />
+                      </Form.Item>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                        <Button
+                          onClick={() => {
+                            const current = tarifasBatchForm.getFieldValue(['Tarifas', field.name])
+                            add({
+                              ...createTarifaBatchRowDefault(),
+                              ...current,
+                              VigenciaRango: current?.VigenciaRango
+                                ? [dayjs(current.VigenciaRango[0]), dayjs(current.VigenciaRango[1])]
+                                : [dayjs(), dayjs().add(1, 'month')],
+                            })
+                          }}
+                        >
+                          Duplicar
+                        </Button>
+                        <Button danger disabled={fields.length === 1} onClick={() => remove(field.name)}>Eliminar</Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+
+                <Button type="dashed" onClick={() => add(createTarifaBatchRowDefault())}>
+                  Agregar línea
+                </Button>
+              </div>
+            )}
+          </Form.List>
         </Form>
       </Modal>
     </>

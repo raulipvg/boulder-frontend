@@ -24,6 +24,7 @@ export const administracionService = {
   updateProducto: async (productoEmpresaId: number, payload: Record<string, unknown>) => (await apiClient.put<ProductoDto>(`/administracion/productos/${productoEmpresaId}`, payload)).data,
   getTarifas: async (tipoClienteCodigo: 'GENERAL' | 'ESTUDIANTE' = 'GENERAL') => (await apiClient.get<TarifaDto[]>('/administracion/tarifas', { params: { tipoClienteCodigo } })).data,
   createTarifa: async (payload: Record<string, unknown>) => (await apiClient.post<TarifaDto>('/administracion/tarifas', payload)).data,
+  createTarifasBatch: async (payload: Record<string, unknown>) => (await apiClient.post<TarifaDto[]>('/administracion/tarifas/batch', payload)).data,
   updateTarifa: async (tarifaProductoId: number, payload: Record<string, unknown>) => (await apiClient.put<TarifaDto>(`/administracion/tarifas/${tarifaProductoId}`, payload)).data,
   getClases: async () => (await apiClient.get<ClaseDto[]>('/administracion/clases')).data,
   createClase: async (payload: Record<string, unknown>) => (await apiClient.post<ClaseDto>('/administracion/clases', payload)).data,
