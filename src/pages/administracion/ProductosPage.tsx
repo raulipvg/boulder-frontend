@@ -24,6 +24,7 @@ export default function ProductosPage() {
   const isMensualidadPorHorario = selectedTipoProductoCodigo === 'MENSUALIDAD_POR_HORARIO'
   const isMensualidadTodoHorario = selectedTipoProductoCodigo === 'MENSUALIDAD_TODO_HORARIO'
   const isMensualidad = isMensualidadPorHorario || isMensualidadTodoHorario
+  const isPackTickets = selectedTipoProductoCodigo === 'PACK_TICKETS' || selectedTipoProductoCodigo === 'PACK_10_TICKETS'
 
   const load = async () => {
     setLoading(true)
@@ -46,22 +47,36 @@ export default function ProductosPage() {
   useEffect(() => { void load() }, [])
 
   useEffect(() => {
-    if (!isMensualidad) {
+    if (!isMensualidad && !isPackTickets) {
+      return
+    }
+
+    if (isMensualidad) {
+      form.setFieldsValue({
+        ModoPrecio: 'tarifa',
+        PrecioFijo: undefined,
+        UsosIncluidos: undefined,
+        ClaseId: undefined,
+        RequiereCliente: true,
+        GeneraBeneficio: true,
+        AccesoIlimitado: true,
+        VigenciaDias: 30,
+        BloqueHorarioComercialId: isMensualidadTodoHorario ? undefined : form.getFieldValue('BloqueHorarioComercialId'),
+      })
       return
     }
 
     form.setFieldsValue({
       ModoPrecio: 'tarifa',
       PrecioFijo: undefined,
-      UsosIncluidos: undefined,
       ClaseId: undefined,
       RequiereCliente: true,
       GeneraBeneficio: true,
-      AccesoIlimitado: true,
-      VigenciaDias: 30,
-      BloqueHorarioComercialId: isMensualidadTodoHorario ? undefined : form.getFieldValue('BloqueHorarioComercialId'),
+      AccesoIlimitado: false,
+      UsosIncluidos: form.getFieldValue('UsosIncluidos') ?? 10,
+      VigenciaDias: form.getFieldValue('VigenciaDias') ?? 60,
     })
-  }, [form, isMensualidad, isMensualidadTodoHorario])
+  }, [form, isMensualidad, isMensualidadTodoHorario, isPackTickets])
 
   return (
     <>
@@ -151,20 +166,30 @@ export default function ProductosPage() {
                 const tipoCodigo = tipos.find((tipo) => tipo.Id === values.TipoProductoBaseId)?.Codigo
                 const payload = (tipoCodigo === 'MENSUALIDAD_POR_HORARIO' || tipoCodigo === 'MENSUALIDAD_TODO_HORARIO')
                   ? {
+                    ...values,
+                    ModoPrecio: 'tarifa',
+                    PrecioFijo: null,
+                    UsosIncluidos: null,
+                    ClaseId: null,
+                    RequiereCliente: true,
+                    GeneraBeneficio: true,
+                    AccesoIlimitado: true,
+                    VigenciaDias: 30,
+                    BloqueHorarioComercialId: tipoCodigo === 'MENSUALIDAD_POR_HORARIO'
+                      ? values.BloqueHorarioComercialId ?? null
+                      : null,
+                  }
+                  : (tipoCodigo === 'PACK_TICKETS' || tipoCodigo === 'PACK_10_TICKETS')
+                    ? {
                       ...values,
                       ModoPrecio: 'tarifa',
                       PrecioFijo: null,
-                      UsosIncluidos: null,
                       ClaseId: null,
                       RequiereCliente: true,
                       GeneraBeneficio: true,
-                      AccesoIlimitado: true,
-                      VigenciaDias: 30,
-                      BloqueHorarioComercialId: tipoCodigo === 'MENSUALIDAD_POR_HORARIO'
-                        ? values.BloqueHorarioComercialId ?? null
-                        : null,
+                      AccesoIlimitado: false,
                     }
-                  : values
+                    : values
 
                 if (editingItem) {
                   await administracionService.updateProducto(editingItem.ProductoEmpresaId, payload)
@@ -186,21 +211,21 @@ export default function ProductosPage() {
             }}
           >
             <div className="grid-two">
-              <Form.Item name="TipoProductoBaseId" label="Tipo base" rules={[{ required: true }]}>
+              <Form.Item name="TipoProductoBaseId" label="Tipo Producto" rules={[{ required: true }]}>
                 <Select options={tipos.map((tipo) => ({ value: tipo.Id, label: tipo.Nombre }))} />
               </Form.Item>
-              <Form.Item name="NombreComercial" label="Nombre comercial" rules={[{ required: true }]}>
+              <Form.Item name="NombreComercial" label="Nombre Producto" rules={[{ required: true }]}>
                 <Input />
               </Form.Item>
               <Form.Item name="Descripcion" label="Descripción"><Input /></Form.Item>
-              {!isMensualidad && (
+              {!isMensualidad && !isPackTickets && (
                 <Form.Item name="ModoPrecio" label="Modo precio" rules={[{ required: true }]}>
                   <Select options={[{ value: 'fijo', label: 'Fijo' }, { value: 'tarifa', label: 'Tarifa' }]} />
                 </Form.Item>
               )}
-              {!isMensualidad && <Form.Item name="PrecioFijo" label="Precio fijo"><Input type="number" /></Form.Item>}
+              {!isMensualidad && !isPackTickets && <Form.Item name="PrecioFijo" label="Precio fijo"><Input type="number" /></Form.Item>}
               {!isMensualidad && <Form.Item name="VigenciaDias" label="Vigencia días"><Input type="number" /></Form.Item>}
-              {!isMensualidad && <Form.Item name="UsosIncluidos" label="Usos incluidos"><Input type="number" /></Form.Item>}
+              {!isMensualidad && <Form.Item name="UsosIncluidos" label={isPackTickets ? 'Cantidad de tickets del pack' : 'Usos incluidos'}><Input type="number" /></Form.Item>}
               {(isMensualidadPorHorario || !isMensualidad) && (
                 <Form.Item
                   name="BloqueHorarioComercialId"
@@ -210,14 +235,14 @@ export default function ProductosPage() {
                   <Select allowClear options={bloques.map((b) => ({ value: b.Id, label: b.Nombre }))} />
                 </Form.Item>
               )}
-              {!isMensualidad && <Form.Item name="ClaseId" label="Clase"><Select allowClear options={clases.map((c) => ({ value: c.ClaseId, label: c.Nombre }))} /></Form.Item>}
+              {!isMensualidad && !isPackTickets && <Form.Item name="ClaseId" label="Clase"><Select allowClear options={clases.map((c) => ({ value: c.ClaseId, label: c.Nombre }))} /></Form.Item>}
             </div>
             <div className="grid-two">
               <Form.Item name="VisiblePos" label="Visible POS" valuePropName="checked"><Switch /></Form.Item>
               <Form.Item name="Activo" label="Activo" valuePropName="checked"><Switch /></Form.Item>
-              {!isMensualidad && <Form.Item name="RequiereCliente" label="Requiere cliente" valuePropName="checked"><Switch /></Form.Item>}
-              {!isMensualidad && <Form.Item name="GeneraBeneficio" label="Genera beneficio" valuePropName="checked"><Switch /></Form.Item>}
-              {!isMensualidad && <Form.Item name="AccesoIlimitado" label="Acceso ilimitado" valuePropName="checked"><Switch /></Form.Item>}
+              {!isMensualidad && !isPackTickets && <Form.Item name="RequiereCliente" label="Requiere cliente" valuePropName="checked"><Switch /></Form.Item>}
+              {!isMensualidad && !isPackTickets && <Form.Item name="GeneraBeneficio" label="Genera beneficio" valuePropName="checked"><Switch /></Form.Item>}
+              {!isMensualidad && !isPackTickets && <Form.Item name="AccesoIlimitado" label="Acceso ilimitado" valuePropName="checked"><Switch /></Form.Item>}
             </div>
           </Form>
         </Modal>

@@ -8,8 +8,7 @@ import LoginPage from './pages/auth/LoginPage'
 import EmpresasPage from './pages/administracion/EmpresasPage'
 import ClientesPage from './pages/administracion/ClientesPage'
 import UsuariosPage from './pages/administracion/UsuariosPage'
-import ProductosPage from './pages/administracion/ProductosPage'
-import TarifasPage from './pages/administracion/TarifasPage'
+import ConfiguracionComercialPage from './pages/administracion/ConfiguracionComercialPage'
 import ClasesPage from './pages/administracion/ClasesPage'
 import PuntoVentaPage from './pages/ventas/PuntoVentaPage'
 import VentasPage from './pages/ventas/VentasPage'
@@ -40,8 +39,7 @@ export default function App() {
         <Route path="administracion/empresas" element={<ProtectedRoute roles={ROLES_ADMIN_TOTAL}><EmpresasPage /></ProtectedRoute>} />
         <Route path="administracion/clientes" element={<ProtectedRoute roles={ROLES_ADMIN}><ClientesPage /></ProtectedRoute>} />
         <Route path="administracion/usuarios" element={<ProtectedRoute roles={ROLES_ADMIN}><UsuariosPage /></ProtectedRoute>} />
-        <Route path="administracion/productos" element={<ProtectedRoute roles={ROLES_ADMIN}><ProductosPage /></ProtectedRoute>} />
-        <Route path="administracion/tarifas" element={<ProtectedRoute roles={ROLES_ADMIN}><TarifasPage /></ProtectedRoute>} />
+        <Route path="administracion/comercial" element={<ProtectedRoute roles={ROLES_ADMIN}><ConfiguracionComercialPage /></ProtectedRoute>} />
         <Route path="administracion/clases" element={<ProtectedRoute roles={ROLES_ADMIN}><ClasesPage /></ProtectedRoute>} />
         <Route element={<ProtectedRoute roles={ROLES_VENTAS_OPERACION}><PosLayout /></ProtectedRoute>}>
           <Route path="ventas/punto-venta" element={<PuntoVentaPage />} />

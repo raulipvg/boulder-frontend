@@ -1,5 +1,5 @@
 import apiClient from '../apiClient'
-import type { ClaseDto, ClienteDto, EmpresaDto, LookupDto, ProductoDto, TarifaDto, TipoClienteDto, UsuarioDto } from '../../types/models'
+import type { BloqueHorarioDto, ClaseDto, ClienteDto, EmpresaDto, LookupDto, ProductoDto, TarifaDto, TipoClienteDto, UsuarioDto } from '../../types/models'
 
 export const administracionService = {
   getEmpresas: async () => (await apiClient.get<EmpresaDto[]>('/administracion/empresas')).data,
@@ -30,4 +30,8 @@ export const administracionService = {
   getMediosPago: async () => (await apiClient.get<LookupDto[]>('/administracion/catalogos/medios-pago')).data,
   getBloques: async () => (await apiClient.get<LookupDto[]>('/administracion/catalogos/bloques')).data,
   getProfesores: async () => (await apiClient.get<LookupDto[]>('/administracion/catalogos/profesores')).data,
+  getBloquesHorarios: async () => (await apiClient.get<BloqueHorarioDto[]>('/administracion/bloques-horarios')).data,
+  createBloqueHorario: async (payload: Record<string, unknown>) => (await apiClient.post<BloqueHorarioDto>('/administracion/bloques-horarios', payload)).data,
+  updateBloqueHorario: async (id: number, payload: Record<string, unknown>) => (await apiClient.put<BloqueHorarioDto>(`/administracion/bloques-horarios/${id}`, payload)).data,
 }
+

@@ -19,6 +19,14 @@ export interface LookupDto {
   Nombre: string
 }
 
+export interface BloqueHorarioDto {
+  BloqueHorarioComercialId: number
+  Nombre: string
+  HoraInicio: string
+  HoraFin: string
+  Activo: boolean
+}
+
 export interface EmpresaDto {
   EmpresaId: number
   NombreComercial: string
