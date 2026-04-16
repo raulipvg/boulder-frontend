@@ -1,14 +1,27 @@
-import { Alert, AutoComplete, Button, Card, Col, Divider, InputNumber, Row, Select, Space, Typography, message } from 'antd'
-import { useEffect, useMemo, useState } from 'react'
+import { Alert, App as AntdApp, AutoComplete, Button, Card, Col, Divider, Form, Input, InputNumber, Modal, Row, Select, Space, Typography } from 'antd'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { administracionService } from '../../services/administracion/administracionService'
 import { operacionService } from '../../services/operacion/operacionService'
 import { ventasService } from '../../services/ventas/ventasService'
-import type { ClienteLookupDto, LookupDto, PosCatalogItemDto } from '../../types/models'
+import type { ClienteLookupDto, LookupDto, PosCatalogItemDto, TipoClienteDto } from '../../types/models'
+import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
+import { toCapitalCase } from '../../utils/formatPersonName'
+import { isValidRut, normalizeRut } from '../../utils/rut'
+
+const REQUIRED_CLIENT_CODES = new Set([
+  'CLASES_CON_PROFESOR',
+  'MENSUALIDAD_POR_HORARIO',
+  'MENSUALIDAD_TODO_HORARIO',
+  'PACK_10_TICKETS',
+  'TICKET_INDIVIDUAL',
+])
 
 interface CartItem {
-  product: PosCatalogItemDto
-  quantity: number
+  Id: string
+  Product: PosCatalogItemDto
+  Quantity: number
+  ClienteEmpresaIdAsignado?: number | null
 }
 
 interface VentaPreviewDto {
@@ -23,29 +36,93 @@ interface VentaPreviewDto {
   }>
 }
 
+function requiresAssignedClient(product: PosCatalogItemDto): boolean {
+  return REQUIRED_CLIENT_CODES.has(product.TipoProductoBaseCodigo)
+}
+
+function formatClientLabel(cliente: ClienteLookupDto): string {
+  return `${toCapitalCase(cliente.NombreCompleto)} (${cliente.Rut})`
+}
+
 export default function PuntoVentaPage() {
+  const { message } = AntdApp.useApp()
   const [catalog, setCatalog] = useState<PosCatalogItemDto[]>([])
   const [mediosPago, setMediosPago] = useState<LookupDto[]>([])
-  const [clientes, setClientes] = useState<ClienteLookupDto[]>([])
-  const [selectedClient, setSelectedClient] = useState<ClienteLookupDto | null>(null)
-  const [clientSearch, setClientSearch] = useState('')
+  const [tiposCliente, setTiposCliente] = useState<TipoClienteDto[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
+  const [knownClientes, setKnownClientes] = useState<Record<number, ClienteLookupDto>>({})
+  const [clientSearchByItem, setClientSearchByItem] = useState<Record<string, string>>({})
+  const [clientOptionsByItem, setClientOptionsByItem] = useState<Record<string, ClienteLookupDto[]>>({})
+  const [searchingByItem, setSearchingByItem] = useState<Record<string, boolean>>({})
   const [preview, setPreview] = useState<VentaPreviewDto | null>(null)
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [medioPagoId, setMedioPagoId] = useState<number | null>(null)
+  const [createClientOpen, setCreateClientOpen] = useState(false)
+  const [createClientTargetItemId, setCreateClientTargetItemId] = useState<string | null>(null)
+  const [creatingClient, setCreatingClient] = useState(false)
+  const [createClientForm] = Form.useForm()
+  const lineIdRef = useRef(1)
+  const searchTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({})
+
+  const nextLineId = () => {
+    const id = `line-${lineIdRef.current}`
+    lineIdRef.current += 1
+    return id
+  }
+
+  const mergeKnownClientes = (clientes: ClienteLookupDto[]) => {
+    setKnownClientes((current) => {
+      const next = { ...current }
+      for (const cliente of clientes) {
+        next[cliente.ClienteEmpresaId] = cliente
+      }
+      return next
+    })
+  }
+
+  const buildHeaderClienteId = (items: CartItem[]): number | null => {
+    const ids = Array.from(new Set(items.map((item) => item.ClienteEmpresaIdAsignado).filter((id): id is number => !!id)))
+    return ids.length === 1 ? ids[0] : null
+  }
+
+  const cleanupItemSearchState = (itemId: string) => {
+    const timeout = searchTimeoutsRef.current[itemId]
+    if (timeout) {
+      clearTimeout(timeout)
+      delete searchTimeoutsRef.current[itemId]
+    }
+
+    setClientSearchByItem((current) => {
+      const next = { ...current }
+      delete next[itemId]
+      return next
+    })
+    setClientOptionsByItem((current) => {
+      const next = { ...current }
+      delete next[itemId]
+      return next
+    })
+    setSearchingByItem((current) => {
+      const next = { ...current }
+      delete next[itemId]
+      return next
+    })
+  }
 
   useEffect(() => {
     const load = async () => {
       setLoading(true)
       try {
-        const [catalogData, medios] = await Promise.all([
+        const [catalogData, medios, tipos] = await Promise.all([
           ventasService.getPosCatalog(),
           administracionService.getMediosPago(),
+          administracionService.getTiposCliente(),
         ])
         setCatalog(catalogData)
         setMediosPago(medios)
+        setTiposCliente(tipos)
         setMedioPagoId(medios[0]?.Id ?? null)
       } finally {
         setLoading(false)
@@ -53,20 +130,118 @@ export default function PuntoVentaPage() {
     }
 
     void load()
+
+    return () => {
+      for (const timeout of Object.values(searchTimeoutsRef.current)) {
+        if (timeout) {
+          clearTimeout(timeout)
+        }
+      }
+      searchTimeoutsRef.current = {}
+    }
   }, [])
 
-  useEffect(() => {
-    if (!clientSearch || clientSearch.length < 2) {
-      setClientes([])
+  const onClientSearch = (itemId: string, value: string) => {
+    setClientSearchByItem((current) => ({ ...current, [itemId]: value }))
+
+    const existingTimeout = searchTimeoutsRef.current[itemId]
+    if (existingTimeout) {
+      clearTimeout(existingTimeout)
+      delete searchTimeoutsRef.current[itemId]
+    }
+
+    const term = value.trim()
+    if (term.length < 2) {
+      setClientOptionsByItem((current) => ({ ...current, [itemId]: [] }))
+      setSearchingByItem((current) => ({ ...current, [itemId]: false }))
       return
     }
 
-    const timeout = setTimeout(async () => {
-      setClientes(await operacionService.buscarClientes(clientSearch))
+    setSearchingByItem((current) => ({ ...current, [itemId]: true }))
+    searchTimeoutsRef.current[itemId] = setTimeout(async () => {
+      try {
+        const results = await operacionService.buscarClientes(term)
+        mergeKnownClientes(results)
+        setClientOptionsByItem((current) => ({ ...current, [itemId]: results }))
+      } finally {
+        setSearchingByItem((current) => ({ ...current, [itemId]: false }))
+      }
     }, 250)
+  }
 
-    return () => clearTimeout(timeout)
-  }, [clientSearch])
+  const setAssignedClient = (itemId: string, cliente: ClienteLookupDto) => {
+    mergeKnownClientes([cliente])
+    setCart((current) => current.map((item) => item.Id === itemId ? { ...item, ClienteEmpresaIdAsignado: cliente.ClienteEmpresaId } : item))
+    setClientSearchByItem((current) => ({ ...current, [itemId]: formatClientLabel(cliente) }))
+    setClientOptionsByItem((current) => ({ ...current, [itemId]: [] }))
+  }
+
+  const clearAssignedClient = (itemId: string) => {
+    setCart((current) => current.map((item) => item.Id === itemId ? { ...item, ClienteEmpresaIdAsignado: null } : item))
+    setClientSearchByItem((current) => ({ ...current, [itemId]: '' }))
+    setClientOptionsByItem((current) => ({ ...current, [itemId]: [] }))
+  }
+
+  const addProduct = (product: PosCatalogItemDto) => {
+    if (requiresAssignedClient(product)) {
+      setCart((current) => [
+        ...current,
+        {
+          Id: nextLineId(),
+          Product: product,
+          Quantity: 1,
+          ClienteEmpresaIdAsignado: null,
+        },
+      ])
+      return
+    }
+
+    setCart((current) => {
+      const existing = current.find((item) => item.Product.ProductoEmpresaId === product.ProductoEmpresaId && !requiresAssignedClient(item.Product))
+      if (existing) {
+        return current.map((item) => item.Id === existing.Id ? { ...item, Quantity: item.Quantity + 1 } : item)
+      }
+
+      return [
+        ...current,
+        {
+          Id: nextLineId(),
+          Product: product,
+          Quantity: 1,
+          ClienteEmpresaIdAsignado: null,
+        },
+      ]
+    })
+  }
+
+  const removeItem = (itemId: string) => {
+    setCart((current) => current.filter((item) => item.Id !== itemId))
+    cleanupItemSearchState(itemId)
+
+    if (createClientTargetItemId === itemId) {
+      setCreateClientTargetItemId(null)
+      setCreateClientOpen(false)
+      createClientForm.resetFields()
+    }
+  }
+
+  const openCreateClient = (itemId: string) => {
+    const generalTipoClienteId = tiposCliente.find((item) => item.Codigo === 'GENERAL')?.TipoClienteId
+      ?? tiposCliente[0]?.TipoClienteId
+
+    setCreateClientTargetItemId(itemId)
+    createClientForm.setFieldsValue({
+      NombreCompleto: clientSearchByItem[itemId]?.trim() || undefined,
+      TipoClienteId: generalTipoClienteId,
+      Estado: 'activo',
+    })
+    setCreateClientOpen(true)
+  }
+
+  const missingAssignedItem = useMemo(
+    () => cart.find((item) => requiresAssignedClient(item.Product) && !item.ClienteEmpresaIdAsignado),
+    [cart],
+  )
 
   useEffect(() => {
     const loadPreview = async () => {
@@ -76,12 +251,19 @@ export default function PuntoVentaPage() {
         return
       }
 
+      if (missingAssignedItem) {
+        setPreview(null)
+        setPreviewError(`Debes asignar cliente al producto ${missingAssignedItem.Product.NombreComercial}.`)
+        return
+      }
+
       try {
         const result = await ventasService.previewVenta({
-          ClienteEmpresaId: selectedClient?.ClienteEmpresaId ?? null,
+          ClienteEmpresaId: buildHeaderClienteId(cart),
           Items: cart.map((item) => ({
-            ProductoEmpresaId: item.product.ProductoEmpresaId,
-            Cantidad: item.quantity,
+            ProductoEmpresaId: item.Product.ProductoEmpresaId,
+            Cantidad: item.Quantity,
+            ClienteEmpresaIdAsignado: item.ClienteEmpresaIdAsignado ?? null,
             FechaInicioVigencia: null,
             Observacion: null,
           })),
@@ -90,24 +272,12 @@ export default function PuntoVentaPage() {
         setPreviewError(null)
       } catch (error) {
         setPreview(null)
-        setPreviewError(error instanceof Error ? error.message : 'No fue posible cotizar la venta.')
+        setPreviewError(getApiErrorMessage(error, 'No fue posible cotizar la venta.'))
       }
     }
 
     void loadPreview()
-  }, [cart, selectedClient])
-
-  const requiresClient = useMemo(() => cart.some((item) => item.product.RequiereCliente), [cart])
-
-  const addProduct = (product: PosCatalogItemDto) => {
-    setCart((current) => {
-      const existing = current.find((item) => item.product.ProductoEmpresaId === product.ProductoEmpresaId)
-      if (existing) {
-        return current.map((item) => item.product.ProductoEmpresaId === product.ProductoEmpresaId ? { ...item, quantity: item.quantity + 1 } : item)
-      }
-      return [...current, { product, quantity: 1 }]
-    })
-  }
+  }, [cart, missingAssignedItem])
 
   return (
     <>
@@ -136,64 +306,105 @@ export default function PuntoVentaPage() {
         <Col xs={24} xl={9}>
           <Card title="Caja">
             <Space orientation="vertical" style={{ width: '100%' }} size="middle">
-              <AutoComplete
-                value={selectedClient ? `${selectedClient.NombreCompleto} (${selectedClient.Rut})` : clientSearch}
-                onSearch={setClientSearch}
-                onSelect={(value) => {
-                  const cliente = clientes.find((item) => `${item.ClienteEmpresaId}` === value)
-                  if (cliente) {
-                    setSelectedClient(cliente)
-                    setClientSearch(`${cliente.NombreCompleto} (${cliente.Rut})`)
-                  }
-                }}
-                options={clientes.map((cliente) => ({
-                  value: `${cliente.ClienteEmpresaId}`,
-                  label: `${cliente.NombreCompleto} (${cliente.Rut})`,
-                }))}
-              >
-                <InputNumber style={{ display: 'none' }} />
-              </AutoComplete>
-
-              {selectedClient && (
-                <Alert
-                  showIcon
-                  type="info"
-                  message={selectedClient.NombreCompleto}
-                  description={`${selectedClient.TipoCliente} · ${selectedClient.Estado}`}
-                  action={<Button size="small" onClick={() => { setSelectedClient(null); setClientSearch('') }}>Quitar</Button>}
-                />
-              )}
-
-              {requiresClient && !selectedClient && (
-                <Alert showIcon type="warning" message="Hay productos en el carro que requieren cliente." />
-              )}
-
               {cart.length === 0 ? (
                 <Typography.Text type="secondary">Sin productos en el carro</Typography.Text>
               ) : (
                 <div style={{ border: '1px solid #f0f0f0', borderRadius: 8 }}>
-                  {cart.map((item) => (
-                    <div key={item.product.ProductoEmpresaId} style={{ padding: '12px 12px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <Typography.Text strong>{item.product.NombreComercial}</Typography.Text>
-                        <br />
-                        <Typography.Text type="secondary">{item.product.ModoPrecio === 'fijo' ? `$ ${item.product.PrecioFijo ?? 0}` : 'Tarifa dinámica'}</Typography.Text>
+                  {cart.map((item) => {
+                    const requiresClient = requiresAssignedClient(item.Product)
+                    const assignedClient = item.ClienteEmpresaIdAsignado ? knownClientes[item.ClienteEmpresaIdAsignado] : null
+                    const searchValue = clientSearchByItem[item.Id] ?? ''
+                    const options = clientOptionsByItem[item.Id] ?? []
+                    const searching = searchingByItem[item.Id] ?? false
+                    const canSuggestCreate = !assignedClient && searchValue.trim().length >= 2 && !searching && options.length === 0
+
+                    return (
+                      <div key={item.Id} style={{ padding: '12px 12px', borderBottom: '1px solid #f0f0f0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                          <div style={{ flex: 1 }}>
+                            <Typography.Text strong>{item.Product.NombreComercial}</Typography.Text>
+                            <br />
+                            <Typography.Text type="secondary">
+                              {item.Product.ModoPrecio === 'fijo' ? `$ ${item.Product.PrecioFijo ?? 0}` : 'Tarifa dinámica'}
+                            </Typography.Text>
+
+                            {requiresClient && (
+                              <div style={{ marginTop: 10 }}>
+                                <AutoComplete
+                                  value={assignedClient ? formatClientLabel(assignedClient) : searchValue}
+                                  onSearch={(value) => onClientSearch(item.Id, value)}
+                                  onSelect={(value) => {
+                                    const cliente = options.find((entry) => `${entry.ClienteEmpresaId}` === value)
+                                    if (cliente) {
+                                      setAssignedClient(item.Id, cliente)
+                                    }
+                                  }}
+                                  options={options.map((cliente) => ({
+                                    value: `${cliente.ClienteEmpresaId}`,
+                                    label: formatClientLabel(cliente),
+                                  }))}
+                                >
+                                  <Input placeholder="Asignar cliente por nombre o RUT (mín. 2 caracteres)" />
+                                </AutoComplete>
+
+                                {assignedClient ? (
+                                  <Space style={{ marginTop: 6 }} size={8}>
+                                    <Typography.Text type="secondary">{assignedClient.TipoCliente} · {assignedClient.Estado}</Typography.Text>
+                                    <Button size="small" onClick={() => clearAssignedClient(item.Id)}>Quitar cliente</Button>
+                                  </Space>
+                                ) : (
+                                  <Typography.Text type="danger" style={{ display: 'block', marginTop: 6 }}>
+                                    Este producto requiere cliente asignado.
+                                  </Typography.Text>
+                                )}
+
+                                {canSuggestCreate && (
+                                  <Space style={{ marginTop: 8 }}>
+                                    <Typography.Text type="secondary">No encontramos coincidencias.</Typography.Text>
+                                    <Button size="small" type="primary" onClick={() => openCreateClient(item.Id)}>
+                                      Crear cliente
+                                    </Button>
+                                  </Space>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                            <Space orientation="vertical" align="end">
+                            {requiresClient ? (
+                              <Typography.Text type="secondary">Cantidad fija: 1</Typography.Text>
+                            ) : (
+                              <InputNumber
+                                min={1}
+                                value={item.Quantity}
+                                onChange={(value) => {
+                                  const nextValue = Number(value) || 1
+                                  setCart((current) => current.map((row) => row.Id === item.Id ? { ...row, Quantity: nextValue } : row))
+                                }}
+                              />
+                            )}
+
+                            {requiresClient && (
+                              <Button size="small" onClick={() => addProduct(item.Product)}>
+                                Agregar otro
+                              </Button>
+                            )}
+
+                            <Button danger size="small" onClick={() => removeItem(item.Id)}>Quitar</Button>
+                          </Space>
+                        </div>
                       </div>
-                      <Space>
-                        <InputNumber key="qty" min={1} value={item.quantity} onChange={(value) => setCart((current) => current.map((row) => row.product.ProductoEmpresaId === item.product.ProductoEmpresaId ? { ...row, quantity: Number(value) || 1 } : row))} />
-                        <Button danger onClick={() => setCart((current) => current.filter((row) => row.product.ProductoEmpresaId !== item.product.ProductoEmpresaId))}>Quitar</Button>
-                      </Space>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
 
-              {previewError && <Alert showIcon type="error" message={previewError} />}
+              {previewError && <Alert showIcon type="error" title={previewError} />}
 
               {preview && (
                 <Card size="small" title="Previsualización de venta">
-                  {preview.Detalles.map((detail) => (
-                    <div key={detail.ProductoEmpresaId} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  {preview.Detalles.map((detail, index) => (
+                    <div key={`${detail.ProductoEmpresaId}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                       <span>{detail.ProductoNombre} x {detail.Cantidad}</span>
                       <strong>$ {detail.Subtotal}</strong>
                     </div>
@@ -218,26 +429,35 @@ export default function PuntoVentaPage() {
                 size="large"
                 block
                 loading={saving}
-                disabled={!preview || !medioPagoId || (requiresClient && !selectedClient)}
+                disabled={!preview || !medioPagoId || !!missingAssignedItem}
                 onClick={async () => {
-                  if (!preview || !medioPagoId) return
+                  if (!preview || !medioPagoId) {
+                    return
+                  }
+
                   setSaving(true)
                   try {
                     const result = await ventasService.createVenta({
-                      ClienteEmpresaId: selectedClient?.ClienteEmpresaId ?? null,
+                      ClienteEmpresaId: buildHeaderClienteId(cart),
                       Items: cart.map((item) => ({
-                        ProductoEmpresaId: item.product.ProductoEmpresaId,
-                        Cantidad: item.quantity,
+                        ProductoEmpresaId: item.Product.ProductoEmpresaId,
+                        Cantidad: item.Quantity,
+                        ClienteEmpresaIdAsignado: item.ClienteEmpresaIdAsignado ?? null,
                         FechaInicioVigencia: null,
                         Observacion: null,
                       })),
                       Pagos: [{ MedioPagoId: medioPagoId, Monto: preview.Total, Referencia: null }],
                     })
+
                     message.success(`Venta ${result.NumeroComprobante} creada correctamente.`)
                     setCart([])
                     setPreview(null)
-                    setSelectedClient(null)
-                    setClientSearch('')
+                    setPreviewError(null)
+                    setClientSearchByItem({})
+                    setClientOptionsByItem({})
+                    setSearchingByItem({})
+                  } catch (error) {
+                    message.error(getApiErrorMessage(error, 'No fue posible crear la venta.'))
                   } finally {
                     setSaving(false)
                   }
@@ -249,6 +469,91 @@ export default function PuntoVentaPage() {
           </Card>
         </Col>
       </Row>
+
+      <Modal
+        open={createClientOpen}
+        title="Crear cliente"
+        onCancel={() => {
+          setCreateClientOpen(false)
+          setCreateClientTargetItemId(null)
+          createClientForm.resetFields()
+        }}
+        onOk={() => createClientForm.submit()}
+        confirmLoading={creatingClient}
+        destroyOnHidden
+      >
+        <Form
+          form={createClientForm}
+          layout="vertical"
+          onFinish={async (values) => {
+            if (!createClientTargetItemId) {
+              return
+            }
+
+            setCreatingClient(true)
+            try {
+              const created = await administracionService.createCliente({
+                NombreCompleto: values.NombreCompleto?.trim(),
+                Rut: normalizeRut(values.Rut),
+                FechaNacimiento: null,
+                Telefono: values.Telefono ?? null,
+                Correo: values.Correo ?? null,
+                TipoClienteId: values.TipoClienteId,
+                Estado: 'activo',
+              })
+
+              const createdLookup: ClienteLookupDto = {
+                ClienteEmpresaId: created.ClienteEmpresaId,
+                NombreCompleto: created.NombreCompleto,
+                Rut: created.Rut,
+                Estado: created.Estado,
+                TipoCliente: created.TipoCliente,
+              }
+
+              setAssignedClient(createClientTargetItemId, createdLookup)
+              setCreateClientOpen(false)
+              setCreateClientTargetItemId(null)
+              createClientForm.resetFields()
+              message.success('Cliente creado y asignado correctamente.')
+            } catch (error) {
+              message.error(getApiErrorMessage(error, 'No fue posible crear el cliente.'))
+            } finally {
+              setCreatingClient(false)
+            }
+          }}
+        >
+          <Form.Item name="NombreCompleto" label="Nombre completo" rules={[{ required: true, whitespace: true, message: 'Ingresa el nombre del cliente.' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="Rut"
+            label="RUT"
+            rules={[
+              { required: true, message: 'Ingresa el RUT del cliente.' },
+              {
+                validator: (_, value) => {
+                  if (!value || isValidRut(value)) {
+                    return Promise.resolve()
+                  }
+
+                  return Promise.reject(new Error('Ingresa un RUT válido.'))
+                },
+              },
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item name="TipoClienteId" label="Tipo de cliente" rules={[{ required: true, message: 'Selecciona el tipo de cliente.' }]}>
+            <Select options={tiposCliente.map((item) => ({ value: item.TipoClienteId, label: item.Nombre }))} />
+          </Form.Item>
+          <Form.Item name="Telefono" label="Teléfono">
+            <Input />
+          </Form.Item>
+          <Form.Item name="Correo" label="Correo">
+            <Input />
+          </Form.Item>
+        </Form>
+      </Modal>
     </>
   )
 }

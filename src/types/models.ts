@@ -22,15 +22,18 @@ export interface LookupDto {
 export interface EmpresaDto {
   EmpresaId: number
   NombreComercial: string
+  RazonSocial?: string | null
   Rut: string
   Estado: string
   MonedaCodigo: string
+  TelefonoContacto?: string | null
   CorreoContacto?: string | null
 }
 
 export interface UsuarioDto {
   UsuarioId: number
   NombreCompleto: string
+  Rut: string
   EmailLogin: string
   Estado: string
   Roles: string[]
@@ -50,8 +53,10 @@ export interface ClienteDto {
   PersonaId: number
   NombreCompleto: string
   Rut: string
+  FechaNacimiento?: string | null
   Correo?: string | null
   Telefono?: string | null
+  TipoClienteId: number
   TipoCliente: string
   Estado: string
 }
@@ -59,6 +64,7 @@ export interface ClienteDto {
 export interface ProductoDto {
   ProductoEmpresaId: number
   NombreComercial: string
+  Descripcion?: string | null
   TipoProductoBaseCodigo: string
   ModoPrecio: string
   PrecioFijo?: number | null

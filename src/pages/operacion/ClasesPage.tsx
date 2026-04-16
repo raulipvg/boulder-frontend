@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { operacionService } from '../../services/operacion/operacionService'
 import type { ClaseSesionDto } from '../../types/models'
+import { toCapitalCase } from '../../utils/formatPersonName'
 
 export default function OperacionClasesPage() {
   const [fecha, setFecha] = useState(dayjs())
@@ -44,7 +45,7 @@ export default function OperacionClasesPage() {
             { title: 'Hora inicio', dataIndex: 'HoraInicio' },
             { title: 'Hora fin', dataIndex: 'HoraFin' },
             { title: 'Clase', dataIndex: 'ClaseNombre' },
-            { title: 'Profesor', dataIndex: 'ProfesorNombre' },
+            { title: 'Profesor', render: (_, record) => toCapitalCase(record.ProfesorNombre) },
             { title: 'Cupo', dataIndex: 'CupoMaximo' },
             { title: 'Estado', dataIndex: 'Estado' },
           ]}

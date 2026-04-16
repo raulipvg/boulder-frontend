@@ -1,10 +1,12 @@
-import { Alert, AutoComplete, Button, Card, List, Space, Typography, message } from 'antd'
+import { Alert, App as AntdApp, AutoComplete, Button, Card, List, Space, Typography } from 'antd'
 import { useEffect, useState } from 'react'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { operacionService } from '../../services/operacion/operacionService'
 import type { AccessPreviewDto, ClienteLookupDto } from '../../types/models'
+import { toCapitalCase } from '../../utils/formatPersonName'
 
 export default function AccesosPage() {
+  const { message } = AntdApp.useApp()
   const [search, setSearch] = useState('')
   const [clientes, setClientes] = useState<ClienteLookupDto[]>([])
   const [selectedCliente, setSelectedCliente] = useState<ClienteLookupDto | null>(null)
@@ -46,21 +48,21 @@ export default function AccesosPage() {
 
         <Space orientation="vertical" style={{ width: '100%' }} size="large">
           <AutoComplete
-            value={selectedCliente ? `${selectedCliente.NombreCompleto} (${selectedCliente.Rut})` : search}
+            value={selectedCliente ? `${toCapitalCase(selectedCliente.NombreCompleto)} (${selectedCliente.Rut})` : search}
             onSearch={setSearch}
             onSelect={(value) => {
               const cliente = clientes.find((item) => `${item.ClienteEmpresaId}` === value)
               if (cliente) {
                 setSelectedCliente(cliente)
-                setSearch(`${cliente.NombreCompleto} (${cliente.Rut})`)
+                setSearch(`${toCapitalCase(cliente.NombreCompleto)} (${cliente.Rut})`)
               }
             }}
-            options={clientes.map((cliente) => ({ value: `${cliente.ClienteEmpresaId}`, label: `${cliente.NombreCompleto} (${cliente.Rut})` }))}
+            options={clientes.map((cliente) => ({ value: `${cliente.ClienteEmpresaId}`, label: `${toCapitalCase(cliente.NombreCompleto)} (${cliente.Rut})` }))}
             style={{ width: 420 }}
           />
 
           {preview && (
-            <Card size="small" title={`${preview.ClienteNombre} · ${preview.EstadoCliente}`}>
+            <Card size="small" title={`${toCapitalCase(preview.ClienteNombre)} · ${preview.EstadoCliente}`}>
               <List
                 dataSource={preview.Opciones}
                 locale={{ emptyText: 'El cliente no tiene beneficios vigentes.' }}

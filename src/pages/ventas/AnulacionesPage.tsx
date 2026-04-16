@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { ventasService } from '../../services/ventas/ventasService'
 import type { VentaDto } from '../../types/models'
+import { toCapitalCase } from '../../utils/formatPersonName'
 
 export default function AnulacionesPage() {
   const [items, setItems] = useState<VentaDto[]>([])
@@ -34,7 +35,7 @@ export default function AnulacionesPage() {
           columns={[
             { title: 'Comprobante', dataIndex: 'NumeroComprobante' },
             { title: 'Fecha', dataIndex: 'FechaHora' },
-            { title: 'Cliente', dataIndex: 'ClienteNombre' },
+            { title: 'Cliente', render: (_, record) => toCapitalCase(record.ClienteNombre) },
             { title: 'Motivo', dataIndex: 'MotivoAnulacion' },
             { title: 'Total', dataIndex: 'Total' },
           ]}

@@ -1,11 +1,13 @@
-import { AutoComplete, Button, Card, InputNumber, Space, Table, Typography, message } from 'antd'
+import { App as AntdApp, AutoComplete, Button, Card, InputNumber, Space, Table, Typography } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect, useState } from 'react'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { operacionService } from '../../services/operacion/operacionService'
 import type { AccessPreviewDto, ClaseSesionDto, ClienteLookupDto } from '../../types/models'
+import { toCapitalCase } from '../../utils/formatPersonName'
 
 export default function AsistenciasPage() {
+  const { message } = AntdApp.useApp()
   const [sesiones, setSesiones] = useState<ClaseSesionDto[]>([])
   const [search, setSearch] = useState('')
   const [clientes, setClientes] = useState<ClienteLookupDto[]>([])
@@ -39,16 +41,16 @@ export default function AsistenciasPage() {
         <Space orientation="vertical" style={{ width: '100%' }} size="large">
           <InputNumber placeholder="ID sesión" style={{ width: 220 }} value={selectedSesionId ?? undefined} onChange={(value) => setSelectedSesionId(Number(value) || null)} />
           <AutoComplete
-            value={selectedCliente ? `${selectedCliente.NombreCompleto} (${selectedCliente.Rut})` : search}
+            value={selectedCliente ? `${toCapitalCase(selectedCliente.NombreCompleto)} (${selectedCliente.Rut})` : search}
             onSearch={setSearch}
             onSelect={(value) => {
               const cliente = clientes.find((item) => `${item.ClienteEmpresaId}` === value)
               if (cliente) {
                 setSelectedCliente(cliente)
-                setSearch(`${cliente.NombreCompleto} (${cliente.Rut})`)
+                setSearch(`${toCapitalCase(cliente.NombreCompleto)} (${cliente.Rut})`)
               }
             }}
-            options={clientes.map((cliente) => ({ value: `${cliente.ClienteEmpresaId}`, label: `${cliente.NombreCompleto} (${cliente.Rut})` }))}
+            options={clientes.map((cliente) => ({ value: `${cliente.ClienteEmpresaId}`, label: `${toCapitalCase(cliente.NombreCompleto)} (${cliente.Rut})` }))}
             style={{ width: 420 }}
           />
 
@@ -59,7 +61,7 @@ export default function AsistenciasPage() {
             columns={[
               { title: 'ID sesión', dataIndex: 'ClaseSesionId' },
               { title: 'Clase', dataIndex: 'ClaseNombre' },
-              { title: 'Profesor', dataIndex: 'ProfesorNombre' },
+              { title: 'Profesor', render: (_, record) => toCapitalCase(record.ProfesorNombre) },
               { title: 'Hora', render: (_, r) => `${r.HoraInicio} - ${r.HoraFin}` },
             ]}
           />

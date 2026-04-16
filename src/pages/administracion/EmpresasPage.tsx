@@ -1,12 +1,16 @@
-import { Button, Card, Form, Input, Modal, Space, Table, Typography } from 'antd'
+import { App as AntdApp, Button, Card, Form, Input, Modal, Space, Table, Typography } from 'antd'
 import { useEffect, useState } from 'react'
 import { administracionService } from '../../services/administracion/administracionService'
 import type { EmpresaDto } from '../../types/models'
+import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 
 export default function EmpresasPage() {
+  const { message } = AntdApp.useApp()
   const [items, setItems] = useState<EmpresaDto[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<EmpresaDto | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm()
 
   const load = async () => {
@@ -29,7 +33,16 @@ export default function EmpresasPage() {
           <Typography.Title level={3} style={{ margin: 0 }}>Empresas</Typography.Title>
           <Typography.Text type="secondary">Administración global de tenants SaaS.</Typography.Text>
         </div>
-        <Button type="primary" onClick={() => setOpen(true)}>Nueva empresa</Button>
+        <Button
+          type="primary"
+          onClick={() => {
+            setEditingItem(null)
+            form.resetFields()
+            setOpen(true)
+          }}
+        >
+          Nueva empresa
+        </Button>
       </div>
 
       <Table
@@ -42,30 +55,72 @@ export default function EmpresasPage() {
           { title: 'Estado', dataIndex: 'Estado' },
           { title: 'Moneda', dataIndex: 'MonedaCodigo' },
           { title: 'Correo', dataIndex: 'CorreoContacto' },
+          {
+            title: 'Acciones',
+            render: (_, record) => (
+              <Button
+                type="link"
+                onClick={() => {
+                  setEditingItem(record)
+                  form.setFieldsValue({
+                    NombreComercial: record.NombreComercial,
+                    RazonSocial: record.RazonSocial ?? undefined,
+                    Rut: record.Rut,
+                    TelefonoContacto: record.TelefonoContacto ?? undefined,
+                    CorreoContacto: record.CorreoContacto ?? undefined,
+                  })
+                  setOpen(true)
+                }}
+              >
+                Editar
+              </Button>
+            ),
+          },
         ]}
       />
 
       <Modal
         open={open}
-        title="Nueva empresa"
-        onCancel={() => setOpen(false)}
+        title={editingItem ? 'Editar empresa' : 'Nueva empresa'}
+        onCancel={() => {
+          setOpen(false)
+          setEditingItem(null)
+        }}
         onOk={() => form.submit()}
+        confirmLoading={submitting}
         destroyOnHidden
       >
         <Form
           form={form}
           layout="vertical"
           onFinish={async (values) => {
-            await administracionService.createEmpresa({
-              NombreComercial: values.NombreComercial,
-              RazonSocial: values.RazonSocial,
-              Rut: values.Rut,
-              TelefonoContacto: values.TelefonoContacto,
-              CorreoContacto: values.CorreoContacto,
-            })
-            setOpen(false)
-            form.resetFields()
-            await load()
+            setSubmitting(true)
+            try {
+              const payload = {
+                NombreComercial: values.NombreComercial,
+                RazonSocial: values.RazonSocial,
+                Rut: values.Rut,
+                TelefonoContacto: values.TelefonoContacto,
+                CorreoContacto: values.CorreoContacto,
+              }
+
+              if (editingItem) {
+                await administracionService.updateEmpresa(editingItem.EmpresaId, payload)
+                message.success('Empresa actualizada correctamente.')
+              } else {
+                await administracionService.createEmpresa(payload)
+                message.success('Empresa creada correctamente.')
+              }
+
+              setOpen(false)
+              setEditingItem(null)
+              form.resetFields()
+              await load()
+            } catch (error) {
+              message.error(getApiErrorMessage(error, `No se pudo ${editingItem ? 'actualizar' : 'crear'} la empresa.`))
+            } finally {
+              setSubmitting(false)
+            }
           }}
         >
           <Form.Item name="NombreComercial" label="Nombre comercial" rules={[{ required: true }]}>

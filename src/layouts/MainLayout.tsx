@@ -1,11 +1,12 @@
 import { BarChartOutlined, CoffeeOutlined, SettingOutlined, ToolOutlined } from '@ant-design/icons'
 import { Button, Layout, Menu, Select, Space, Tag, Typography } from 'antd'
 import type { MenuProps } from 'antd'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { ROLES_ADMIN, ROLES_ADMIN_TOTAL, ROLES_VENTAS_OPERACION } from '../constants/roles'
 import { useAuth } from '../context/AuthContext'
 import { useEmpresa } from '../context/EmpresaContext'
+import { toCapitalCase } from '../utils/formatPersonName'
 
 const { Header, Content, Sider } = Layout
 
@@ -84,6 +85,29 @@ export default function MainLayout() {
     return group?.key
   }, [hasRole, location.pathname, menuConfig])
 
+  const menuGroupKeys = useMemo(() => items?.map((group) => String(group?.key)) ?? [], [items])
+  const [openKeys, setOpenKeys] = useState<string[]>(openKey ? [openKey] : [])
+
+  useEffect(() => {
+    setOpenKeys(openKey ? [openKey] : [])
+  }, [openKey])
+
+  const handleOpenChange: MenuProps['onOpenChange'] = (nextOpenKeys) => {
+    const latestOpenKey = nextOpenKeys.find((key) => !openKeys.includes(key))
+
+    if (!latestOpenKey) {
+      setOpenKeys([])
+      return
+    }
+
+    if (menuGroupKeys.includes(latestOpenKey)) {
+      setOpenKeys([latestOpenKey])
+      return
+    }
+
+    setOpenKeys(nextOpenKeys)
+  }
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider width={260} theme="light" breakpoint="lg" collapsedWidth="0">
@@ -91,13 +115,19 @@ export default function MainLayout() {
           <Typography.Title level={4} style={{ margin: 0 }}>ERP Boulder</Typography.Title>
           <Typography.Text type="secondary">Centro de escalada</Typography.Text>
         </div>
-        <Menu mode="inline" selectedKeys={selectedKey ? [selectedKey] : []} openKeys={openKey ? [openKey] : []} items={items} />
+        <Menu
+          mode="inline"
+          selectedKeys={selectedKey ? [selectedKey] : []}
+          openKeys={openKeys}
+          onOpenChange={handleOpenChange}
+          items={items}
+        />
       </Sider>
 
       <Layout>
         <Header style={{ background: '#fff', padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Space>
-            <Typography.Text strong>{user?.FullName}</Typography.Text>
+            <Typography.Text strong>{toCapitalCase(user?.FullName)}</Typography.Text>
             {user?.EmpresaNombre && <Tag color="blue">{user.EmpresaNombre}</Tag>}
             {isAdminTotal && (
               <Select
