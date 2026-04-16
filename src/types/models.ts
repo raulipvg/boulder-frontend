@@ -102,6 +102,22 @@ export interface TarifaDto {
   Activo: boolean
 }
 
+export interface TarifaProductoResumenDto {
+  TarifaProductoId: number
+  ProductoEmpresaId: number
+  TipoClienteId?: number | null
+  TipoClienteNombre?: string | null
+  TipoDia?: string | null
+  BloqueHorarioComercialId?: number | null
+  BloqueHorarioNombre?: string | null
+  HoraInicio?: string | null
+  HoraFin?: string | null
+  Precio: number
+  VigenciaDesde: string
+  VigenciaHasta: string
+  Activo: boolean
+}
+
 export interface ClaseHorarioDto {
   ClaseHorarioId: number
   DiaSemana: number

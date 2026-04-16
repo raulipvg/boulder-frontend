@@ -1,5 +1,5 @@
 import apiClient from '../apiClient'
-import type { BloqueHorarioDto, ClaseDto, ClienteDto, EmpresaDto, LookupDto, ProductoDto, TarifaDto, TipoClienteDto, UsuarioDto } from '../../types/models'
+import type { BloqueHorarioDto, ClaseDto, ClienteDto, EmpresaDto, LookupDto, ProductoDto, TarifaDto, TarifaProductoResumenDto, TipoClienteDto, UsuarioDto } from '../../types/models'
 
 export const administracionService = {
   getEmpresas: async () => (await apiClient.get<EmpresaDto[]>('/administracion/empresas')).data,
@@ -18,6 +18,8 @@ export const administracionService = {
   createCliente: async (payload: Record<string, unknown>) => (await apiClient.post<ClienteDto>('/administracion/clientes', payload)).data,
   updateCliente: async (clienteEmpresaId: number, payload: Record<string, unknown>) => (await apiClient.put<ClienteDto>(`/administracion/clientes/${clienteEmpresaId}`, payload)).data,
   getProductos: async () => (await apiClient.get<ProductoDto[]>('/administracion/productos')).data,
+  getTarifasByProducto: async (productoEmpresaId: number) =>
+    (await apiClient.get<TarifaProductoResumenDto[]>(`/administracion/productos/${productoEmpresaId}/tarifas`)).data,
   createProducto: async (payload: Record<string, unknown>) => (await apiClient.post<ProductoDto>('/administracion/productos', payload)).data,
   updateProducto: async (productoEmpresaId: number, payload: Record<string, unknown>) => (await apiClient.put<ProductoDto>(`/administracion/productos/${productoEmpresaId}`, payload)).data,
   getTarifas: async (tipoClienteCodigo: 'GENERAL' | 'ESTUDIANTE' = 'GENERAL') => (await apiClient.get<TarifaDto[]>('/administracion/tarifas', { params: { tipoClienteCodigo } })).data,

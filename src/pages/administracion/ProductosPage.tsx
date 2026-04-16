@@ -112,7 +112,7 @@ export default function ProductosPage() {
           dataSource={items}
           columns={[
             { title: 'Producto', dataIndex: 'NombreComercial' },
-            { title: 'Tipo base', dataIndex: 'TipoProductoBaseCodigo' },
+            { title: 'Tipo Producto', dataIndex: 'TipoProductoBaseCodigo' },
             { title: 'Modo precio', dataIndex: 'ModoPrecio' },
             { title: 'Precio fijo', dataIndex: 'PrecioFijo' },
             { title: 'POS', render: (_, r) => (r.VisiblePos ? 'Sí' : 'No') },

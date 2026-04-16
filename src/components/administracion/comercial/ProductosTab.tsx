@@ -1,9 +1,11 @@
-import { CheckOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons'
+import { ArrowRightOutlined, CheckOutlined, CloseOutlined, DownOutlined, EditOutlined, RightOutlined } from '@ant-design/icons'
 import {
   Alert,
   App as AntdApp,
   Button,
   Card,
+  Checkbox,
+  DatePicker,
   Empty,
   Form,
   Grid,
@@ -17,9 +19,10 @@ import {
   Typography,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
+import dayjs from 'dayjs'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 import { administracionService } from '../../../services/administracion/administracionService'
-import type { ClaseDto, LookupDto, ProductoDto } from '../../../types/models'
+import type { ClaseDto, LookupDto, ProductoDto, TarifaProductoResumenDto } from '../../../types/models'
 import { getApiErrorMessage } from '../../../utils/getApiErrorMessage'
 
 export interface ProductosTabHandle {
@@ -29,9 +32,23 @@ export interface ProductosTabHandle {
 
 const { useBreakpoint } = Grid
 
+const DAY_OPTIONS = ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM']
+
 const yesNoTag = (value: boolean, yesLabel: string, noLabel: string) => (
   <Tag color={value ? 'green' : 'red'}>{value ? yesLabel : noLabel}</Tag>
 )
+
+const currencyFormatter = new Intl.NumberFormat('es-CL')
+
+const formatCurrency = (value?: number | null) => (value == null ? '-' : `$${currencyFormatter.format(value)}`)
+
+const formatVigenciaRange = (desde: string, hasta: string) => {
+  const fmt = (value: string) => {
+    const [year, month, day] = value.split('-').map(Number)
+    return new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: '2-digit', year: '2-digit' }).format(new Date(year, month - 1, day))
+  }
+  return { desde: fmt(desde), hasta: fmt(hasta) }
+}
 
 const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props, ref) {
   const { message } = AntdApp.useApp()
@@ -46,7 +63,15 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
   const [open, setOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<ProductoDto | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [expandedRowKeys, setExpandedRowKeys] = useState<number[]>([])
+  const [tarifasByProducto, setTarifasByProducto] = useState<Record<number, TarifaProductoResumenDto[]>>({})
+  const [tarifasLoadingByProducto, setTarifasLoadingByProducto] = useState<Record<number, boolean>>({})
+  const [tarifasErrorByProducto, setTarifasErrorByProducto] = useState<Record<number, string>>({})
+  const [tarifaOpen, setTarifaOpen] = useState(false)
+  const [tarifaEditing, setTarifaEditing] = useState<TarifaProductoResumenDto | null>(null)
+  const [tarifaSubmitting, setTarifaSubmitting] = useState(false)
   const [form] = Form.useForm()
+  const [tarifaForm] = Form.useForm()
 
   const selectedTipoProductoBaseId = Form.useWatch('TipoProductoBaseId', form)
   const selectedModoPrecio = Form.useWatch('ModoPrecio', form)
@@ -84,8 +109,205 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
       setTipos(tiposBase)
       setBloques(bloquesData)
       setClases(clasesData)
+      setExpandedRowKeys([])
+      setTarifasByProducto({})
+      setTarifasLoadingByProducto({})
+      setTarifasErrorByProducto({})
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadTarifasByProducto = async (productoEmpresaId: number, force = false) => {
+    if (tarifasLoadingByProducto[productoEmpresaId]) {
+      return
+    }
+
+    if (tarifasByProducto[productoEmpresaId] && !force) {
+      return
+    }
+
+    setTarifasLoadingByProducto((prev) => ({ ...prev, [productoEmpresaId]: true }))
+    setTarifasErrorByProducto((prev) => {
+      const next = { ...prev }
+      delete next[productoEmpresaId]
+      return next
+    })
+
+    try {
+      const tarifas = await administracionService.getTarifasByProducto(productoEmpresaId)
+      setTarifasByProducto((prev) => ({ ...prev, [productoEmpresaId]: tarifas }))
+    } catch (error) {
+      setTarifasErrorByProducto((prev) => ({
+        ...prev,
+        [productoEmpresaId]: getApiErrorMessage(error, 'No se pudieron cargar las tarifas asociadas.'),
+      }))
+    } finally {
+      setTarifasLoadingByProducto((prev) => ({ ...prev, [productoEmpresaId]: false }))
+    }
+  }
+
+  const toggleExpandedTarifas = (record: ProductoDto) => {
+    const productoEmpresaId = record.ProductoEmpresaId
+    const isExpanded = expandedRowKeys.includes(productoEmpresaId)
+
+    if (isExpanded) {
+      setExpandedRowKeys([])
+      return
+    }
+
+    setExpandedRowKeys([productoEmpresaId])
+    void loadTarifasByProducto(productoEmpresaId)
+  }
+
+  const tarifasDetalleColumns: ColumnsType<TarifaProductoResumenDto> = [
+    {
+      title: 'Escalador',
+      key: 'TipoClienteNombre',
+      render: (_, tarifa) => tarifa.TipoClienteNombre || 'Sin tipo cliente',
+    },
+    {
+      title: 'Dias',
+      key: 'TipoDia',
+      render: (_, tarifa) => tarifa.TipoDia || 'Todos los dias',
+    },
+    {
+      title: 'Bloque',
+      key: 'BloqueHorario',
+      render: (_, tarifa) =>
+        tarifa.BloqueHorarioNombre ? (
+          <Typography.Text strong>
+            {tarifa.BloqueHorarioNombre} ({tarifa.HoraInicio}-{tarifa.HoraFin})
+          </Typography.Text>
+        ) : (
+          'Todo horario'
+        ),
+    },
+    {
+      title: 'Precio',
+      key: 'Precio',
+      align: 'right',
+      render: (_, tarifa) => <Typography.Text strong>{formatCurrency(tarifa.Precio)}</Typography.Text>,
+    },
+    {
+      title: 'Vigencia',
+      key: 'Vigencia',
+      align: 'right',
+      render: (_, tarifa) => {
+        const { desde, hasta } = formatVigenciaRange(tarifa.VigenciaDesde, tarifa.VigenciaHasta)
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Tag color="blue" style={{ margin: 0 }}>{desde}</Tag>
+            <ArrowRightOutlined style={{ color: '#8c8c8c', fontSize: 12 }} />
+            <Tag color="cyan" style={{ margin: 0 }}>{hasta}</Tag>
+          </span>
+        )
+      },
+    },
+    {
+      title: 'Estado',
+      key: 'Activo',
+      align: 'center',
+      render: (_, tarifa) => <Tag color={tarifa.Activo ? 'green' : 'default'}>{tarifa.Activo ? 'Activa' : 'Inactiva'}</Tag>,
+    },
+    {
+      title: '',
+      key: 'acciones',
+      align: 'center',
+      width: 60,
+      render: (_, record) => (
+        <Tooltip title="Editar">
+          <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openTarifaEdit(record)} />
+        </Tooltip>
+      ),
+    },
+  ]
+
+  const renderTarifasSubtable = (record: ProductoDto) => {
+    const productoEmpresaId = record.ProductoEmpresaId
+    const tarifas = tarifasByProducto[productoEmpresaId] ?? []
+    const loadingTarifas = Boolean(tarifasLoadingByProducto[productoEmpresaId])
+    const errorTarifas = tarifasErrorByProducto[productoEmpresaId]
+
+    if (errorTarifas) {
+      return (
+        <Alert
+          type="error"
+          showIcon
+          message={errorTarifas}
+          action={(
+            <Button type="link" size="small" onClick={() => void loadTarifasByProducto(productoEmpresaId, true)}>
+              Reintentar
+            </Button>
+          )}
+        />
+      )
+    }
+
+    if (!loadingTarifas && !tarifas.length) {
+      return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Sin tarifas asociadas" />
+    }
+
+    return (
+      <Table
+        rowKey="TarifaProductoId"
+        columns={tarifasDetalleColumns}
+        dataSource={tarifas}
+        loading={loadingTarifas}
+        size="small"
+        pagination={false}
+        tableLayout="auto"
+        scroll={{ x: 900 }}
+      />
+    )
+  }
+
+  const openTarifaEdit = (record: TarifaProductoResumenDto) => {
+    setTarifaEditing(record)
+    tarifaForm.setFieldsValue({
+      TipoDias: (record.TipoDia ?? '').split(',').filter(Boolean),
+      BloqueHorarioComercialId: record.BloqueHorarioComercialId ?? undefined,
+      Precio: record.Precio,
+      VigenciaDesde: dayjs(record.VigenciaDesde),
+      VigenciaHasta: dayjs(record.VigenciaHasta),
+      Activo: record.Activo,
+    })
+    setTarifaOpen(true)
+  }
+
+  const handleTarifaSubmit = async (values: Record<string, unknown>) => {
+    if (!tarifaEditing) return
+    setTarifaSubmitting(true)
+    try {
+      const tipoDiasVal = values.TipoDias as string[] | undefined
+      const selectedDays = Array.isArray(tipoDiasVal)
+        ? DAY_OPTIONS.filter((day) => tipoDiasVal.includes(day))
+        : []
+
+      const payload = {
+        ProductoEmpresaId: tarifaEditing.ProductoEmpresaId,
+        TipoClienteId: tarifaEditing.TipoClienteId,
+        TipoDia: selectedDays.join(','),
+        Precio: values.Precio,
+        VigenciaDesde: (values.VigenciaDesde as dayjs.Dayjs).format('YYYY-MM-DD'),
+        VigenciaHasta: (values.VigenciaHasta as dayjs.Dayjs).format('YYYY-MM-DD'),
+        Activo: values.Activo,
+      }
+
+      await administracionService.updateTarifa(tarifaEditing.TarifaProductoId, payload)
+      message.success('Tarifa actualizada correctamente.')
+      setTarifaOpen(false)
+      setTarifaEditing(null)
+      tarifaForm.resetFields()
+
+      const expandedKey = expandedRowKeys[0]
+      if (expandedKey) {
+        void loadTarifasByProducto(expandedKey, true)
+      }
+    } catch (error) {
+      message.error(getApiErrorMessage(error, 'No se pudo actualizar la tarifa.'))
+    } finally {
+      setTarifaSubmitting(false)
     }
   }
 
@@ -283,8 +505,8 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
   const usosLabel = isPackTickets ? 'Cantidad de tickets del pack' : isClases ? 'Cantidad de clases' : 'Usos incluidos'
 
   const columns: ColumnsType<ProductoDto> = [
-    { title: 'Producto', dataIndex: 'NombreComercial', key: 'NombreComercial' },
-    { title: 'Tipo base', dataIndex: 'TipoProductoBaseCodigo', key: 'TipoProductoBaseCodigo', responsive: ['md'] },
+    { title: 'Producto', dataIndex: 'NombreComercial', key: 'NombreComercial', render: (value) => <Typography.Text strong>{value}</Typography.Text> },
+    { title: 'Tipo Producto', dataIndex: 'TipoProductoBaseCodigo', key: 'TipoProductoBaseCodigo', responsive: ['md'] },
     {
       title: 'Modo',
       dataIndex: 'ModoPrecio',
@@ -298,9 +520,19 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
       responsive: ['lg'],
       render: (_, record) =>
         record.ModoPrecio === 'tarifa' ? (
-          'Varios'
+          <Button
+            type="link"
+            size="small"
+            style={{ padding: 0, height: 'auto', fontWeight: 600 }}
+            onClick={(event) => {
+              event.stopPropagation()
+              toggleExpandedTarifas(record)
+            }}
+          >
+            Varios {expandedRowKeys.includes(record.ProductoEmpresaId) ? <DownOutlined /> : <RightOutlined />}
+          </Button>
         ) : (
-          <strong>${record.PrecioFijo?.toLocaleString('es-CL')}</strong>
+          <Typography.Text strong>{formatCurrency(record.PrecioFijo)}</Typography.Text>
         ),
     },
     {
@@ -390,6 +622,13 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
             rowKey="ProductoEmpresaId"
             columns={columns}
             dataSource={items}
+            expandable={{
+              expandedRowKeys,
+              expandedRowRender: (record) => renderTarifasSubtable(record),
+              rowExpandable: (record) => record.ModoPrecio === 'tarifa',
+              showExpandColumn: false,
+              expandedRowClassName: () => 'tms-producto-tarifas-row',
+            }}
             scroll={{ x: 980 }}
             tableLayout="auto"
             pagination={false}
@@ -545,6 +784,46 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
               description="Mientras no tenga una tarifa activa asociada, este producto no puede estar activo ni visible en POS."
             />
           )}
+        </Form>
+      </Modal>
+
+      <Modal
+        open={tarifaOpen}
+        title="Editar tarifa"
+        onCancel={() => {
+          setTarifaOpen(false)
+          setTarifaEditing(null)
+        }}
+        onOk={() => tarifaForm.submit()}
+        confirmLoading={tarifaSubmitting}
+        destroyOnHidden
+      >
+        <Form form={tarifaForm} layout="vertical" onFinish={handleTarifaSubmit}>
+          <Form.Item
+            name="TipoDias"
+            label="Dias aplicables"
+            rules={[{ required: true, type: 'array', min: 1, message: 'Selecciona al menos un dia.' }]}
+          >
+            <Checkbox.Group options={DAY_OPTIONS.map((day) => ({ value: day, label: day }))} />
+          </Form.Item>
+          <Form.Item name="BloqueHorarioComercialId" label="Bloque horario">
+            <Select
+              allowClear
+              options={bloques.map((bloque) => ({ value: bloque.Id, label: bloque.Nombre }))}
+            />
+          </Form.Item>
+          <Form.Item name="Precio" label="Precio" rules={[{ required: true }]}>
+            <Input type="number" />
+          </Form.Item>
+          <Form.Item name="VigenciaDesde" label="Vigencia desde" rules={[{ required: true }]}>
+            <DatePicker style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="VigenciaHasta" label="Vigencia hasta" rules={[{ required: true }]}>
+            <DatePicker style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="Activo" label="Activa" valuePropName="checked">
+            <Switch />
+          </Form.Item>
         </Form>
       </Modal>
     </>
