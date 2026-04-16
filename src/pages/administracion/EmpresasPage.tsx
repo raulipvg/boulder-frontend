@@ -1,5 +1,7 @@
-import { App as AntdApp, Button, Card, Form, Input, Modal, Space, Table, Typography } from 'antd'
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'
+import { App as AntdApp, Button, Card, Form, Input, Modal, Space, Table } from 'antd'
 import { useEffect, useState } from 'react'
+import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { administracionService } from '../../services/administracion/administracionService'
 import type { EmpresaDto } from '../../types/models'
 import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
@@ -27,57 +29,63 @@ export default function EmpresasPage() {
   }, [])
 
   return (
-    <Card>
-      <div className="page-actions">
-        <div>
-          <Typography.Title level={3} style={{ margin: 0 }}>Empresas</Typography.Title>
-          <Typography.Text type="secondary">Administración global de tenants SaaS.</Typography.Text>
-        </div>
-        <Button
-          type="primary"
-          onClick={() => {
-            setEditingItem(null)
-            form.resetFields()
-            setOpen(true)
-          }}
-        >
-          Nueva empresa
-        </Button>
-      </div>
-
-      <Table
-        rowKey="EmpresaId"
-        loading={loading}
-        dataSource={items}
-        columns={[
-          { title: 'Nombre comercial', dataIndex: 'NombreComercial' },
-          { title: 'RUT', dataIndex: 'Rut' },
-          { title: 'Estado', dataIndex: 'Estado' },
-          { title: 'Moneda', dataIndex: 'MonedaCodigo' },
-          { title: 'Correo', dataIndex: 'CorreoContacto' },
-          {
-            title: 'Acciones',
-            render: (_, record) => (
-              <Button
-                type="link"
-                onClick={() => {
-                  setEditingItem(record)
-                  form.setFieldsValue({
-                    NombreComercial: record.NombreComercial,
-                    RazonSocial: record.RazonSocial ?? undefined,
-                    Rut: record.Rut,
-                    TelefonoContacto: record.TelefonoContacto ?? undefined,
-                    CorreoContacto: record.CorreoContacto ?? undefined,
-                  })
-                  setOpen(true)
-                }}
-              >
-                Editar
-              </Button>
-            ),
-          },
-        ]}
+    <div className="tms-page">
+      <PageHeaderCard
+        title="Empresas"
+        subtitle="Administración global de tenants SaaS."
+        actions={(
+          <>
+            <Button icon={<ReloadOutlined />} onClick={() => void load()} />
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditingItem(null)
+                form.resetFields()
+                setOpen(true)
+              }}
+            >
+              Nueva empresa
+            </Button>
+          </>
+        )}
       />
+
+      <Card className="tms-page-table-card">
+        <Table
+          rowKey="EmpresaId"
+          loading={loading}
+          dataSource={items}
+          columns={[
+            { title: 'Nombre comercial', dataIndex: 'NombreComercial' },
+            { title: 'RUT', dataIndex: 'Rut' },
+            { title: 'Estado', dataIndex: 'Estado' },
+            { title: 'Moneda', dataIndex: 'MonedaCodigo' },
+            { title: 'Correo', dataIndex: 'CorreoContacto' },
+            {
+              title: 'Acciones',
+              render: (_, record) => (
+                <Button
+                  type="link"
+                  onClick={() => {
+                    setEditingItem(record)
+                    form.setFieldsValue({
+                      NombreComercial: record.NombreComercial,
+                      RazonSocial: record.RazonSocial ?? undefined,
+                      Rut: record.Rut,
+                      TelefonoContacto: record.TelefonoContacto ?? undefined,
+                      CorreoContacto: record.CorreoContacto ?? undefined,
+                    })
+                    setOpen(true)
+                  }}
+                >
+                  Editar
+                </Button>
+              ),
+            },
+          ]}
+        />
+      </Card>
 
       <Modal
         open={open}
@@ -142,6 +150,6 @@ export default function EmpresasPage() {
           </Space>
         </Form>
       </Modal>
-    </Card>
+    </div>
   )
 }

@@ -1,6 +1,9 @@
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { App as AntdApp, Button, Card, Checkbox, DatePicker, Form, Input, Modal, Radio, Select, Switch, Table, Typography } from 'antd'
 import { useEffect, useState } from 'react'
+import { PageFiltersCard } from '../../components/shared/PageFiltersCard'
+import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { administracionService } from '../../services/administracion/administracionService'
 import type { LookupDto, ProductoDto, TarifaDto, TipoClienteDto } from '../../types/models'
@@ -51,44 +54,50 @@ export default function TarifasPage() {
   }, [clienteFiltro, editingItem, form, open])
 
   return (
-    <>
+    <div className="tms-page">
       <RequireCompanyAlert />
-      <Card>
-        <div className="page-actions">
-          <div>
-            <Typography.Title level={3} style={{ margin: 0 }}>Tarifas</Typography.Title>
-            <Typography.Text type="secondary">Tarifas por producto, día, bloque y tipo de cliente.</Typography.Text>
-            <div style={{ marginTop: 8 }}>
-              <Radio.Group
-                optionType="button"
-                buttonStyle="solid"
-                value={clienteFiltro}
-                onChange={(event) => setClienteFiltro(event.target.value as ClienteFiltro)}
-                options={[
-                  { label: 'General', value: 'GENERAL' },
-                  { label: 'Estudiante', value: 'ESTUDIANTE' },
-                ]}
-              />
-            </div>
-          </div>
-          <Button
-            type="primary"
-            onClick={() => {
-              setEditingItem(null)
-              form.resetFields()
-              form.setFieldsValue({
-                VigenciaDesde: dayjs(),
-                VigenciaHasta: dayjs().add(1, 'month'),
-                Activo: true,
-                TipoClienteId: getTipoClienteIdByCodigo(clienteFiltro),
-              })
-              setOpen(true)
-            }}
-          >
-            Nueva tarifa
-          </Button>
-        </div>
+      <PageHeaderCard
+        title="Tarifas"
+        subtitle="Tarifas por producto, día, bloque y tipo de cliente."
+        actions={(
+          <>
+            <Button icon={<ReloadOutlined />} onClick={() => void load(clienteFiltro)} />
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditingItem(null)
+                form.resetFields()
+                form.setFieldsValue({
+                  VigenciaDesde: dayjs(),
+                  VigenciaHasta: dayjs().add(1, 'month'),
+                  Activo: true,
+                  TipoClienteId: getTipoClienteIdByCodigo(clienteFiltro),
+                })
+                setOpen(true)
+              }}
+            >
+              Nueva tarifa
+            </Button>
+          </>
+        )}
+      />
 
+      <PageFiltersCard>
+        <Typography.Text type="secondary">Tipo de cliente</Typography.Text>
+        <Radio.Group
+          optionType="button"
+          buttonStyle="solid"
+          value={clienteFiltro}
+          onChange={(event) => setClienteFiltro(event.target.value as ClienteFiltro)}
+          options={[
+            { label: 'General', value: 'GENERAL' },
+            { label: 'Estudiante', value: 'ESTUDIANTE' },
+          ]}
+        />
+      </PageFiltersCard>
+
+      <Card className="tms-page-table-card">
         <Table
           rowKey="TarifaProductoId"
           loading={loading}
@@ -126,76 +135,76 @@ export default function TarifasPage() {
             },
           ]}
         />
-
-        <Modal
-          open={open}
-          title={editingItem ? 'Editar tarifa' : 'Nueva tarifa'}
-          onCancel={() => {
-            setOpen(false)
-            setEditingItem(null)
-          }}
-          onOk={() => form.submit()}
-          confirmLoading={submitting}
-          destroyOnHidden
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            initialValues={{ Activo: true }}
-            onFinish={async (values) => {
-              setSubmitting(true)
-              try {
-                const selectedDays = Array.isArray(values.TipoDias)
-                  ? DAY_OPTIONS.filter((day) => values.TipoDias.includes(day))
-                  : []
-
-                const { TipoDias, ...restValues } = values
-
-                const payload = {
-                  ...restValues,
-                  TipoDia: selectedDays.join(','),
-                  VigenciaDesde: values.VigenciaDesde.format('YYYY-MM-DD'),
-                  VigenciaHasta: values.VigenciaHasta.format('YYYY-MM-DD'),
-                }
-
-                if (editingItem) {
-                  await administracionService.updateTarifa(editingItem.TarifaProductoId, payload)
-                  message.success('Tarifa actualizada correctamente.')
-                } else {
-                  await administracionService.createTarifa(payload)
-                  message.success('Tarifa creada correctamente.')
-                }
-
-                setOpen(false)
-                setEditingItem(null)
-                form.resetFields()
-                await load(clienteFiltro)
-              } catch (error) {
-                message.error(getApiErrorMessage(error, `No se pudo ${editingItem ? 'actualizar' : 'crear'} la tarifa.`))
-              } finally {
-                setSubmitting(false)
-              }
-            }}
-          >
-            <Form.Item name="ProductoEmpresaId" label="Producto" rules={[{ required: true }]}>
-              <Select options={productos.map((p) => ({ value: p.ProductoEmpresaId, label: p.NombreComercial }))} />
-            </Form.Item>
-            <Form.Item name="TipoClienteId" label="Tipo cliente">
-              <Select allowClear options={tiposCliente.map((t) => ({ value: t.TipoClienteId, label: t.Nombre }))} />
-            </Form.Item>
-            <Form.Item name="TipoDias" label="Días aplicables" rules={[{ required: true, type: 'array', min: 1, message: 'Selecciona al menos un día.' }]}>
-              <Checkbox.Group options={DAY_OPTIONS.map((value) => ({ value, label: value }))} />
-            </Form.Item>
-            <Form.Item name="BloqueHorarioComercialId" label="Bloque horario">
-              <Select allowClear options={bloques.map((b) => ({ value: b.Id, label: b.Nombre }))} />
-            </Form.Item>
-            <Form.Item name="Precio" label="Precio" rules={[{ required: true }]}><Input type="number" /></Form.Item>
-            <Form.Item name="VigenciaDesde" label="Vigencia desde" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} defaultValue={dayjs()} /></Form.Item>
-            <Form.Item name="VigenciaHasta" label="Vigencia hasta" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} defaultValue={dayjs().add(1, 'month')} /></Form.Item>
-            <Form.Item name="Activo" label="Activo" valuePropName="checked"><Switch /></Form.Item>
-          </Form>
-        </Modal>
       </Card>
-    </>
+
+      <Modal
+        open={open}
+        title={editingItem ? 'Editar tarifa' : 'Nueva tarifa'}
+        onCancel={() => {
+          setOpen(false)
+          setEditingItem(null)
+        }}
+        onOk={() => form.submit()}
+        confirmLoading={submitting}
+        destroyOnHidden
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={{ Activo: true }}
+          onFinish={async (values) => {
+            setSubmitting(true)
+            try {
+              const selectedDays = Array.isArray(values.TipoDias)
+                ? DAY_OPTIONS.filter((day) => values.TipoDias.includes(day))
+                : []
+
+              const { TipoDias, ...restValues } = values
+
+              const payload = {
+                ...restValues,
+                TipoDia: selectedDays.join(','),
+                VigenciaDesde: values.VigenciaDesde.format('YYYY-MM-DD'),
+                VigenciaHasta: values.VigenciaHasta.format('YYYY-MM-DD'),
+              }
+
+              if (editingItem) {
+                await administracionService.updateTarifa(editingItem.TarifaProductoId, payload)
+                message.success('Tarifa actualizada correctamente.')
+              } else {
+                await administracionService.createTarifa(payload)
+                message.success('Tarifa creada correctamente.')
+              }
+
+              setOpen(false)
+              setEditingItem(null)
+              form.resetFields()
+              await load(clienteFiltro)
+            } catch (error) {
+              message.error(getApiErrorMessage(error, `No se pudo ${editingItem ? 'actualizar' : 'crear'} la tarifa.`))
+            } finally {
+              setSubmitting(false)
+            }
+          }}
+        >
+          <Form.Item name="ProductoEmpresaId" label="Producto" rules={[{ required: true }]}> 
+            <Select options={productos.map((p) => ({ value: p.ProductoEmpresaId, label: p.NombreComercial }))} />
+          </Form.Item>
+          <Form.Item name="TipoClienteId" label="Tipo cliente">
+            <Select allowClear options={tiposCliente.map((t) => ({ value: t.TipoClienteId, label: t.Nombre }))} />
+          </Form.Item>
+          <Form.Item name="TipoDias" label="Días aplicables" rules={[{ required: true, type: 'array', min: 1, message: 'Selecciona al menos un día.' }]}> 
+            <Checkbox.Group options={DAY_OPTIONS.map((value) => ({ value, label: value }))} />
+          </Form.Item>
+          <Form.Item name="BloqueHorarioComercialId" label="Bloque horario">
+            <Select allowClear options={bloques.map((b) => ({ value: b.Id, label: b.Nombre }))} />
+          </Form.Item>
+          <Form.Item name="Precio" label="Precio" rules={[{ required: true }]}><Input type="number" /></Form.Item>
+          <Form.Item name="VigenciaDesde" label="Vigencia desde" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} defaultValue={dayjs()} /></Form.Item>
+          <Form.Item name="VigenciaHasta" label="Vigencia hasta" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} defaultValue={dayjs().add(1, 'month')} /></Form.Item>
+          <Form.Item name="Activo" label="Activo" valuePropName="checked"><Switch /></Form.Item>
+        </Form>
+      </Modal>
+    </div>
   )
 }

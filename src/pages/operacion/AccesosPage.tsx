@@ -1,12 +1,19 @@
-import { Alert, App as AntdApp, AutoComplete, Button, Card, List, Space, Typography } from 'antd'
+import { CheckCircleOutlined } from '@ant-design/icons'
+import { Alert, App as AntdApp, AutoComplete, Button, Card, Grid, List, Space } from 'antd'
 import { useEffect, useState } from 'react'
+import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { operacionService } from '../../services/operacion/operacionService'
-import type { AccessPreviewDto, ClienteLookupDto } from '../../types/models'
+import type { AccessOptionDto, AccessPreviewDto, ClienteLookupDto } from '../../types/models'
 import { toCapitalCase } from '../../utils/formatPersonName'
+
+const { useBreakpoint } = Grid
 
 export default function AccesosPage() {
   const { message } = AntdApp.useApp()
+  const screens = useBreakpoint()
+  const isMobile = !screens.md
+
   const [search, setSearch] = useState('')
   const [clientes, setClientes] = useState<ClienteLookupDto[]>([])
   const [selectedCliente, setSelectedCliente] = useState<ClienteLookupDto | null>(null)
@@ -35,18 +42,27 @@ export default function AccesosPage() {
     void operacionService.previewAcceso(selectedCliente.ClienteEmpresaId).then(setPreview)
   }, [selectedCliente])
 
-  return (
-    <>
-      <RequireCompanyAlert />
-      <Card>
-        <div className="page-actions">
-          <div>
-            <Typography.Title level={3} style={{ margin: 0 }}>Validación de accesos</Typography.Title>
-            <Typography.Text type="secondary">Selecciona el cliente y el beneficio a consumir o validar.</Typography.Text>
-          </div>
-        </div>
+  const handleValidar = async (option: AccessOptionDto, currentPreview: AccessPreviewDto) => {
+    const response = await operacionService.validarAcceso({
+      ClienteEmpresaId: currentPreview.ClienteEmpresaId,
+      BeneficioClienteId: option.BeneficioClienteId,
+    })
+    setResult(response.Mensaje)
+    message[response.Autorizado ? 'success' : 'error'](response.Mensaje)
+    setPreview(await operacionService.previewAcceso(currentPreview.ClienteEmpresaId))
+  }
 
-        <Space orientation="vertical" style={{ width: '100%' }} size="large">
+  return (
+    <div className="tms-page">
+      <RequireCompanyAlert />
+
+      <PageHeaderCard
+        title="Validacion de accesos"
+        subtitle="Selecciona el cliente y el beneficio a consumir o validar."
+      />
+
+      <Card className="tms-page-table-card">
+        <Space direction="vertical" style={{ width: '100%' }} size="large">
           <AutoComplete
             value={selectedCliente ? `${toCapitalCase(selectedCliente.NombreCompleto)} (${selectedCliente.Rut})` : search}
             onSearch={setSearch}
@@ -57,8 +73,11 @@ export default function AccesosPage() {
                 setSearch(`${toCapitalCase(cliente.NombreCompleto)} (${cliente.Rut})`)
               }
             }}
-            options={clientes.map((cliente) => ({ value: `${cliente.ClienteEmpresaId}`, label: `${toCapitalCase(cliente.NombreCompleto)} (${cliente.Rut})` }))}
-            style={{ width: 420 }}
+            options={clientes.map((cliente) => ({
+              value: `${cliente.ClienteEmpresaId}`,
+              label: `${toCapitalCase(cliente.NombreCompleto)} (${cliente.Rut})`,
+            }))}
+            style={{ width: isMobile ? '100%' : 420 }}
           />
 
           {preview && (
@@ -66,32 +85,47 @@ export default function AccesosPage() {
               <List
                 dataSource={preview.Opciones}
                 locale={{ emptyText: 'El cliente no tiene beneficios vigentes.' }}
-                renderItem={(item) => (
-                  <List.Item
-                    actions={[
-                      <Button
-                        key="validate"
-                        type="primary"
-                        onClick={async () => {
-                          const response = await operacionService.validarAcceso({
-                            ClienteEmpresaId: preview.ClienteEmpresaId,
-                            BeneficioClienteId: item.BeneficioClienteId,
-                          })
-                          setResult(response.Mensaje)
-                          message[response.Autorizado ? 'success' : 'error'](response.Mensaje)
-                          setPreview(await operacionService.previewAcceso(preview.ClienteEmpresaId))
-                        }}
-                      >
-                        Validar
-                      </Button>,
-                    ]}
-                  >
-                    <List.Item.Meta
-                      title={item.ProductoNombre}
-                      description={`Vigente: ${item.FechaInicio} a ${item.FechaTermino} · Usos: ${item.UsosConsumidos}/${item.UsosTotales ?? '∞'}`}
-                    />
-                  </List.Item>
-                )}
+                renderItem={(item) => {
+                  if (isMobile) {
+                    return (
+                      <List.Item>
+                        <div style={{ width: '100%', display: 'grid', gap: 8 }}>
+                          <List.Item.Meta
+                            title={item.ProductoNombre}
+                            description={`Vigente: ${item.FechaInicio} a ${item.FechaTermino} · Usos: ${item.UsosConsumidos}/${item.UsosTotales ?? '∞'}`}
+                          />
+                          <Button
+                            type="primary"
+                            icon={<CheckCircleOutlined />}
+                            onClick={() => void handleValidar(item, preview)}
+                          >
+                            Validar
+                          </Button>
+                        </div>
+                      </List.Item>
+                    )
+                  }
+
+                  return (
+                    <List.Item
+                      actions={[
+                        <Button
+                          key="validate"
+                          type="primary"
+                          icon={<CheckCircleOutlined />}
+                          onClick={() => void handleValidar(item, preview)}
+                        >
+                          Validar
+                        </Button>,
+                      ]}
+                    >
+                      <List.Item.Meta
+                        title={item.ProductoNombre}
+                        description={`Vigente: ${item.FechaInicio} a ${item.FechaTermino} · Usos: ${item.UsosConsumidos}/${item.UsosTotales ?? '∞'}`}
+                      />
+                    </List.Item>
+                  )
+                }}
               />
             </Card>
           )}
@@ -99,6 +133,6 @@ export default function AccesosPage() {
           {result && <Alert type="info" showIcon message={result} />}
         </Space>
       </Card>
-    </>
+    </div>
   )
 }

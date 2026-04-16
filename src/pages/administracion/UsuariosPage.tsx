@@ -1,14 +1,44 @@
-import { App as AntdApp, Button, Card, Form, Input, Modal, Select, Space, Table, Typography } from 'antd'
+import {
+  EditOutlined,
+  KeyOutlined,
+  MailOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons'
+import {
+  App as AntdApp,
+  Button,
+  Card,
+  Empty,
+  Form,
+  Grid,
+  Input,
+  Modal,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Tooltip,
+} from 'antd'
+import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
+import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { useAuth } from '../../context/AuthContext'
 import { administracionService } from '../../services/administracion/administracionService'
 import type { EmpresaDto, UsuarioDto } from '../../types/models'
-import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 import { toCapitalCase } from '../../utils/formatPersonName'
+import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
+
+const { useBreakpoint } = Grid
+
+const estadoTag = (estado: string) => <Tag color={estado === 'activo' ? 'green' : 'red'}>{estado === 'activo' ? 'Activo' : 'Inactivo'}</Tag>
 
 export default function UsuariosPage() {
   const { message } = AntdApp.useApp()
   const { user } = useAuth()
+  const screens = useBreakpoint()
+  const isMobile = !screens.md
+
   const [items, setItems] = useState<UsuarioDto[]>([])
   const [empresas, setEmpresas] = useState<EmpresaDto[]>([])
   const [loading, setLoading] = useState(true)
@@ -41,71 +71,132 @@ export default function UsuariosPage() {
     void load()
   }, [isAdminTotal])
 
-  return (
-    <Card>
-      <div className="page-actions">
-        <div>
-          <Typography.Title level={3} style={{ margin: 0 }}>Usuarios</Typography.Title>
-          <Typography.Text type="secondary">Usuarios internos y sus roles operativos.</Typography.Text>
-        </div>
-        <Button
-          type="primary"
-          onClick={() => {
-            setEditingItem(null)
-            form.resetFields()
-            setOpen(true)
-          }}
-        >
-          Nuevo usuario
-        </Button>
-      </div>
+  const openCreate = () => {
+    setEditingItem(null)
+    form.resetFields()
+    setOpen(true)
+  }
 
-      <Table
-        rowKey="UsuarioId"
-        loading={loading}
-        dataSource={items}
-        columns={[
-          { title: 'Nombre', render: (_, record) => toCapitalCase(record.NombreCompleto) },
-          { title: 'Correo', dataIndex: 'EmailLogin' },
-          { title: 'Estado', dataIndex: 'Estado' },
-          { title: 'Roles', render: (_, record) => record.Roles.join(', ') },
-          { title: 'Empresa', dataIndex: 'EmpresaNombre' },
-          {
-            title: 'Acciones',
-            render: (_, record) => (
-              <Space size={4}>
-                <Button
-                  type="link"
-                  onClick={() => {
-                    setEditingItem(record)
-                    form.setFieldsValue({
-                      NombreCompleto: record.NombreCompleto,
-                      Rut: record.Rut,
-                      EmailLogin: record.EmailLogin,
-                      Estado: record.Estado,
-                      RolCodigo: record.Roles[0],
-                      EmpresaId: record.EmpresaId ?? undefined,
-                    })
-                    setOpen(true)
-                  }}
-                >
-                  Editar
-                </Button>
-                <Button
-                  type="link"
-                  onClick={() => {
-                    setPasswordTarget(record)
-                    passwordForm.resetFields()
-                    setPasswordOpen(true)
-                  }}
-                >
-                  Cambiar contraseña
-                </Button>
-              </Space>
-            ),
-          },
-        ]}
+  const openEdit = (record: UsuarioDto) => {
+    setEditingItem(record)
+    form.setFieldsValue({
+      NombreCompleto: record.NombreCompleto,
+      Rut: record.Rut,
+      EmailLogin: record.EmailLogin,
+      Estado: record.Estado,
+      RolCodigo: record.Roles[0],
+      EmpresaId: record.EmpresaId ?? undefined,
+    })
+    setOpen(true)
+  }
+
+  const openPassword = (record: UsuarioDto) => {
+    setPasswordTarget(record)
+    passwordForm.resetFields()
+    setPasswordOpen(true)
+  }
+
+  const roleTags = (record: UsuarioDto) => {
+    if (!record.Roles?.length) {
+      return <Tag>Sin roles</Tag>
+    }
+
+    return (
+      <Space size={4} wrap>
+        {record.Roles.map((rol) => (
+          <Tag key={rol} color="blue">{rol}</Tag>
+        ))}
+      </Space>
+    )
+  }
+
+  const actionButtons = (record: UsuarioDto) => (
+    <Space size={2}>
+      <Tooltip title="Editar usuario">
+        <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+      </Tooltip>
+      <Tooltip title="Cambiar contrasena">
+        <Button type="text" icon={<KeyOutlined />} onClick={() => openPassword(record)} />
+      </Tooltip>
+    </Space>
+  )
+
+  const columns: ColumnsType<UsuarioDto> = [
+    { title: 'Nombre', key: 'NombreCompleto', render: (_, record) => toCapitalCase(record.NombreCompleto) },
+    { title: 'Correo', dataIndex: 'EmailLogin', key: 'EmailLogin', ellipsis: true },
+    {
+      title: 'Estado',
+      key: 'Estado',
+      responsive: ['sm'],
+      render: (_, record) => estadoTag(record.Estado),
+    },
+    {
+      title: 'Roles',
+      key: 'Roles',
+      responsive: ['md'],
+      render: (_, record) => roleTags(record),
+    },
+    { title: 'Empresa', dataIndex: 'EmpresaNombre', key: 'EmpresaNombre', responsive: ['lg'] },
+    {
+      title: 'Acciones',
+      key: 'acciones',
+      render: (_, record) => actionButtons(record),
+    },
+  ]
+
+  return (
+    <div className="tms-page">
+      <PageHeaderCard
+        title="Usuarios"
+        subtitle="Usuarios internos y sus roles operativos."
+        actions={(
+          <>
+            <Button icon={<ReloadOutlined />} onClick={() => void load()} />
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+              Nuevo usuario
+            </Button>
+          </>
+        )}
       />
+
+      <Card className="tms-page-table-card" loading={loading}>
+        {isMobile ? (
+          items.length > 0 ? (
+            <div style={{ display: 'grid', gap: 10 }}>
+              {items.map((record) => (
+                <Card size="small" key={record.UsuarioId}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600 }}>{toCapitalCase(record.NombreCompleto)}</div>
+                      <div style={{ color: '#6b7280', fontSize: 12, marginTop: 3 }}>
+                        <MailOutlined style={{ marginRight: 6 }} />
+                        {record.EmailLogin}
+                      </div>
+                      <div style={{ marginTop: 8 }}>{estadoTag(record.Estado)}</div>
+                      <div style={{ marginTop: 8 }}>{roleTags(record)}</div>
+                      <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280' }}>
+                        Empresa: {record.EmpresaNombre || 'Sin empresa'}
+                      </div>
+                    </div>
+                    {actionButtons(record)}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Empty description="Sin usuarios registrados" />
+          )
+        ) : (
+          <Table
+            rowKey="UsuarioId"
+            columns={columns}
+            dataSource={items}
+            scroll={{ x: 980 }}
+            tableLayout="auto"
+            pagination={false}
+          />
+        )}
+      </Card>
 
       <Modal
         open={open}
@@ -155,14 +246,24 @@ export default function UsuariosPage() {
             }
           }}
         >
-          <Form.Item name="NombreCompleto" label="Nombre completo" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="Rut" label="RUT" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="EmailLogin" label="Correo" rules={[{ required: true }]}><Input /></Form.Item>
-          {!editingItem && <Form.Item name="Password" label="Contraseña" rules={[{ required: true }]}><Input.Password /></Form.Item>}
+          <Form.Item name="NombreCompleto" label="Nombre completo" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="Rut" label="RUT" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="EmailLogin" label="Correo" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          {!editingItem && (
+            <Form.Item name="Password" label="Contrasena" rules={[{ required: true }]}>
+              <Input.Password />
+            </Form.Item>
+          )}
           <Form.Item name="Estado" label="Estado" initialValue="activo" rules={[{ required: true }]}>
             <Select options={[{ value: 'activo', label: 'Activo' }, { value: 'inactivo', label: 'Inactivo' }]} />
           </Form.Item>
-          <Form.Item name="RolCodigo" label="Rol" rules={[{ required: true }]}> 
+          <Form.Item name="RolCodigo" label="Rol" rules={[{ required: true }]}>
             <Select
               options={[
                 { value: 'ADMIN_TOTAL', label: 'Administrador Total' },
@@ -181,7 +282,7 @@ export default function UsuariosPage() {
 
       <Modal
         open={passwordOpen}
-        title={`Cambiar contraseña${passwordTarget ? ` · ${toCapitalCase(passwordTarget.NombreCompleto)}` : ''}`}
+        title={`Cambiar contrasena${passwordTarget ? ` · ${toCapitalCase(passwordTarget.NombreCompleto)}` : ''}`}
         onCancel={() => {
           setPasswordOpen(false)
           setPasswordTarget(null)
@@ -201,23 +302,23 @@ export default function UsuariosPage() {
             setPasswordSubmitting(true)
             try {
               await administracionService.changePasswordUsuario(passwordTarget.UsuarioId, { NuevaPassword: values.NuevaPassword })
-              message.success(`Contraseña actualizada para ${toCapitalCase(passwordTarget.NombreCompleto)}.`)
+              message.success(`Contrasena actualizada para ${toCapitalCase(passwordTarget.NombreCompleto)}.`)
               setPasswordOpen(false)
               setPasswordTarget(null)
               passwordForm.resetFields()
             } catch (error) {
-              message.error(getApiErrorMessage(error, 'No se pudo cambiar la contraseña.'))
+              message.error(getApiErrorMessage(error, 'No se pudo cambiar la contrasena.'))
             } finally {
               setPasswordSubmitting(false)
             }
           }}
         >
-          <Form.Item name="NuevaPassword" label="Nueva contraseña" rules={[{ required: true, min: 8 }]}>
+          <Form.Item name="NuevaPassword" label="Nueva contrasena" rules={[{ required: true, min: 8 }]}>
             <Input.Password />
           </Form.Item>
           <Form.Item
             name="ConfirmPassword"
-            label="Confirmar contraseña"
+            label="Confirmar contrasena"
             dependencies={['NuevaPassword']}
             rules={[
               { required: true },
@@ -226,8 +327,7 @@ export default function UsuariosPage() {
                   if (!value || getFieldValue('NuevaPassword') === value) {
                     return Promise.resolve()
                   }
-
-                  return Promise.reject(new Error('Las contraseñas no coinciden'))
+                  return Promise.reject(new Error('Las contrasenas no coinciden'))
                 },
               }),
             ]}
@@ -236,6 +336,6 @@ export default function UsuariosPage() {
           </Form.Item>
         </Form>
       </Modal>
-    </Card>
+    </div>
   )
 }

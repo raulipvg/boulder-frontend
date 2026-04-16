@@ -1,5 +1,7 @@
+import { ReloadOutlined } from '@ant-design/icons'
 import { Alert, App as AntdApp, AutoComplete, Button, Card, Col, Divider, Form, Input, InputNumber, Modal, Row, Select, Space, Typography } from 'antd'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { administracionService } from '../../services/administracion/administracionService'
 import { operacionService } from '../../services/operacion/operacionService'
@@ -112,25 +114,25 @@ export default function PuntoVentaPage() {
     })
   }
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true)
-      try {
-        const [catalogData, medios, tipos] = await Promise.all([
-          ventasService.getPosCatalog(),
-          administracionService.getMediosPago(),
-          administracionService.getTiposCliente(),
-        ])
-        setCatalog(catalogData)
-        setMediosPago(medios)
-        setTiposCliente(tipos)
-        setMedioPagoId(medios[0]?.Id ?? null)
-      } finally {
-        setLoading(false)
-      }
+  const loadCatalogData = async () => {
+    setLoading(true)
+    try {
+      const [catalogData, medios, tipos] = await Promise.all([
+        ventasService.getPosCatalog(),
+        administracionService.getMediosPago(),
+        administracionService.getTiposCliente(),
+      ])
+      setCatalog(catalogData)
+      setMediosPago(medios)
+      setTiposCliente(tipos)
+      setMedioPagoId((current) => current ?? medios[0]?.Id ?? null)
+    } finally {
+      setLoading(false)
     }
+  }
 
-    void load()
+  useEffect(() => {
+    void loadCatalogData()
 
     return () => {
       for (const timeout of Object.values(searchTimeoutsRef.current)) {
@@ -281,11 +283,17 @@ export default function PuntoVentaPage() {
   }, [cart, missingAssignedItem])
 
   return (
-    <>
+    <div className="tms-page">
       <RequireCompanyAlert />
+      <PageHeaderCard
+        title="Punto de venta"
+        subtitle="Selecciona productos, asigna clientes cuando corresponda y confirma la venta."
+        actions={<Button icon={<ReloadOutlined />} onClick={() => void loadCatalogData()} />}
+      />
+
       <Row gutter={16}>
         <Col xs={24} xl={15}>
-          <Card loading={loading} title="Productos disponibles en caja">
+          <Card loading={loading} title="Productos disponibles" className="tms-page-table-card">
             <Row gutter={[12, 12]}>
               {catalog.map((product) => (
                 <Col xs={24} md={12} lg={8} key={product.ProductoEmpresaId}>
@@ -305,7 +313,7 @@ export default function PuntoVentaPage() {
         </Col>
 
         <Col xs={24} xl={9}>
-          <Card title="Caja">
+          <Card title="Caja" className="tms-page-table-card">
             <Space orientation="vertical" style={{ width: '100%' }} size="middle">
               {cart.length === 0 ? (
                 <Typography.Text type="secondary">Sin productos en el carro</Typography.Text>
@@ -555,6 +563,6 @@ export default function PuntoVentaPage() {
           </Form.Item>
         </Form>
       </Modal>
-    </>
+    </div>
   )
 }

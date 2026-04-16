@@ -1,5 +1,7 @@
-import { App as AntdApp, Button, Card, Form, Input, Modal, Select, Switch, Table, Typography } from 'antd'
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'
+import { App as AntdApp, Button, Card, Form, Input, Modal, Select, Switch, Table } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
+import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { administracionService } from '../../services/administracion/administracionService'
 import type { ClaseDto, LookupDto, ProductoDto } from '../../types/models'
@@ -79,27 +81,31 @@ export default function ProductosPage() {
   }, [form, isMensualidad, isMensualidadTodoHorario, isPackTickets])
 
   return (
-    <>
+    <div className="tms-page">
       <RequireCompanyAlert />
-      <Card>
-        <div className="page-actions">
-          <div>
-            <Typography.Title level={3} style={{ margin: 0 }}>Productos</Typography.Title>
-            <Typography.Text type="secondary">Configuración de productos comerciales visibles en caja.</Typography.Text>
-          </div>
-          <Button
-            type="primary"
-            onClick={() => {
-              setEditingItem(null)
-              form.resetFields()
-              form.setFieldsValue({ ModoPrecio: 'fijo', VisiblePos: true, Activo: true, RequiereCliente: false, GeneraBeneficio: false, AccesoIlimitado: false })
-              setOpen(true)
-            }}
-          >
-            Nuevo producto
-          </Button>
-        </div>
+      <PageHeaderCard
+        title="Productos"
+        subtitle="Configuración de productos comerciales visibles en caja."
+        actions={(
+          <>
+            <Button icon={<ReloadOutlined />} onClick={() => void load()} />
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditingItem(null)
+                form.resetFields()
+                form.setFieldsValue({ ModoPrecio: 'fijo', VisiblePos: true, Activo: true, RequiereCliente: false, GeneraBeneficio: false, AccesoIlimitado: false })
+                setOpen(true)
+              }}
+            >
+              Nuevo producto
+            </Button>
+          </>
+        )}
+      />
 
+      <Card className="tms-page-table-card">
         <Table
           rowKey="ProductoEmpresaId"
           loading={loading}
@@ -143,110 +149,110 @@ export default function ProductosPage() {
             },
           ]}
         />
+      </Card>
 
-        <Modal
-          open={open}
-          title={editingItem ? 'Editar producto' : 'Nuevo producto'}
-          onCancel={() => {
-            setOpen(false)
-            setEditingItem(null)
-          }}
-          onOk={() => form.submit()}
-          confirmLoading={submitting}
-          destroyOnHidden
-          width={720}
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            initialValues={{ ModoPrecio: 'fijo', VisiblePos: true, Activo: true, RequiereCliente: false, GeneraBeneficio: false, AccesoIlimitado: false }}
-            onFinish={async (values) => {
-              setSubmitting(true)
-              try {
-                const tipoCodigo = tipos.find((tipo) => tipo.Id === values.TipoProductoBaseId)?.Codigo
-                const payload = (tipoCodigo === 'MENSUALIDAD_POR_HORARIO' || tipoCodigo === 'MENSUALIDAD_TODO_HORARIO')
+      <Modal
+        open={open}
+        title={editingItem ? 'Editar producto' : 'Nuevo producto'}
+        onCancel={() => {
+          setOpen(false)
+          setEditingItem(null)
+        }}
+        onOk={() => form.submit()}
+        confirmLoading={submitting}
+        destroyOnHidden
+        width={720}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={{ ModoPrecio: 'fijo', VisiblePos: true, Activo: true, RequiereCliente: false, GeneraBeneficio: false, AccesoIlimitado: false }}
+          onFinish={async (values) => {
+            setSubmitting(true)
+            try {
+              const tipoCodigo = tipos.find((tipo) => tipo.Id === values.TipoProductoBaseId)?.Codigo
+              const payload = (tipoCodigo === 'MENSUALIDAD_POR_HORARIO' || tipoCodigo === 'MENSUALIDAD_TODO_HORARIO')
+                ? {
+                  ...values,
+                  ModoPrecio: 'tarifa',
+                  PrecioFijo: null,
+                  UsosIncluidos: null,
+                  ClaseId: null,
+                  RequiereCliente: true,
+                  GeneraBeneficio: true,
+                  AccesoIlimitado: true,
+                  VigenciaDias: 30,
+                  BloqueHorarioComercialId: tipoCodigo === 'MENSUALIDAD_POR_HORARIO'
+                    ? values.BloqueHorarioComercialId ?? null
+                    : null,
+                }
+                : (tipoCodigo === 'PACK_TICKETS' || tipoCodigo === 'PACK_10_TICKETS')
                   ? {
                     ...values,
                     ModoPrecio: 'tarifa',
                     PrecioFijo: null,
-                    UsosIncluidos: null,
                     ClaseId: null,
                     RequiereCliente: true,
                     GeneraBeneficio: true,
-                    AccesoIlimitado: true,
-                    VigenciaDias: 30,
-                    BloqueHorarioComercialId: tipoCodigo === 'MENSUALIDAD_POR_HORARIO'
-                      ? values.BloqueHorarioComercialId ?? null
-                      : null,
+                    AccesoIlimitado: false,
                   }
-                  : (tipoCodigo === 'PACK_TICKETS' || tipoCodigo === 'PACK_10_TICKETS')
-                    ? {
-                      ...values,
-                      ModoPrecio: 'tarifa',
-                      PrecioFijo: null,
-                      ClaseId: null,
-                      RequiereCliente: true,
-                      GeneraBeneficio: true,
-                      AccesoIlimitado: false,
-                    }
-                    : values
+                  : values
 
-                if (editingItem) {
-                  await administracionService.updateProducto(editingItem.ProductoEmpresaId, payload)
-                  message.success('Producto actualizado correctamente.')
-                } else {
-                  await administracionService.createProducto(payload)
-                  message.success('Producto creado correctamente.')
-                }
-
-                setOpen(false)
-                setEditingItem(null)
-                form.resetFields()
-                await load()
-              } catch (error) {
-                message.error(getApiErrorMessage(error, `No se pudo ${editingItem ? 'actualizar' : 'crear'} el producto.`))
-              } finally {
-                setSubmitting(false)
+              if (editingItem) {
+                await administracionService.updateProducto(editingItem.ProductoEmpresaId, payload)
+                message.success('Producto actualizado correctamente.')
+              } else {
+                await administracionService.createProducto(payload)
+                message.success('Producto creado correctamente.')
               }
-            }}
-          >
-            <div className="grid-two">
-              <Form.Item name="TipoProductoBaseId" label="Tipo Producto" rules={[{ required: true }]}>
-                <Select options={tipos.map((tipo) => ({ value: tipo.Id, label: tipo.Nombre }))} />
+
+              setOpen(false)
+              setEditingItem(null)
+              form.resetFields()
+              await load()
+            } catch (error) {
+              message.error(getApiErrorMessage(error, `No se pudo ${editingItem ? 'actualizar' : 'crear'} el producto.`))
+            } finally {
+              setSubmitting(false)
+            }
+          }}
+        >
+          <div className="grid-two">
+            <Form.Item name="TipoProductoBaseId" label="Tipo Producto" rules={[{ required: true }]}>
+              <Select options={tipos.map((tipo) => ({ value: tipo.Id, label: tipo.Nombre }))} />
+            </Form.Item>
+            <Form.Item name="NombreComercial" label="Nombre Producto" rules={[{ required: true }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item name="Descripcion" label="Descripción"><Input /></Form.Item>
+            {!isMensualidad && !isPackTickets && (
+              <Form.Item name="ModoPrecio" label="Modo precio" rules={[{ required: true }]}>
+                <Select options={[{ value: 'fijo', label: 'Fijo' }, { value: 'tarifa', label: 'Tarifa' }]} />
               </Form.Item>
-              <Form.Item name="NombreComercial" label="Nombre Producto" rules={[{ required: true }]}>
-                <Input />
+            )}
+            {!isMensualidad && !isPackTickets && <Form.Item name="PrecioFijo" label="Precio fijo"><Input type="number" /></Form.Item>}
+            {!isMensualidad && <Form.Item name="VigenciaDias" label="Vigencia días"><Input type="number" /></Form.Item>}
+            {!isMensualidad && <Form.Item name="UsosIncluidos" label={isPackTickets ? 'Cantidad de tickets del pack' : 'Usos incluidos'}><Input type="number" /></Form.Item>}
+            {(isMensualidadPorHorario || !isMensualidad) && (
+              <Form.Item
+                name="BloqueHorarioComercialId"
+                label="Bloque horario"
+                rules={isMensualidadPorHorario ? [{ required: true, message: 'Selecciona un bloque horario.' }] : undefined}
+              >
+                <Select allowClear options={bloques.map((b) => ({ value: b.Id, label: b.Nombre }))} />
               </Form.Item>
-              <Form.Item name="Descripcion" label="Descripción"><Input /></Form.Item>
-              {!isMensualidad && !isPackTickets && (
-                <Form.Item name="ModoPrecio" label="Modo precio" rules={[{ required: true }]}>
-                  <Select options={[{ value: 'fijo', label: 'Fijo' }, { value: 'tarifa', label: 'Tarifa' }]} />
-                </Form.Item>
-              )}
-              {!isMensualidad && !isPackTickets && <Form.Item name="PrecioFijo" label="Precio fijo"><Input type="number" /></Form.Item>}
-              {!isMensualidad && <Form.Item name="VigenciaDias" label="Vigencia días"><Input type="number" /></Form.Item>}
-              {!isMensualidad && <Form.Item name="UsosIncluidos" label={isPackTickets ? 'Cantidad de tickets del pack' : 'Usos incluidos'}><Input type="number" /></Form.Item>}
-              {(isMensualidadPorHorario || !isMensualidad) && (
-                <Form.Item
-                  name="BloqueHorarioComercialId"
-                  label="Bloque horario"
-                  rules={isMensualidadPorHorario ? [{ required: true, message: 'Selecciona un bloque horario.' }] : undefined}
-                >
-                  <Select allowClear options={bloques.map((b) => ({ value: b.Id, label: b.Nombre }))} />
-                </Form.Item>
-              )}
-              {!isMensualidad && !isPackTickets && <Form.Item name="ClaseId" label="Clase"><Select allowClear options={clases.map((c) => ({ value: c.ClaseId, label: c.Nombre }))} /></Form.Item>}
-            </div>
-            <div className="grid-two">
-              <Form.Item name="VisiblePos" label="Visible POS" valuePropName="checked"><Switch /></Form.Item>
-              <Form.Item name="Activo" label="Activo" valuePropName="checked"><Switch /></Form.Item>
-              {!isMensualidad && !isPackTickets && <Form.Item name="RequiereCliente" label="Requiere cliente" valuePropName="checked"><Switch /></Form.Item>}
-              {!isMensualidad && !isPackTickets && <Form.Item name="GeneraBeneficio" label="Genera beneficio" valuePropName="checked"><Switch /></Form.Item>}
-              {!isMensualidad && !isPackTickets && <Form.Item name="AccesoIlimitado" label="Acceso ilimitado" valuePropName="checked"><Switch /></Form.Item>}
-            </div>
-          </Form>
-        </Modal>
-      </Card>
-    </>
+            )}
+            {!isMensualidad && !isPackTickets && <Form.Item name="ClaseId" label="Clase"><Select allowClear options={clases.map((c) => ({ value: c.ClaseId, label: c.Nombre }))} /></Form.Item>}
+          </div>
+          <div className="grid-two">
+            <Form.Item name="VisiblePos" label="Visible POS" valuePropName="checked"><Switch /></Form.Item>
+            <Form.Item name="Activo" label="Activo" valuePropName="checked"><Switch /></Form.Item>
+            {!isMensualidad && !isPackTickets && <Form.Item name="RequiereCliente" label="Requiere cliente" valuePropName="checked"><Switch /></Form.Item>}
+            {!isMensualidad && !isPackTickets && <Form.Item name="GeneraBeneficio" label="Genera beneficio" valuePropName="checked"><Switch /></Form.Item>}
+            {!isMensualidad && !isPackTickets && <Form.Item name="AccesoIlimitado" label="Acceso ilimitado" valuePropName="checked"><Switch /></Form.Item>}
+          </div>
+        </Form>
+      </Modal>
+    </div>
   )
 }

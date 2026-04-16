@@ -1,12 +1,42 @@
-import { Alert, App as AntdApp, Button, Form, Input, Modal, Select, Switch, Table, Typography } from 'antd'
-import { useEffect, useMemo, useState } from 'react'
-import { RequireCompanyAlert } from '../../../components/shared/RequireCompanyAlert'
+import { EditOutlined } from '@ant-design/icons'
+import {
+  Alert,
+  App as AntdApp,
+  Button,
+  Card,
+  Empty,
+  Form,
+  Grid,
+  Input,
+  Modal,
+  Select,
+  Switch,
+  Table,
+  Tag,
+  Tooltip,
+} from 'antd'
+import type { ColumnsType } from 'antd/es/table'
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 import { administracionService } from '../../../services/administracion/administracionService'
 import type { ClaseDto, LookupDto, ProductoDto } from '../../../types/models'
 import { getApiErrorMessage } from '../../../utils/getApiErrorMessage'
 
-export default function ProductosTab() {
+export interface ProductosTabHandle {
+  openCreate: () => void
+  reload: () => Promise<void>
+}
+
+const { useBreakpoint } = Grid
+
+const yesNoTag = (value: boolean, yesLabel: string, noLabel: string) => (
+  <Tag color={value ? 'green' : 'red'}>{value ? yesLabel : noLabel}</Tag>
+)
+
+const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props, ref) {
   const { message } = AntdApp.useApp()
+  const screens = useBreakpoint()
+  const isMobile = !screens.md
+
   const [items, setItems] = useState<ProductoDto[]>([])
   const [tipos, setTipos] = useState<LookupDto[]>([])
   const [bloques, setBloques] = useState<LookupDto[]>([])
@@ -20,7 +50,7 @@ export default function ProductosTab() {
   const selectedTipoProductoBaseId = Form.useWatch('TipoProductoBaseId', form)
   const selectedModoPrecio = Form.useWatch('ModoPrecio', form)
   const selectedTipoCodigo = useMemo(
-    () => tipos.find((t) => t.Id === selectedTipoProductoBaseId)?.Codigo,
+    () => tipos.find((tipo) => tipo.Id === selectedTipoProductoBaseId)?.Codigo,
     [selectedTipoProductoBaseId, tipos],
   )
   const requiresTarifaAsociada = selectedModoPrecio === 'tarifa'
@@ -32,7 +62,6 @@ export default function ProductosTab() {
     }
   }, [form, hasTarifaAsociada, requiresTarifaAsociada])
 
-  // Tipo flags
   const isMensualidadPorHorario = selectedTipoCodigo === 'MENSUALIDAD_POR_HORARIO'
   const isMensualidadTodoHorario = selectedTipoCodigo === 'MENSUALIDAD_TODO_HORARIO'
   const isMensualidad = isMensualidadPorHorario || isMensualidadTodoHorario
@@ -59,9 +88,50 @@ export default function ProductosTab() {
     }
   }
 
-  useEffect(() => { void load() }, [])
+  useEffect(() => {
+    void load()
+  }, [])
 
-  // Auto-fill por tipo
+  const openCreate = () => {
+    setEditingItem(null)
+    form.resetFields()
+    form.setFieldsValue({
+      ModoPrecio: 'fijo',
+      VisiblePos: true,
+      Activo: true,
+      RequiereCliente: false,
+      GeneraBeneficio: false,
+      AccesoIlimitado: false,
+    })
+    setOpen(true)
+  }
+
+  const openEdit = (record: ProductoDto) => {
+    setEditingItem(record)
+    form.setFieldsValue({
+      TipoProductoBaseId: tipos.find((tipo) => tipo.Codigo === record.TipoProductoBaseCodigo)?.Id,
+      NombreComercial: record.NombreComercial,
+      Descripcion: record.Descripcion ?? undefined,
+      ModoPrecio: record.ModoPrecio,
+      PrecioFijo: record.PrecioFijo ?? undefined,
+      VigenciaDias: record.VigenciaDias ?? undefined,
+      UsosIncluidos: record.UsosIncluidos ?? undefined,
+      BloqueHorarioComercialId: record.BloqueHorarioComercialId ?? undefined,
+      ClaseId: record.ClaseId ?? undefined,
+      VisiblePos: record.VisiblePos,
+      Activo: record.Activo,
+      RequiereCliente: record.RequiereCliente,
+      GeneraBeneficio: record.GeneraBeneficio,
+      AccesoIlimitado: record.AccesoIlimitado,
+    })
+    setOpen(true)
+  }
+
+  useImperativeHandle(ref, () => ({
+    openCreate,
+    reload: load,
+  }))
+
   useEffect(() => {
     if (!isMensualidad) return
     form.setFieldsValue({
@@ -132,7 +202,6 @@ export default function ProductosTab() {
     })
   }, [form, isTicketIndividual])
 
-  // Visibilidad de campos
   const showModoPrecio = !isMensualidad && !isPackTickets && !isClases && !isProductoCaja && !isTicketIndividual
   const showPrecioFijo = isProductoCaja || showModoPrecio
   const showVigenciaDias = !isMensualidad && !isProductoCaja && !isTicketIndividual
@@ -143,21 +212,68 @@ export default function ProductosTab() {
 
   const bloqueRequerido = isMensualidadPorHorario || isTicketIndividual
 
-  // Construcción de payload fijo por tipo
   const buildPayload = (values: Record<string, unknown>, tipoCodigo: string | undefined) => {
     switch (tipoCodigo) {
       case 'MENSUALIDAD_POR_HORARIO':
       case 'MENSUALIDAD_TODO_HORARIO':
-        return { ...values, ModoPrecio: 'tarifa', PrecioFijo: null, UsosIncluidos: null, ClaseId: null, RequiereCliente: true, GeneraBeneficio: true, AccesoIlimitado: true, VigenciaDias: 30, BloqueHorarioComercialId: tipoCodigo === 'MENSUALIDAD_POR_HORARIO' ? values.BloqueHorarioComercialId ?? null : null }
+        return {
+          ...values,
+          ModoPrecio: 'tarifa',
+          PrecioFijo: null,
+          UsosIncluidos: null,
+          ClaseId: null,
+          RequiereCliente: true,
+          GeneraBeneficio: true,
+          AccesoIlimitado: true,
+          VigenciaDias: 30,
+          BloqueHorarioComercialId: tipoCodigo === 'MENSUALIDAD_POR_HORARIO' ? values.BloqueHorarioComercialId ?? null : null,
+        }
       case 'PACK_TICKETS':
       case 'PACK_10_TICKETS':
-        return { ...values, ModoPrecio: 'tarifa', PrecioFijo: null, ClaseId: null, RequiereCliente: true, GeneraBeneficio: true, AccesoIlimitado: false }
+        return {
+          ...values,
+          ModoPrecio: 'tarifa',
+          PrecioFijo: null,
+          ClaseId: null,
+          RequiereCliente: true,
+          GeneraBeneficio: true,
+          AccesoIlimitado: false,
+        }
       case 'CLASES_CON_PROFESOR':
-        return { ...values, ModoPrecio: 'tarifa', PrecioFijo: null, BloqueHorarioComercialId: null, RequiereCliente: true, GeneraBeneficio: true, AccesoIlimitado: false, VigenciaDias: 30 }
+        return {
+          ...values,
+          ModoPrecio: 'tarifa',
+          PrecioFijo: null,
+          BloqueHorarioComercialId: null,
+          RequiereCliente: true,
+          GeneraBeneficio: true,
+          AccesoIlimitado: false,
+          VigenciaDias: 30,
+        }
       case 'PRODUCTO_CAJA':
-        return { ...values, ModoPrecio: 'fijo', VigenciaDias: null, UsosIncluidos: null, BloqueHorarioComercialId: null, ClaseId: null, RequiereCliente: false, GeneraBeneficio: false, AccesoIlimitado: false }
+        return {
+          ...values,
+          ModoPrecio: 'fijo',
+          VigenciaDias: null,
+          UsosIncluidos: null,
+          BloqueHorarioComercialId: null,
+          ClaseId: null,
+          RequiereCliente: false,
+          GeneraBeneficio: false,
+          AccesoIlimitado: false,
+        }
       case 'TICKET_INDIVIDUAL':
-        return { ...values, ModoPrecio: 'tarifa', PrecioFijo: null, VigenciaDias: null, UsosIncluidos: 1, ClaseId: null, RequiereCliente: true, GeneraBeneficio: false, AccesoIlimitado: false }
+        return {
+          ...values,
+          ModoPrecio: 'tarifa',
+          PrecioFijo: null,
+          VigenciaDias: null,
+          UsosIncluidos: 1,
+          ClaseId: null,
+          RequiereCliente: true,
+          GeneraBeneficio: false,
+          AccesoIlimitado: false,
+        }
       default:
         return values
     }
@@ -165,75 +281,88 @@ export default function ProductosTab() {
 
   const usosLabel = isPackTickets ? 'Cantidad de tickets del pack' : isClases ? 'Cantidad de clases' : 'Usos incluidos'
 
+  const columns: ColumnsType<ProductoDto> = [
+    { title: 'Producto', dataIndex: 'NombreComercial', key: 'NombreComercial' },
+    { title: 'Tipo base', dataIndex: 'TipoProductoBaseCodigo', key: 'TipoProductoBaseCodigo', responsive: ['md'] },
+    { title: 'Modo precio', dataIndex: 'ModoPrecio', key: 'ModoPrecio', responsive: ['lg'] },
+    { title: 'Precio fijo', dataIndex: 'PrecioFijo', key: 'PrecioFijo', responsive: ['lg'] },
+    {
+      title: 'Tarifa asociada',
+      key: 'TarifaAsociada',
+      responsive: ['md'],
+      render: (_, record) => yesNoTag(record.TarifaAsociada, 'Sí', 'No'),
+    },
+    {
+      title: 'POS',
+      key: 'VisiblePos',
+      responsive: ['sm'],
+      render: (_, record) => yesNoTag(record.VisiblePos, 'Sí', 'No'),
+    },
+    {
+      title: 'Activo',
+      key: 'Activo',
+      responsive: ['sm'],
+      render: (_, record) => yesNoTag(record.Activo, 'Activo', 'Inactivo'),
+    },
+    {
+      title: 'Acciones',
+      key: 'acciones',
+      render: (_, record) => (
+        <Tooltip title="Editar">
+          <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+        </Tooltip>
+      ),
+    },
+  ]
+
   return (
     <>
-      <RequireCompanyAlert />
-      <div className="page-actions" style={{ marginBottom: 16 }}>
-        <div>
-          <Typography.Text type="secondary">Configuración de productos comerciales visibles en caja.</Typography.Text>
-        </div>
-        <Button
-          type="primary"
-          onClick={() => {
-            setEditingItem(null)
-            form.resetFields()
-            form.setFieldsValue({ ModoPrecio: 'fijo', VisiblePos: true, Activo: true, RequiereCliente: false, GeneraBeneficio: false, AccesoIlimitado: false })
-            setOpen(true)
-          }}
-        >
-          Nuevo producto
-        </Button>
-      </div>
+      <Card className="tms-page-table-card" loading={loading}>
+        {isMobile ? (
+          items.length > 0 ? (
+            <div style={{ display: 'grid', gap: 10 }}>
+              {items.map((record) => (
+                <Card size="small" key={record.ProductoEmpresaId}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600 }}>{record.NombreComercial}</div>
+                      <div style={{ color: '#6b7280', fontSize: 12 }}>{record.TipoProductoBaseCodigo}</div>
+                      <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {yesNoTag(record.VisiblePos, 'POS', 'No POS')}
+                        {yesNoTag(record.Activo, 'Activo', 'Inactivo')}
+                        {yesNoTag(record.TarifaAsociada, 'Con tarifa', 'Sin tarifa')}
+                      </div>
+                    </div>
 
-      <Table
-        rowKey="ProductoEmpresaId"
-        loading={loading}
-        dataSource={items}
-        columns={[
-          { title: 'Producto', dataIndex: 'NombreComercial' },
-          { title: 'Tipo base', dataIndex: 'TipoProductoBaseCodigo' },
-          { title: 'Modo precio', dataIndex: 'ModoPrecio' },
-          { title: 'Precio fijo', dataIndex: 'PrecioFijo' },
-          { title: 'Tarifa asociada', render: (_, r) => (r.TarifaAsociada ? 'Sí' : 'No') },
-          { title: 'POS', render: (_, r) => (r.VisiblePos ? 'Sí' : 'No') },
-          { title: 'Activo', render: (_, r) => (r.Activo ? 'Sí' : 'No') },
-          {
-            title: 'Acciones',
-            render: (_, record) => (
-              <Button
-                type="link"
-                onClick={() => {
-                  setEditingItem(record)
-                  form.setFieldsValue({
-                    TipoProductoBaseId: tipos.find((t) => t.Codigo === record.TipoProductoBaseCodigo)?.Id,
-                    NombreComercial: record.NombreComercial,
-                    Descripcion: record.Descripcion ?? undefined,
-                    ModoPrecio: record.ModoPrecio,
-                    PrecioFijo: record.PrecioFijo ?? undefined,
-                    VigenciaDias: record.VigenciaDias ?? undefined,
-                    UsosIncluidos: record.UsosIncluidos ?? undefined,
-                    BloqueHorarioComercialId: record.BloqueHorarioComercialId ?? undefined,
-                    ClaseId: record.ClaseId ?? undefined,
-                    VisiblePos: record.VisiblePos,
-                    Activo: record.Activo,
-                    RequiereCliente: record.RequiereCliente,
-                    GeneraBeneficio: record.GeneraBeneficio,
-                    AccesoIlimitado: record.AccesoIlimitado,
-                  })
-                  setOpen(true)
-                }}
-              >
-                Editar
-              </Button>
-            ),
-          },
-        ]}
-      />
+                    <Tooltip title="Editar">
+                      <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+                    </Tooltip>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Empty description="Sin productos registrados" />
+          )
+        ) : (
+          <Table
+            rowKey="ProductoEmpresaId"
+            columns={columns}
+            dataSource={items}
+            scroll={{ x: 980 }}
+            tableLayout="auto"
+            pagination={false}
+          />
+        )}
+      </Card>
 
       <Modal
         open={open}
         title={editingItem ? 'Editar producto' : 'Nuevo producto'}
-        onCancel={() => { setOpen(false); setEditingItem(null) }}
+        onCancel={() => {
+          setOpen(false)
+          setEditingItem(null)
+        }}
         onOk={() => form.submit()}
         confirmLoading={submitting}
         destroyOnHidden
@@ -242,11 +371,18 @@ export default function ProductosTab() {
         <Form
           form={form}
           layout="vertical"
-          initialValues={{ ModoPrecio: 'fijo', VisiblePos: true, Activo: true, RequiereCliente: false, GeneraBeneficio: false, AccesoIlimitado: false }}
+          initialValues={{
+            ModoPrecio: 'fijo',
+            VisiblePos: true,
+            Activo: true,
+            RequiereCliente: false,
+            GeneraBeneficio: false,
+            AccesoIlimitado: false,
+          }}
           onFinish={async (values) => {
             setSubmitting(true)
             try {
-              const tipoCodigo = tipos.find((t) => t.Id === values.TipoProductoBaseId)?.Codigo
+              const tipoCodigo = tipos.find((tipo) => tipo.Id === values.TipoProductoBaseId)?.Codigo
               const payload = buildPayload(values, tipoCodigo)
 
               if (editingItem) {
@@ -270,7 +406,7 @@ export default function ProductosTab() {
         >
           <div className="grid-two">
             <Form.Item name="TipoProductoBaseId" label="Tipo Producto" rules={[{ required: true }]}>
-              <Select options={tipos.map((t) => ({ value: t.Id, label: t.Nombre }))} />
+              <Select options={tipos.map((tipo) => ({ value: tipo.Id, label: tipo.Nombre }))} />
             </Form.Item>
 
             {selectedTipoCodigo && (
@@ -278,56 +414,84 @@ export default function ProductosTab() {
                 <Input />
               </Form.Item>
             )}
-            {selectedTipoCodigo && <Form.Item name="Descripcion" label="Descripción"><Input /></Form.Item>}
+
+            {selectedTipoCodigo && (
+              <Form.Item name="Descripcion" label="Descripción">
+                <Input />
+              </Form.Item>
+            )}
 
             {selectedTipoCodigo && showModoPrecio && (
               <Form.Item name="ModoPrecio" label="Modo precio" rules={[{ required: true }]}>
                 <Select options={[{ value: 'fijo', label: 'Fijo' }, { value: 'tarifa', label: 'Tarifa' }]} />
               </Form.Item>
             )}
+
             {selectedTipoCodigo && showPrecioFijo && (
-              <Form.Item name="PrecioFijo" label="Precio fijo" rules={isProductoCaja ? [{ required: true, message: 'El precio fijo es obligatorio.' }] : undefined}>
+              <Form.Item
+                name="PrecioFijo"
+                label="Precio fijo"
+                rules={isProductoCaja ? [{ required: true, message: 'El precio fijo es obligatorio.' }] : undefined}
+              >
                 <Input type="number" />
               </Form.Item>
             )}
+
             {selectedTipoCodigo && showVigenciaDias && (
               <Form.Item name="VigenciaDias" label="Vigencia días">
                 <Input type="number" />
               </Form.Item>
             )}
+
             {selectedTipoCodigo && showUsosIncluidos && (
               <Form.Item name="UsosIncluidos" label={usosLabel}>
                 <Input type="number" />
               </Form.Item>
             )}
+
             {selectedTipoCodigo && showBloqueHorario && (
               <Form.Item
                 name="BloqueHorarioComercialId"
                 label="Bloque horario"
                 rules={bloqueRequerido ? [{ required: true, message: 'Selecciona un bloque horario.' }] : undefined}
               >
-                <Select allowClear options={bloques.map((b) => ({ value: b.Id, label: b.Nombre }))} />
+                <Select allowClear options={bloques.map((bloque) => ({ value: bloque.Id, label: bloque.Nombre }))} />
               </Form.Item>
             )}
+
             {selectedTipoCodigo && showClase && (
               <Form.Item
                 name="ClaseId"
                 label="Clase"
                 rules={isClases ? [{ required: true, message: 'Selecciona una clase.' }] : undefined}
               >
-                <Select allowClear options={clases.map((c) => ({ value: c.ClaseId, label: c.Nombre }))} />
+                <Select allowClear options={clases.map((clase) => ({ value: clase.ClaseId, label: clase.Nombre }))} />
               </Form.Item>
             )}
           </div>
 
           <div className="grid-two">
-            {selectedTipoCodigo && <Form.Item name="VisiblePos" label="Visible POS" valuePropName="checked"><Switch disabled={requiresTarifaAsociada && !hasTarifaAsociada} /></Form.Item>}
-            {selectedTipoCodigo && <Form.Item name="Activo" label="Activo" valuePropName="checked"><Switch disabled={requiresTarifaAsociada && !hasTarifaAsociada} /></Form.Item>}
+            {selectedTipoCodigo && (
+              <Form.Item name="VisiblePos" label="Visible POS" valuePropName="checked">
+                <Switch disabled={requiresTarifaAsociada && !hasTarifaAsociada} />
+              </Form.Item>
+            )}
+            {selectedTipoCodigo && (
+              <Form.Item name="Activo" label="Activo" valuePropName="checked">
+                <Switch disabled={requiresTarifaAsociada && !hasTarifaAsociada} />
+              </Form.Item>
+            )}
             {selectedTipoCodigo && showSwitchesCliente && (
               <>
-                <Form.Item name="RequiereCliente" label="Requiere cliente" valuePropName="checked"><Switch /></Form.Item>
-                <Form.Item name="GeneraBeneficio" label="Genera beneficio" valuePropName="checked"><Switch /></Form.Item>
-                <Form.Item name="AccesoIlimitado" label="Acceso ilimitado" valuePropName="checked"><Switch /></Form.Item>
+                <Form.Item name="RequiereCliente" label="Requiere cliente" valuePropName="checked">
+                  <Switch />
+                </Form.Item>
+                <Form.Item name="GeneraBeneficio" label="Genera beneficio" valuePropName="checked">
+                  <Switch />
+                </Form.Item>
+                <Form.Item name="AccesoIlimitado" label="Acceso ilimitado" valuePropName="checked">
+                  <Switch />
+                </Form.Item>
               </>
             )}
           </div>
@@ -344,4 +508,6 @@ export default function ProductosTab() {
       </Modal>
     </>
   )
-}
+})
+
+export default ProductosTab

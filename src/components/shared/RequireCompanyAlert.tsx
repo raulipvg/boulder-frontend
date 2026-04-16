@@ -21,7 +21,7 @@ export function RequireCompanyAlert() {
       type="warning"
       message="Selecciona una empresa objetivo"
       description={`El usuario ${toCapitalCase(user?.FullName)} es ADMIN_TOTAL y debe elegir una empresa antes de operar en módulos empresariales.`}
-      style={{ marginBottom: 16 }}
+      style={{ marginBottom: 10 }}
     />
   )
 }

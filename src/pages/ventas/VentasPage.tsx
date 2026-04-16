@@ -1,5 +1,7 @@
+import { ReloadOutlined } from '@ant-design/icons'
 import { Button, Card, Input, Modal, Space, Table, Typography } from 'antd'
 import { useEffect, useState } from 'react'
+import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { ventasService } from '../../services/ventas/ventasService'
 import type { VentaDto } from '../../types/models'
@@ -23,21 +25,20 @@ export default function VentasPage() {
   useEffect(() => { void load() }, [])
 
   return (
-    <>
+    <div className="tms-page">
       <RequireCompanyAlert />
-      <Card>
-        <div className="page-actions">
-          <div>
-            <Typography.Title level={3} style={{ margin: 0 }}>Ventas</Typography.Title>
-            <Typography.Text type="secondary">Historial operativo de ventas y anulaciones.</Typography.Text>
-          </div>
-        </div>
+      <PageHeaderCard
+        title="Ventas"
+        subtitle="Historial operativo de ventas y anulaciones."
+        actions={<Button icon={<ReloadOutlined />} onClick={() => void load()} />}
+      />
 
+      <Card className="tms-page-table-card">
         <Table
           rowKey="VentaId"
           loading={loading}
           dataSource={items}
-          expandable={{ expandedRowRender: (record) => <pre style={{ margin: 0 }}>{JSON.stringify(record.Detalles, null, 2)}</pre> }}
+          expandable={{ expandedRowRender: (record) => <pre className="table-json-preview">{JSON.stringify(record.Detalles, null, 2)}</pre> }}
           columns={[
             { title: 'Comprobante', dataIndex: 'NumeroComprobante' },
             { title: 'Fecha', dataIndex: 'FechaHora' },
@@ -69,6 +70,6 @@ export default function VentasPage() {
           <Input.TextArea value={motivo} onChange={(event) => setMotivo(event.target.value)} rows={4} />
         </Space>
       </Modal>
-    </>
+    </div>
   )
 }
