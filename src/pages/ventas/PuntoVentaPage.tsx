@@ -12,7 +12,7 @@ import { toCapitalCase } from '../../utils/formatPersonName'
 import { isValidRut, normalizeRut } from '../../utils/rut'
 
 const REQUIRED_CLIENT_CODES = new Set([
-  'CLASES_CON_PROFESOR',
+  'CLASES',
   'MENSUALIDAD_POR_HORARIO',
   'MENSUALIDAD_TODO_HORARIO',
   'PACK_TICKETS',

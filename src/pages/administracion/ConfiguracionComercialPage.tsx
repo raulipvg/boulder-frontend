@@ -104,7 +104,7 @@ export default function ConfiguracionComercialPage() {
         key: 'bloques',
         label: (
           <span>
-            <ClockCircleOutlined /> Bloques horarios
+            <ClockCircleOutlined /> Bloques
           </span>
         ),
         children: wrapWithMobileToolbar(<BloquesHorariosTab ref={bloquesRef} />),

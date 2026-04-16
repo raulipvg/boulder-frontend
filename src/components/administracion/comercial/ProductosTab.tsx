@@ -50,6 +50,31 @@ const formatVigenciaRange = (desde: string, hasta: string) => {
   return { desde: fmt(desde), hasta: fmt(hasta) }
 }
 
+const PRODUCT_TYPE_META: Record<string, { label: string; color: string }> = {
+  TICKET_INDIVIDUAL: { label: 'Ticket individual', color: 'blue' },
+  PACK_TICKETS: { label: 'Pack de tickets', color: 'gold' },
+  MENSUALIDAD_POR_HORARIO: { label: 'Mensualidad por horario', color: 'geekblue' },
+  MENSUALIDAD_TODO_HORARIO: { label: 'Mensualidad todo horario', color: 'cyan' },
+  CLASES: { label: 'Clases', color: 'magenta' },
+  ARRIENDO_ZAPATILLAS: { label: 'Arriendo de zapatillas', color: 'volcano' },
+  PRODUCTO_CAJA: { label: 'Producto de caja', color: 'green' },
+}
+
+const renderTipoProductoTag = (codigo: string) => {
+  const meta = PRODUCT_TYPE_META[codigo]
+  if (!meta) {
+    return <Tag>{codigo}</Tag>
+  }
+  return <Tag color={meta.color}>{meta.label}</Tag>
+}
+
+const getTipoProductoLabel = (codigo: string, nombre: string) => {
+  if (codigo === 'CLASES' || codigo === 'CLASES_CON_PROFESOR') {
+    return 'Clases'
+  }
+  return nombre
+}
+
 const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props, ref) {
   const { message } = AntdApp.useApp()
   const screens = useBreakpoint()
@@ -70,11 +95,13 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
   const [tarifaOpen, setTarifaOpen] = useState(false)
   const [tarifaEditing, setTarifaEditing] = useState<TarifaProductoResumenDto | null>(null)
   const [tarifaSubmitting, setTarifaSubmitting] = useState(false)
+  const [tarifaTodoHorario, setTarifaTodoHorario] = useState(false)
   const [form] = Form.useForm()
   const [tarifaForm] = Form.useForm()
 
   const selectedTipoProductoBaseId = Form.useWatch('TipoProductoBaseId', form)
   const selectedModoPrecio = Form.useWatch('ModoPrecio', form)
+  const selectedActivo = Form.useWatch('Activo', form)
   const selectedTipoCodigo = useMemo(
     () => tipos.find((tipo) => tipo.Id === selectedTipoProductoBaseId)?.Codigo,
     [selectedTipoProductoBaseId, tipos],
@@ -88,11 +115,17 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
     }
   }, [form, hasTarifaAsociada, requiresTarifaAsociada])
 
+  useEffect(() => {
+    if (selectedActivo === false) {
+      form.setFieldValue('VisiblePos', false)
+    }
+  }, [form, selectedActivo])
+
   const isMensualidadPorHorario = selectedTipoCodigo === 'MENSUALIDAD_POR_HORARIO'
   const isMensualidadTodoHorario = selectedTipoCodigo === 'MENSUALIDAD_TODO_HORARIO'
   const isMensualidad = isMensualidadPorHorario || isMensualidadTodoHorario
   const isPackTickets = selectedTipoCodigo === 'PACK_TICKETS' || selectedTipoCodigo === 'PACK_10_TICKETS'
-  const isClases = selectedTipoCodigo === 'CLASES_CON_PROFESOR'
+  const isClases = selectedTipoCodigo === 'CLASES'
   const isProductoCaja = selectedTipoCodigo === 'PRODUCTO_CAJA'
   const isTicketIndividual = selectedTipoCodigo === 'TICKET_INDIVIDUAL'
 
@@ -263,13 +296,15 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
   }
 
   const openTarifaEdit = (record: TarifaProductoResumenDto) => {
+    const isTodoHorario = !record.BloqueHorarioComercialId
     setTarifaEditing(record)
+    setTarifaTodoHorario(isTodoHorario)
     tarifaForm.setFieldsValue({
       TipoDias: (record.TipoDia ?? '').split(',').filter(Boolean),
       BloqueHorarioComercialId: record.BloqueHorarioComercialId ?? undefined,
+      TodoHorario: isTodoHorario,
       Precio: record.Precio,
-      VigenciaDesde: dayjs(record.VigenciaDesde),
-      VigenciaHasta: dayjs(record.VigenciaHasta),
+      VigenciaRango: [dayjs(record.VigenciaDesde), dayjs(record.VigenciaHasta)],
       Activo: record.Activo,
     })
     setTarifaOpen(true)
@@ -287,10 +322,11 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
       const payload = {
         ProductoEmpresaId: tarifaEditing.ProductoEmpresaId,
         TipoClienteId: tarifaEditing.TipoClienteId,
+        BloqueHorarioComercialId: tarifaTodoHorario ? null : (values.BloqueHorarioComercialId ?? null),
         TipoDia: selectedDays.join(','),
         Precio: values.Precio,
-        VigenciaDesde: (values.VigenciaDesde as dayjs.Dayjs).format('YYYY-MM-DD'),
-        VigenciaHasta: (values.VigenciaHasta as dayjs.Dayjs).format('YYYY-MM-DD'),
+        VigenciaDesde: ((values.VigenciaRango as dayjs.Dayjs[])[0]).format('YYYY-MM-DD'),
+        VigenciaHasta: ((values.VigenciaRango as dayjs.Dayjs[])[1]).format('YYYY-MM-DD'),
         Activo: values.Activo,
       }
 
@@ -298,6 +334,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
       message.success('Tarifa actualizada correctamente.')
       setTarifaOpen(false)
       setTarifaEditing(null)
+      setTarifaTodoHorario(false)
       tarifaForm.resetFields()
 
       const expandedKey = expandedRowKeys[0]
@@ -462,7 +499,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
           GeneraBeneficio: true,
           AccesoIlimitado: false,
         }
-      case 'CLASES_CON_PROFESOR':
+      case 'CLASES':
         return {
           ...values,
           ModoPrecio: 'tarifa',
@@ -506,7 +543,13 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
 
   const columns: ColumnsType<ProductoDto> = [
     { title: 'Producto', dataIndex: 'NombreComercial', key: 'NombreComercial', render: (value) => <Typography.Text strong>{value}</Typography.Text> },
-    { title: 'Tipo Producto', dataIndex: 'TipoProductoBaseCodigo', key: 'TipoProductoBaseCodigo', responsive: ['md'] },
+    {
+      title: 'Tipo Producto',
+      dataIndex: 'TipoProductoBaseCodigo',
+      key: 'TipoProductoBaseCodigo',
+      responsive: ['md'],
+      render: (value) => renderTipoProductoTag(value),
+    },
     {
       title: 'Modo',
       dataIndex: 'ModoPrecio',
@@ -589,7 +632,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontWeight: 600 }}>{record.NombreComercial}</div>
-                      <div style={{ color: '#6b7280', fontSize: 12 }}>{record.TipoProductoBaseCodigo}</div>
+                      <div style={{ marginTop: 4 }}>{renderTipoProductoTag(record.TipoProductoBaseCodigo)}</div>
                       <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {record.VisiblePos ? (
                           <CheckOutlined style={{ color: '#52c41a', fontSize: 16 }} />
@@ -686,7 +729,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
         >
           <div className="grid-two">
             <Form.Item name="TipoProductoBaseId" label="Tipo Producto" rules={[{ required: true }]}>
-              <Select options={tipos.map((tipo) => ({ value: tipo.Id, label: tipo.Nombre }))} />
+              <Select options={tipos.map((tipo) => ({ value: tipo.Id, label: getTipoProductoLabel(tipo.Codigo, tipo.Nombre) }))} />
             </Form.Item>
 
             {selectedTipoCodigo && (
@@ -753,7 +796,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
           <div className="grid-two">
             {selectedTipoCodigo && (
               <Form.Item name="VisiblePos" label="Visible POS" valuePropName="checked">
-                <Switch disabled={requiresTarifaAsociada && !hasTarifaAsociada} />
+                <Switch disabled={(requiresTarifaAsociada && !hasTarifaAsociada) || selectedActivo === false} />
               </Form.Item>
             )}
             {selectedTipoCodigo && (
@@ -793,6 +836,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
         onCancel={() => {
           setTarifaOpen(false)
           setTarifaEditing(null)
+          setTarifaTodoHorario(false)
         }}
         onOk={() => tarifaForm.submit()}
         confirmLoading={tarifaSubmitting}
@@ -806,20 +850,30 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
           >
             <Checkbox.Group options={DAY_OPTIONS.map((day) => ({ value: day, label: day }))} />
           </Form.Item>
-          <Form.Item name="BloqueHorarioComercialId" label="Bloque horario">
-            <Select
-              allowClear
-              options={bloques.map((bloque) => ({ value: bloque.Id, label: bloque.Nombre }))}
-            />
-          </Form.Item>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
+            <Form.Item name="BloqueHorarioComercialId" label="Bloque horario" style={{ flex: 1, marginBottom: 0 }}>
+              <Select
+                allowClear
+                disabled={tarifaTodoHorario}
+                options={bloques.map((bloque) => ({ value: bloque.Id, label: bloque.Nombre }))}
+              />
+            </Form.Item>
+            <Form.Item name="TodoHorario" label="Todo horario" valuePropName="checked" style={{ marginBottom: 0 }}>
+              <Switch
+                onChange={(checked) => {
+                  setTarifaTodoHorario(checked)
+                  if (checked) {
+                    tarifaForm.setFieldValue('BloqueHorarioComercialId', undefined)
+                  }
+                }}
+              />
+            </Form.Item>
+          </div>
           <Form.Item name="Precio" label="Precio" rules={[{ required: true }]}>
             <Input type="number" />
           </Form.Item>
-          <Form.Item name="VigenciaDesde" label="Vigencia desde" rules={[{ required: true }]}>
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="VigenciaHasta" label="Vigencia hasta" rules={[{ required: true }]}>
-            <DatePicker style={{ width: '100%' }} />
+          <Form.Item name="VigenciaRango" label="Vigencia" rules={[{ required: true, message: 'Selecciona vigencia desde y hasta.' }]}>
+            <DatePicker.RangePicker style={{ width: '100%' }} format="DD-MM-YYYY" />
           </Form.Item>
           <Form.Item name="Activo" label="Activa" valuePropName="checked">
             <Switch />
