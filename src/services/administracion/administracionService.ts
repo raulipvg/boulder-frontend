@@ -20,7 +20,7 @@ export const administracionService = {
   getProductos: async () => (await apiClient.get<ProductoDto[]>('/administracion/productos')).data,
   createProducto: async (payload: Record<string, unknown>) => (await apiClient.post<ProductoDto>('/administracion/productos', payload)).data,
   updateProducto: async (productoEmpresaId: number, payload: Record<string, unknown>) => (await apiClient.put<ProductoDto>(`/administracion/productos/${productoEmpresaId}`, payload)).data,
-  getTarifas: async () => (await apiClient.get<TarifaDto[]>('/administracion/tarifas')).data,
+  getTarifas: async (tipoClienteCodigo: 'GENERAL' | 'ESTUDIANTE' = 'GENERAL') => (await apiClient.get<TarifaDto[]>('/administracion/tarifas', { params: { tipoClienteCodigo } })).data,
   createTarifa: async (payload: Record<string, unknown>) => (await apiClient.post<TarifaDto>('/administracion/tarifas', payload)).data,
   updateTarifa: async (tarifaProductoId: number, payload: Record<string, unknown>) => (await apiClient.put<TarifaDto>(`/administracion/tarifas/${tarifaProductoId}`, payload)).data,
   getClases: async () => (await apiClient.get<ClaseDto[]>('/administracion/clases')).data,
@@ -34,4 +34,3 @@ export const administracionService = {
   createBloqueHorario: async (payload: Record<string, unknown>) => (await apiClient.post<BloqueHorarioDto>('/administracion/bloques-horarios', payload)).data,
   updateBloqueHorario: async (id: number, payload: Record<string, unknown>) => (await apiClient.put<BloqueHorarioDto>(`/administracion/bloques-horarios/${id}`, payload)).data,
 }
-

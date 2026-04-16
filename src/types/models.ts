@@ -78,6 +78,7 @@ export interface ProductoDto {
   PrecioFijo?: number | null
   VisiblePos: boolean
   Activo: boolean
+  TarifaAsociada: boolean
   RequiereCliente: boolean
   GeneraBeneficio: boolean
   BloqueHorarioComercialId?: number | null

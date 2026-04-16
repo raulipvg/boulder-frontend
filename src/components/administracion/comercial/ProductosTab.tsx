@@ -1,4 +1,4 @@
-import { App as AntdApp, Button, Form, Input, Modal, Select, Switch, Table, Typography } from 'antd'
+import { Alert, App as AntdApp, Button, Form, Input, Modal, Select, Switch, Table, Typography } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { RequireCompanyAlert } from '../../../components/shared/RequireCompanyAlert'
 import { administracionService } from '../../../services/administracion/administracionService'
@@ -18,10 +18,19 @@ export default function ProductosTab() {
   const [form] = Form.useForm()
 
   const selectedTipoProductoBaseId = Form.useWatch('TipoProductoBaseId', form)
+  const selectedModoPrecio = Form.useWatch('ModoPrecio', form)
   const selectedTipoCodigo = useMemo(
     () => tipos.find((t) => t.Id === selectedTipoProductoBaseId)?.Codigo,
     [selectedTipoProductoBaseId, tipos],
   )
+  const requiresTarifaAsociada = selectedModoPrecio === 'tarifa'
+  const hasTarifaAsociada = editingItem?.TarifaAsociada ?? false
+
+  useEffect(() => {
+    if (requiresTarifaAsociada && !hasTarifaAsociada) {
+      form.setFieldsValue({ VisiblePos: false, Activo: false })
+    }
+  }, [form, hasTarifaAsociada, requiresTarifaAsociada])
 
   // Tipo flags
   const isMensualidadPorHorario = selectedTipoCodigo === 'MENSUALIDAD_POR_HORARIO'
@@ -185,6 +194,7 @@ export default function ProductosTab() {
           { title: 'Tipo base', dataIndex: 'TipoProductoBaseCodigo' },
           { title: 'Modo precio', dataIndex: 'ModoPrecio' },
           { title: 'Precio fijo', dataIndex: 'PrecioFijo' },
+          { title: 'Tarifa asociada', render: (_, r) => (r.TarifaAsociada ? 'Sí' : 'No') },
           { title: 'POS', render: (_, r) => (r.VisiblePos ? 'Sí' : 'No') },
           { title: 'Activo', render: (_, r) => (r.Activo ? 'Sí' : 'No') },
           {
@@ -311,8 +321,8 @@ export default function ProductosTab() {
           </div>
 
           <div className="grid-two">
-            {selectedTipoCodigo && <Form.Item name="VisiblePos" label="Visible POS" valuePropName="checked"><Switch /></Form.Item>}
-            {selectedTipoCodigo && <Form.Item name="Activo" label="Activo" valuePropName="checked"><Switch /></Form.Item>}
+            {selectedTipoCodigo && <Form.Item name="VisiblePos" label="Visible POS" valuePropName="checked"><Switch disabled={requiresTarifaAsociada && !hasTarifaAsociada} /></Form.Item>}
+            {selectedTipoCodigo && <Form.Item name="Activo" label="Activo" valuePropName="checked"><Switch disabled={requiresTarifaAsociada && !hasTarifaAsociada} /></Form.Item>}
             {selectedTipoCodigo && showSwitchesCliente && (
               <>
                 <Form.Item name="RequiereCliente" label="Requiere cliente" valuePropName="checked"><Switch /></Form.Item>
@@ -321,6 +331,15 @@ export default function ProductosTab() {
               </>
             )}
           </div>
+
+          {selectedTipoCodigo && requiresTarifaAsociada && !hasTarifaAsociada && (
+            <Alert
+              type="warning"
+              showIcon
+              message="El producto no tiene tarifa activa asociada"
+              description="Mientras no tenga una tarifa activa asociada, este producto no puede estar activo ni visible en POS."
+            />
+          )}
         </Form>
       </Modal>
     </>
