@@ -26,7 +26,7 @@ export default function ProductosPage() {
   const isMensualidadPorHorario = selectedTipoProductoCodigo === 'MENSUALIDAD_POR_HORARIO'
   const isMensualidadTodoHorario = selectedTipoProductoCodigo === 'MENSUALIDAD_TODO_HORARIO'
   const isMensualidad = isMensualidadPorHorario || isMensualidadTodoHorario
-  const isPackTickets = selectedTipoProductoCodigo === 'PACK_TICKETS' || selectedTipoProductoCodigo === 'PACK_10_TICKETS'
+  const isPackTickets = selectedTipoProductoCodigo === 'PACK_TICKETS'
 
   const load = async () => {
     setLoading(true)
@@ -186,7 +186,7 @@ export default function ProductosPage() {
                     ? values.BloqueHorarioComercialId ?? null
                     : null,
                 }
-                : (tipoCodigo === 'PACK_TICKETS' || tipoCodigo === 'PACK_10_TICKETS')
+                : (tipoCodigo === 'PACK_TICKETS')
                   ? {
                     ...values,
                     ModoPrecio: 'tarifa',

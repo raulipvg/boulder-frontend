@@ -1,4 +1,4 @@
-import { ArrowRightOutlined, CheckOutlined, CloseOutlined, DownOutlined, EditOutlined, RightOutlined } from '@ant-design/icons'
+import { ArrowRightOutlined, CheckOutlined, CloseOutlined, DownOutlined, EditOutlined, PlusOutlined, RightOutlined } from '@ant-design/icons'
 import {
   Alert,
   App as AntdApp,
@@ -129,7 +129,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
   const isMensualidadPorHorario = selectedTipoCodigo === 'MENSUALIDAD_POR_HORARIO'
   const isMensualidadTodoHorario = selectedTipoCodigo === 'MENSUALIDAD_TODO_HORARIO'
   const isMensualidad = isMensualidadPorHorario || isMensualidadTodoHorario
-  const isPackTickets = selectedTipoCodigo === 'PACK_TICKETS' || selectedTipoCodigo === 'PACK_10_TICKETS'
+  const isPackTickets = selectedTipoCodigo === 'PACK_TICKETS'
   const isClases = selectedTipoCodigo === 'CLASES'
   const isProductoCaja = selectedTipoCodigo === 'PRODUCTO_CAJA'
   const isTicketIndividual = selectedTipoCodigo === 'TICKET_INDIVIDUAL'
@@ -297,7 +297,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
     if (!loadingTarifas && !tarifas.length) {
       return (
         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Sin tarifas asociadas">
-          <Button type="primary" onClick={() => openTarifasBatch(record.ProductoEmpresaId)}>Asociar tarifas</Button>
+          <Button type="primary" onClick={() => openTarifasBatch(record.ProductoEmpresaId)}>Asociar tarifa</Button>
         </Empty>
       )
     }
@@ -608,7 +608,6 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
           BloqueHorarioComercialId: tipoCodigo === 'MENSUALIDAD_POR_HORARIO' ? values.BloqueHorarioComercialId ?? null : null,
         }
       case 'PACK_TICKETS':
-      case 'PACK_10_TICKETS':
         return {
           ...values,
           ModoPrecio: 'tarifa',
@@ -733,9 +732,16 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
       key: 'acciones',
       align: 'center',
       render: (_, record) => (
-        <Tooltip title="Editar">
-          <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
-        </Tooltip>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+          <Tooltip title="Editar">
+            <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+          </Tooltip>
+          {record.ModoPrecio === 'tarifa' ? (
+            <Tooltip title="Asociar tarifa">
+              <Button type="text" size="small" icon={<PlusOutlined />} onClick={() => openTarifasBatch(record.ProductoEmpresaId)} />
+            </Tooltip>
+          ) : null}
+        </span>
       ),
     },
   ]
@@ -825,17 +831,18 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
             setSubmitting(true)
             try {
               const tipoCodigo = tipos.find((tipo) => tipo.Id === values.TipoProductoBaseId)?.Codigo
-              const payload = buildPayload(values, tipoCodigo)
+              const payloadBase = buildPayload(values, tipoCodigo)
+              const payload =
+                payloadBase.ModoPrecio === 'tarifa' && !hasTarifaAsociada
+                  ? { ...payloadBase, Activo: false, VisiblePos: false }
+                  : payloadBase
 
               if (editingItem) {
                 await administracionService.updateProducto(editingItem.ProductoEmpresaId, payload)
                 message.success('Producto actualizado correctamente.')
               } else {
-                const createdProducto = await administracionService.createProducto(payload)
+                await administracionService.createProducto(payload)
                 message.success('Producto creado correctamente.')
-                if (payload.ModoPrecio === 'tarifa') {
-                  openTarifasBatch(createdProducto.ProductoEmpresaId)
-                }
               }
 
               setOpen(false)
