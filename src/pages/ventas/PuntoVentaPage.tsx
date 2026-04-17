@@ -20,7 +20,7 @@ import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert
 import { administracionService } from '../../services/administracion/administracionService'
 import { operacionService } from '../../services/operacion/operacionService'
 import { ventasService } from '../../services/ventas/ventasService'
-import type { ClienteLookupDto, LookupDto, PosCatalogItemDto, TarifaProductoResumenDto, TipoClienteDto } from '../../types/models'
+import type { ClienteLookupDto, LookupDto, PosCatalogItemDto, TipoClienteDto } from '../../types/models'
 import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 import { toCapitalCase } from '../../utils/formatPersonName'
 import { isValidRut, normalizeRut } from '../../utils/rut'
@@ -60,26 +60,20 @@ interface ProductTypeMeta {
   color: string
 }
 
-interface ClassTarifaPrices {
-  GENERAL?: number
-  ESTUDIANTE?: number
-}
-
 const currencyFormatter = new Intl.NumberFormat('es-CL')
 
 const formatCurrency = (value?: number | null) => `$ ${currencyFormatter.format(Math.max(0, value ?? 0))}`
 
 const normalizeTypeCode = (value: string) => value.trim().toUpperCase().replace(/\s+/g, '_')
 
-const getTodayDateKey = () => {
-  const date = new Date()
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+const toDayCapitalCase = (value: string) => {
+  const normalized = value.trim()
+  if (!normalized) {
+    return normalized
+  }
 
-const normalizeDateKey = (value?: string | null) => (value ?? '').trim().slice(0, 10)
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase()
+}
 
 function getProductTypeMeta(typeCode: string): ProductTypeMeta {
   const normalized = normalizeTypeCode(typeCode)
@@ -137,16 +131,12 @@ export default function PuntoVentaPage() {
   const [medioPagoId, setMedioPagoId] = useState<number | null>(null)
   const [productSearch, setProductSearch] = useState('')
   const [selectedFamily, setSelectedFamily] = useState<string>('ALL')
-  const [classTarifasByProduct, setClassTarifasByProduct] = useState<Record<number, ClassTarifaPrices>>({})
-  const [classTarifasLoadingByProduct, setClassTarifasLoadingByProduct] = useState<Record<number, boolean>>({})
-  const [classTarifasErrorByProduct, setClassTarifasErrorByProduct] = useState<Record<number, string | null>>({})
   const [createClientOpen, setCreateClientOpen] = useState(false)
   const [createClientTargetItemId, setCreateClientTargetItemId] = useState<string | null>(null)
   const [creatingClient, setCreatingClient] = useState(false)
   const [createClientForm] = Form.useForm()
   const lineIdRef = useRef(1)
   const searchTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({})
-  const classTarifasRequestedRef = useRef<Set<number>>(new Set())
 
   const nextLineId = () => {
     const id = `line-${lineIdRef.current}`
@@ -202,10 +192,6 @@ export default function PuntoVentaPage() {
         administracionService.getTiposCliente(),
       ])
       setCatalog(catalogData)
-      setClassTarifasByProduct({})
-      setClassTarifasLoadingByProduct({})
-      setClassTarifasErrorByProduct({})
-      classTarifasRequestedRef.current.clear()
       setMediosPago(medios)
       setTiposCliente(tipos)
       setMedioPagoId((current) => current ?? medios[0]?.Id ?? null)
@@ -371,83 +357,6 @@ export default function PuntoVentaPage() {
     ]
   }, [catalogFamilies])
 
-  const tipoClienteCodeById = useMemo(() => {
-    const map = new Map<number, string>()
-    for (const tipoCliente of tiposCliente) {
-      map.set(tipoCliente.TipoClienteId, tipoCliente.Codigo)
-    }
-    return map
-  }, [tiposCliente])
-
-  const resolveTarifaClienteCode = (tarifa: TarifaProductoResumenDto): 'GENERAL' | 'ESTUDIANTE' | null => {
-    const byId = tarifa.TipoClienteId ? tipoClienteCodeById.get(tarifa.TipoClienteId)?.toUpperCase() : null
-    if (byId === 'GENERAL' || byId === 'ESTUDIANTE') {
-      return byId
-    }
-
-    const byName = (tarifa.TipoClienteNombre ?? '').trim().toUpperCase()
-    if (byName.includes('ESTUD')) {
-      return 'ESTUDIANTE'
-    }
-
-    if (byName.includes('GENERAL')) {
-      return 'GENERAL'
-    }
-
-    return null
-  }
-
-  const pickVigenteTarifas = (tarifas: TarifaProductoResumenDto[]): ClassTarifaPrices => {
-    const today = getTodayDateKey()
-    const tarifasVigentes = tarifas
-      .filter((tarifa) => {
-        if (!tarifa.Activo) {
-          return false
-        }
-
-        const desde = normalizeDateKey(tarifa.VigenciaDesde)
-        const hasta = normalizeDateKey(tarifa.VigenciaHasta)
-        if (!desde || !hasta) {
-          return false
-        }
-
-        return today >= desde && today <= hasta
-      })
-      .sort((a, b) => normalizeDateKey(b.VigenciaDesde).localeCompare(normalizeDateKey(a.VigenciaDesde)))
-
-    const prices: ClassTarifaPrices = {}
-    for (const tarifa of tarifasVigentes) {
-      const clienteCode = resolveTarifaClienteCode(tarifa)
-      if (!clienteCode) {
-        continue
-      }
-
-      if (prices[clienteCode] == null) {
-        prices[clienteCode] = tarifa.Precio
-      }
-    }
-
-    return prices
-  }
-
-  const loadClassTarifas = async (productoEmpresaId: number) => {
-    setClassTarifasLoadingByProduct((current) => ({ ...current, [productoEmpresaId]: true }))
-    setClassTarifasErrorByProduct((current) => ({ ...current, [productoEmpresaId]: null }))
-
-    try {
-      const tarifas = await administracionService.getTarifasByProducto(productoEmpresaId)
-      const prices = pickVigenteTarifas(tarifas)
-      setClassTarifasByProduct((current) => ({ ...current, [productoEmpresaId]: prices }))
-    } catch (error) {
-      setClassTarifasByProduct((current) => ({ ...current, [productoEmpresaId]: {} }))
-      setClassTarifasErrorByProduct((current) => ({
-        ...current,
-        [productoEmpresaId]: getApiErrorMessage(error, 'No se pudieron cargar tarifas de clases.'),
-      }))
-    } finally {
-      setClassTarifasLoadingByProduct((current) => ({ ...current, [productoEmpresaId]: false }))
-    }
-  }
 
   const filteredCatalog = useMemo(() => {
     const term = productSearch.trim().toLowerCase()
@@ -478,21 +387,6 @@ export default function PuntoVentaPage() {
       setSelectedFamily('ALL')
     }
   }, [catalogFamilies, selectedFamily])
-
-  useEffect(() => {
-    for (const product of catalog) {
-      if (getProductTypeMeta(product.TipoProductoBaseCodigo).family !== 'CLASES') {
-        continue
-      }
-
-      if (classTarifasRequestedRef.current.has(product.ProductoEmpresaId)) {
-        continue
-      }
-
-      classTarifasRequestedRef.current.add(product.ProductoEmpresaId)
-      void loadClassTarifas(product.ProductoEmpresaId)
-    }
-  }, [catalog])
 
   useEffect(() => {
     const loadPreview = async () => {
@@ -594,12 +488,12 @@ export default function PuntoVentaPage() {
                   {filteredCatalog.map((product) => {
                     const typeMeta = getProductTypeMeta(product.TipoProductoBaseCodigo)
                     const isClassProduct = typeMeta.family === 'CLASES'
-                    const classTarifas = classTarifasByProduct[product.ProductoEmpresaId]
-                    const classTarifasLoading = classTarifasLoadingByProduct[product.ProductoEmpresaId]
-                    const classTarifasError = classTarifasErrorByProduct[product.ProductoEmpresaId]
+                    const classDaysLabel = isClassProduct && product.DiasClase?.length
+                      ? product.DiasClase.map((day) => toDayCapitalCase(day)).join(', ')
+                      : null
                     const classPriceRows = [
-                      classTarifas?.GENERAL != null ? { label: 'General', value: classTarifas.GENERAL } : null,
-                      classTarifas?.ESTUDIANTE != null ? { label: 'Estudiante', value: classTarifas.ESTUDIANTE } : null,
+                      product.TarifaGeneralVigente != null ? { label: 'General', value: product.TarifaGeneralVigente } : null,
+                      product.TarifaEstudianteVigente != null ? { label: 'Estudiante', value: product.TarifaEstudianteVigente } : null,
                     ].filter((entry): entry is { label: string, value: number } => Boolean(entry))
                     const hasClassTarifas = classPriceRows.length > 0
                     const priceLabel = product.ModoPrecio === 'fijo'
@@ -617,17 +511,22 @@ export default function PuntoVentaPage() {
                               <Typography.Text strong className="tms-pos-product-name">
                                 {product.NombreComercial}
                               </Typography.Text>
-                              <Typography.Text type="secondary" className="tms-pos-product-family">
-                                {typeMeta.label}
-                              </Typography.Text>
+                              <div className="tms-pos-product-family-row">
+                                <Typography.Text type="secondary" className="tms-pos-product-family">
+                                  {typeMeta.label}
+                                </Typography.Text>
+                                {classDaysLabel && (
+                                  <Typography.Text type="secondary" className="tms-pos-product-days">
+                                    {classDaysLabel}
+                                  </Typography.Text>
+                                )}
+                              </div>
                             </div>
                           </div>
 
                           {isClassProduct ? (
                             <div className="tms-pos-product-footer tms-pos-product-footer--class">
-                              {classTarifasLoading ? (
-                                <Typography.Text type="secondary">Cargando tarifas...</Typography.Text>
-                              ) : hasClassTarifas ? (
+                              {hasClassTarifas ? (
                                 classPriceRows.map((row) => (
                                   <div key={row.label} className="tms-pos-class-price-block">
                                     <Typography.Text type="secondary" className="tms-pos-class-price-label">{row.label}</Typography.Text>
@@ -642,9 +541,6 @@ export default function PuntoVentaPage() {
                             <div className="tms-pos-product-footer">
                               <Typography.Text strong className="tms-pos-product-price">{priceLabel}</Typography.Text>
                             </div>
-                          )}
-                          {isClassProduct && classTarifasError && !classTarifasLoading && !hasClassTarifas && (
-                            <Typography.Text type="secondary">No se pudieron cargar tarifas de clases.</Typography.Text>
                           )}
                         </Card>
                       </Col>

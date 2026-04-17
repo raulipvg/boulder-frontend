@@ -166,6 +166,9 @@ export interface PosCatalogItemDto {
   RequiereCliente: boolean
   GeneraBeneficio: boolean
   VisiblePos: boolean
+  TarifaGeneralVigente?: number | null
+  TarifaEstudianteVigente?: number | null
+  DiasClase?: string[]
 }
 
 export interface VentaDetalleDto {

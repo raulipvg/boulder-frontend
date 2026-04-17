@@ -519,6 +519,17 @@ body {
   font-size: 12px;
 }
 
+.tms-pos-product-family-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tms-pos-product-days {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 .tms-pos-product-tags {
   min-height: 24px;
 }
