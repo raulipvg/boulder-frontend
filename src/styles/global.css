@@ -234,7 +234,7 @@ body {
 .tms-clases-calendar-event {
   position: absolute;
   border: 1px solid #dbe2ea;
-  border-left: 6px solid #11a769;
+  border-left: 6px solid var(--profesor-color, #11a769);
   border-radius: 8px;
   background: #ffffff;
   color: #111827;
@@ -254,8 +254,8 @@ body {
 }
 
 .tms-clases-calendar-event--inactive {
-  border-left-color: #6b7280;
   background: #f9fafb;
+  opacity: 0.78;
 }
 
 .tms-clases-calendar-event-title {
@@ -274,6 +274,42 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tms-clases-profesor-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.tms-clases-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.tms-clases-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #374151;
+  font-size: 12px;
+}
+
+.tms-clases-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex: 0 0 auto;
 }
 
 .tms-clases-mobile-calendar {
@@ -284,6 +320,10 @@ body {
 .tms-clases-mobile-list {
   display: grid;
   gap: 10px;
+}
+
+.tms-clases-mobile-card {
+  border-inline-start: 6px solid var(--profesor-color, #11a769);
 }
 
 .tms-clases-mobile-card-title {

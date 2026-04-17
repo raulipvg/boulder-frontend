@@ -21,6 +21,7 @@ import {
 } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { administracionService } from '../../services/administracion/administracionService'
@@ -64,6 +65,7 @@ type CalendarEventBase = {
   claseId: number
   claseNombre: string
   profesorNombre: string
+  profesorColor: string
   cupoMaximo: number
   activoClase: boolean
   horarioActivo: boolean
@@ -142,33 +144,66 @@ const buildDayLayout = (events: CalendarEventBase[]): CalendarEvent[] => {
   }
 
   const sorted = [...events].sort((a, b) => a.inicioMin - b.inicioMin || a.finMin - b.finMin)
-  const activeColumns: Array<{ column: number; finMin: number }> = []
-  let maxColumns = 1
+  const clusters: CalendarEventBase[][] = []
+  let currentCluster: CalendarEventBase[] = []
+  let currentClusterEnd = -1
 
-  const withColumns = sorted.map((event) => {
-    for (let index = activeColumns.length - 1; index >= 0; index -= 1) {
-      if (activeColumns[index].finMin <= event.inicioMin) {
-        activeColumns.splice(index, 1)
+  for (const event of sorted) {
+    if (currentCluster.length === 0) {
+      currentCluster = [event]
+      currentClusterEnd = event.finMin
+      continue
+    }
+
+    if (event.inicioMin < currentClusterEnd) {
+      currentCluster.push(event)
+      currentClusterEnd = Math.max(currentClusterEnd, event.finMin)
+      continue
+    }
+
+    clusters.push(currentCluster)
+    currentCluster = [event]
+    currentClusterEnd = event.finMin
+  }
+
+  if (currentCluster.length > 0) {
+    clusters.push(currentCluster)
+  }
+
+  const layout: CalendarEvent[] = []
+
+  for (const cluster of clusters) {
+    const activeColumns: Array<{ column: number; finMin: number }> = []
+    let clusterColumns = 1
+    const positioned: Array<CalendarEventBase & { column: number }> = []
+
+    for (const event of cluster) {
+      for (let index = activeColumns.length - 1; index >= 0; index -= 1) {
+        if (activeColumns[index].finMin <= event.inicioMin) {
+          activeColumns.splice(index, 1)
+        }
       }
+
+      const usedColumns = new Set(activeColumns.map((entry) => entry.column))
+      let column = 0
+      while (usedColumns.has(column)) {
+        column += 1
+      }
+
+      activeColumns.push({ column, finMin: event.finMin })
+      clusterColumns = Math.max(clusterColumns, activeColumns.length)
+      positioned.push({ ...event, column })
     }
 
-    const usedColumns = new Set(activeColumns.map((entry) => entry.column))
-    let column = 0
-    while (usedColumns.has(column)) {
-      column += 1
+    for (const event of positioned) {
+      layout.push({
+        ...event,
+        columns: clusterColumns,
+      })
     }
+  }
 
-    activeColumns.push({ column, finMin: event.finMin })
-    maxColumns = Math.max(maxColumns, activeColumns.length)
-
-    return {
-      ...event,
-      column,
-      columns: 1,
-    }
-  })
-
-  return withColumns.map((event) => ({ ...event, columns: maxColumns }))
+  return layout
 }
 
 const defaultHorarioFormValue = () => ({
@@ -177,6 +212,17 @@ const defaultHorarioFormValue = () => ({
   HoraFin: toTimePickerValue('20:00:00'),
   Activo: true,
 })
+
+const PROFESOR_COLORS = ['#0ea5e9', '#65a30d', '#f97316', '#16a34a', '#7c3aed', '#db2777', '#dc2626', '#0d9488', '#d97706', '#c2410c']
+
+const getProfessorColorByIndex = (index: number) => {
+  if (index < PROFESOR_COLORS.length) {
+    return PROFESOR_COLORS[index]
+  }
+
+  const hue = (index * 47) % 360
+  return `hsl(${hue} 70% 45%)`
+}
 
 export default function ClasesPage() {
   const { message } = AntdApp.useApp()
@@ -284,16 +330,23 @@ export default function ClasesPage() {
     }
   }
 
+  const professorColorMap = useMemo(() => {
+    const uniqueProfesores = [...new Set(items.map((item) => toCapitalCase(item.ProfesorNombre)))].sort((a, b) => a.localeCompare(b))
+    return new Map(uniqueProfesores.map((profesorNombre, index) => [profesorNombre, getProfessorColorByIndex(index)]))
+  }, [items])
+
   const calendarEvents = useMemo<CalendarEventBase[]>(() => {
     return items.flatMap((record) =>
       record.Horarios.map((horario, horarioIndex) => {
+        const profesorNombre = toCapitalCase(record.ProfesorNombre)
         const inicioMin = parseTimeToMinutes(horario.HoraInicio)
         const finMin = parseTimeToMinutes(horario.HoraFin)
         return {
           eventId: `${record.ClaseId}-${horario.DiaSemana}-${horario.HoraInicio}-${horario.HoraFin}-${horarioIndex}`,
           claseId: record.ClaseId,
           claseNombre: record.Nombre,
-          profesorNombre: toCapitalCase(record.ProfesorNombre),
+          profesorNombre,
+          profesorColor: professorColorMap.get(profesorNombre) ?? getProfessorColorByIndex(0),
           cupoMaximo: record.CupoMaximo,
           activoClase: record.Activo,
           horarioActivo: horario.Activo,
@@ -305,7 +358,11 @@ export default function ClasesPage() {
         }
       }),
     ).filter((event) => Number.isFinite(event.inicioMin) && Number.isFinite(event.finMin) && event.finMin > event.inicioMin)
-  }, [items])
+  }, [items, professorColorMap])
+
+  const legendItems = useMemo(() => {
+    return [...professorColorMap.entries()].map(([profesorNombre, profesorColor]) => ({ profesorNombre, profesorColor }))
+  }, [professorColorMap])
 
   const eventsByDay = useMemo<Record<number, CalendarEvent[]>>(() => {
     const grouped: Record<number, CalendarEvent[]> = {
@@ -390,83 +447,97 @@ export default function ClasesPage() {
 
       <Card className="tms-page-table-card" loading={loading}>
         {calendarEvents.length > 0 ? (
-          isMobile ? (
-            <div className="tms-clases-mobile-calendar">
-              <Segmented
-                block
-                value={selectedDay}
-                onChange={(value) => setSelectedDay(Number(value))}
-                options={DAY_OPTIONS.map((day) => ({ value: day.value, label: day.label.slice(0, 3) }))}
-              />
-
-              {selectedDayEvents.length > 0 ? (
-                <div className="tms-clases-mobile-list">
-                  {selectedDayEvents.map((event) => (
-                    <Card
-                      key={event.eventId}
-                      size="small"
-                      hoverable
-                      className="tms-clases-mobile-card"
-                      onClick={() => openEditFromClaseId(event.claseId)}
-                    >
-                      <div className="tms-clases-mobile-card-title">{event.claseNombre}</div>
-                      <div className="tms-clases-mobile-card-line">
-                        Profesor: {event.profesorNombre}
-                      </div>
-                      <div className="tms-clases-mobile-card-line">
-                        Horario: {formatShortTime(event.horaInicio)} - {formatShortTime(event.horaFin)}
-                      </div>
-                      <div className="tms-clases-mobile-card-line">Cupo: {event.cupoMaximo}</div>
-                      <div className="tms-clases-mobile-card-tags">
-                        <Tag color={event.activoClase ? 'green' : 'red'}>{event.activoClase ? 'activa' : 'inactiva'}</Tag>
-                        {!event.horarioActivo ? <Tag color="default">Horario inactivo</Tag> : null}
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={`Sin horarios para ${getDiaSemanaLabel(selectedDay)}`} />
-              )}
-            </div>
-          ) : (
-            <div className="tms-clases-calendar">
-              <div className="tms-clases-calendar-header">
-                <div className="tms-clases-calendar-time-head">Hora</div>
-                {DAY_OPTIONS.map((day) => (
-                  <div key={day.value} className="tms-clases-calendar-day-head">
-                    {day.label}
+          <>
+            {legendItems.length > 0 ? (
+              <div className="tms-clases-legend">
+                {legendItems.map((legendItem) => (
+                  <div key={legendItem.profesorNombre} className="tms-clases-legend-item">
+                    <span className="tms-clases-legend-dot" style={{ backgroundColor: legendItem.profesorColor }} />
+                    <span>{legendItem.profesorNombre}</span>
                   </div>
                 ))}
               </div>
+            ) : null}
 
-              <div className="tms-clases-calendar-body" style={{ height: calendarBounds.height }}>
-                <div className="tms-clases-calendar-time-col">
-                  {calendarBounds.hourTicks.map((tickMinute) => (
-                    (() => {
-                      const rawTop = ((tickMinute - calendarBounds.startMinute) / 60) * HOUR_HEIGHT
-                      const top = Math.min(Math.max(rawTop - 8, 0), Math.max(calendarBounds.height - 16, 0))
-                      return (
-                        <div
-                          key={`time-${tickMinute}`}
-                          className="tms-clases-calendar-time-label"
-                          style={{ top }}
-                        >
-                          {String(Math.floor(tickMinute / 60)).padStart(2, '0')}:00
+            {isMobile ? (
+              <div className="tms-clases-mobile-calendar">
+                <Segmented
+                  block
+                  value={selectedDay}
+                  onChange={(value) => setSelectedDay(Number(value))}
+                  options={DAY_OPTIONS.map((day) => ({ value: day.value, label: day.label.slice(0, 3) }))}
+                />
+
+                {selectedDayEvents.length > 0 ? (
+                  <div className="tms-clases-mobile-list">
+                    {selectedDayEvents.map((event) => (
+                      <Card
+                        key={event.eventId}
+                        size="small"
+                        hoverable
+                        className="tms-clases-mobile-card"
+                        style={{ '--profesor-color': event.profesorColor } as CSSProperties}
+                        onClick={() => openEditFromClaseId(event.claseId)}
+                      >
+                        <div className="tms-clases-mobile-card-title">{event.claseNombre}</div>
+                        <div className="tms-clases-mobile-card-line">
+                          <span className="tms-clases-profesor-dot" style={{ backgroundColor: event.profesorColor }} />
+                          Profesor: {event.profesorNombre}
                         </div>
-                      )
-                    })()
+                        <div className="tms-clases-mobile-card-line">
+                          Horario: {formatShortTime(event.horaInicio)} - {formatShortTime(event.horaFin)}
+                        </div>
+                        <div className="tms-clases-mobile-card-line">Cupo: {event.cupoMaximo}</div>
+                        <div className="tms-clases-mobile-card-tags">
+                          <Tag color={event.activoClase ? 'green' : 'red'}>{event.activoClase ? 'activa' : 'inactiva'}</Tag>
+                          {!event.horarioActivo ? <Tag color="default">Horario inactivo</Tag> : null}
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={`Sin horarios para ${getDiaSemanaLabel(selectedDay)}`} />
+                )}
+              </div>
+            ) : (
+              <div className="tms-clases-calendar">
+                <div className="tms-clases-calendar-header">
+                  <div className="tms-clases-calendar-time-head">Hora</div>
+                  {DAY_OPTIONS.map((day) => (
+                    <div key={day.value} className="tms-clases-calendar-day-head">
+                      {day.label}
+                    </div>
                   ))}
                 </div>
 
-                {DAY_OPTIONS.map((day) => (
-                  <div key={`day-${day.value}`} className="tms-clases-calendar-day-col">
+                <div className="tms-clases-calendar-body" style={{ height: calendarBounds.height }}>
+                  <div className="tms-clases-calendar-time-col">
                     {calendarBounds.hourTicks.map((tickMinute) => (
-                      <div
-                        key={`line-${day.value}-${tickMinute}`}
-                        className="tms-clases-calendar-hour-line"
-                        style={{ top: ((tickMinute - calendarBounds.startMinute) / 60) * HOUR_HEIGHT }}
-                      />
+                      (() => {
+                        const rawTop = ((tickMinute - calendarBounds.startMinute) / 60) * HOUR_HEIGHT
+                        const top = Math.min(Math.max(rawTop - 8, 0), Math.max(calendarBounds.height - 16, 0))
+                        return (
+                          <div
+                            key={`time-${tickMinute}`}
+                            className="tms-clases-calendar-time-label"
+                            style={{ top }}
+                          >
+                            {String(Math.floor(tickMinute / 60)).padStart(2, '0')}:00
+                          </div>
+                        )
+                      })()
                     ))}
+                  </div>
+
+                  {DAY_OPTIONS.map((day) => (
+                    <div key={`day-${day.value}`} className="tms-clases-calendar-day-col">
+                      {calendarBounds.hourTicks.map((tickMinute) => (
+                        <div
+                          key={`line-${day.value}-${tickMinute}`}
+                          className="tms-clases-calendar-hour-line"
+                          style={{ top: ((tickMinute - calendarBounds.startMinute) / 60) * HOUR_HEIGHT }}
+                        />
+                      ))}
 
                     {(eventsByDay[day.value] ?? []).map((event) => {
                       const top = ((event.inicioMin - calendarBounds.startMinute) / 60) * HOUR_HEIGHT
@@ -479,28 +550,36 @@ export default function ClasesPage() {
                         <button
                           type="button"
                           key={event.eventId}
-                          className={`tms-clases-calendar-event ${isEnabled ? '' : 'tms-clases-calendar-event--inactive'}`.trim()}
+                          className={[
+                            'tms-clases-calendar-event',
+                            isEnabled ? '' : 'tms-clases-calendar-event--inactive',
+                          ].filter(Boolean).join(' ')}
                           style={{
+                            '--profesor-color': event.profesorColor,
                             top,
                             height,
                             left: `calc(${left}% + 4px)`,
                             width: `calc(${eventWidth}% - 8px)`,
-                          }}
+                          } as CSSProperties}
                           onClick={() => openEditFromClaseId(event.claseId)}
                         >
-                          <div className="tms-clases-calendar-event-title">{event.claseNombre}</div>
-                          <div className="tms-clases-calendar-event-meta">{event.profesorNombre}</div>
-                          <div className="tms-clases-calendar-event-meta">
-                            {formatShortTime(event.horaInicio)} - {formatShortTime(event.horaFin)}
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                ))}
+                            <div className="tms-clases-calendar-event-title">{event.claseNombre}</div>
+                            <div className="tms-clases-calendar-event-meta">
+                              <span className="tms-clases-profesor-dot" style={{ backgroundColor: event.profesorColor }} />
+                              {event.profesorNombre}
+                            </div>
+                            <div className="tms-clases-calendar-event-meta">
+                              {formatShortTime(event.horaInicio)} - {formatShortTime(event.horaFin)}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )
+            )}
+          </>
         ) : (
           <Empty description="Sin horarios de clases registrados" />
         )}
@@ -591,126 +670,126 @@ export default function ClasesPage() {
               }
             }}
           >
-          <Row gutter={12} align="bottom">
-            <Col xs={24} md={9}>
-              <Form.Item name="Nombre" label="Nombre" rules={[{ required: true }]}>
-                <Input />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={7}>
-              <Form.Item name="ProfesorEmpresaId" label="Profesor" rules={[{ required: true }]}>
-                <Select
-                  loading={profesoresLoading}
-                  options={profesores.map((profesor) => ({ value: profesor.Id, label: profesor.Nombre }))}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={4}>
-              <Form.Item name="CupoMaximo" label="Cupo" rules={[{ required: true }]}>
-                <Input type="number" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={4} className="tms-clases-estado-col">
-              <Form.Item name="EstadoActiva" label="Estado" valuePropName="checked" className="tms-clases-estado-item">
-                <Switch />
-              </Form.Item>
-            </Col>
-          </Row>
+            <Row gutter={12} align="bottom">
+              <Col xs={24} md={9}>
+                <Form.Item name="Nombre" label="Nombre" rules={[{ required: true }]}>
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={7}>
+                <Form.Item name="ProfesorEmpresaId" label="Profesor" rules={[{ required: true }]}>
+                  <Select
+                    loading={profesoresLoading}
+                    options={profesores.map((profesor) => ({ value: profesor.Id, label: profesor.Nombre }))}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={4}>
+                <Form.Item name="CupoMaximo" label="Cupo" rules={[{ required: true }]}>
+                  <Input type="number" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={4} className="tms-clases-estado-col">
+                <Form.Item name="EstadoActiva" label="Estado" valuePropName="checked" className="tms-clases-estado-item">
+                  <Switch />
+                </Form.Item>
+              </Col>
+            </Row>
 
             <Form.List
-            name="Horarios"
-            rules={[
-              {
-                validator: async (_, value) => {
-                  if (Array.isArray(value) && value.length > 0) {
-                    return
-                  }
+              name="Horarios"
+              rules={[
+                {
+                  validator: async (_, value) => {
+                    if (Array.isArray(value) && value.length > 0) {
+                      return
+                    }
 
-                  throw new Error('Debes agregar al menos un horario.')
+                    throw new Error('Debes agregar al menos un horario.')
+                  },
                 },
-              },
-            ]}
-          >
-            {(fields, { add, remove }, { errors }) => (
-              <>
-                <div className="tms-clases-horario-header">
-                  <strong>Horarios</strong>
-                  <Button
-                    type="dashed"
-                    icon={<PlusOutlined />}
-                    onClick={() => add(defaultHorarioFormValue())}
-                  >
-                    Agregar horario
-                  </Button>
-                </div>
+              ]}
+            >
+              {(fields, { add, remove }, { errors }) => (
+                <>
+                  <div className="tms-clases-horario-header">
+                    <strong>Horarios</strong>
+                    <Button
+                      type="dashed"
+                      icon={<PlusOutlined />}
+                      onClick={() => add(defaultHorarioFormValue())}
+                    >
+                      Agregar horario
+                    </Button>
+                  </div>
 
-                <div className="tms-clases-horario-list">
-                  {fields.map((field) => (
-                    <div key={field.key} className="tms-clases-horario-row">
-                      <Form.Item
-                        name={[field.name, 'DiaSemana']}
-                        label="Dia"
-                        rules={[{ required: true, message: 'Selecciona un dia.' }]}
-                      >
-                        <Select
-                          options={DAY_OPTIONS.map((day) => ({ value: day.value, label: day.label }))}
-                        />
-                      </Form.Item>
-
-                      <Form.Item
-                        name={[field.name, 'HoraInicio']}
-                        label="Hora inicio"
-                        rules={[{ required: true, message: 'Selecciona hora inicio.' }]}
-                      >
-                        <TimePicker style={{ width: '100%' }} format="HH:mm" />
-                      </Form.Item>
-
-                      <Form.Item
-                        name={[field.name, 'HoraFin']}
-                        label="Hora fin"
-                        rules={[{ required: true, message: 'Selecciona hora fin.' }]}
-                      >
-                        <TimePicker style={{ width: '100%' }} format="HH:mm" />
-                      </Form.Item>
-
-                      <Form.Item name={[field.name, 'Activo']} label="Activo" valuePropName="checked">
-                        <Switch
-                          onChange={(checked) => {
-                            if (checked || !estadoClaseActiva) {
-                              return
-                            }
-
-                            const horarios = (form.getFieldValue('Horarios') ?? []) as Array<{ Activo?: boolean }>
-                            const activeCountAfter = horarios.reduce((count, horario, index) => {
-                              const activeValue = index === field.name ? checked : (horario?.Activo ?? false)
-                              return count + (activeValue ? 1 : 0)
-                            }, 0)
-
-                            if (activeCountAfter === 0) {
-                              message.warning('La clase activa debe tener al menos un horario activo.')
-                              form.setFieldValue(['Horarios', field.name, 'Activo'], true)
-                            }
-                          }}
-                        />
-                      </Form.Item>
-
-                      <div className="tms-clases-horario-actions">
-                        <Tooltip title="Eliminar horario">
-                          <Button
-                            type="text"
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={() => remove(field.name)}
+                  <div className="tms-clases-horario-list">
+                    {fields.map((field) => (
+                      <div key={field.key} className="tms-clases-horario-row">
+                        <Form.Item
+                          name={[field.name, 'DiaSemana']}
+                          label="Dia"
+                          rules={[{ required: true, message: 'Selecciona un dia.' }]}
+                        >
+                          <Select
+                            options={DAY_OPTIONS.map((day) => ({ value: day.value, label: day.label }))}
                           />
-                        </Tooltip>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                        </Form.Item>
 
-                <Form.ErrorList errors={errors} />
-              </>
-            )}
+                        <Form.Item
+                          name={[field.name, 'HoraInicio']}
+                          label="Hora inicio"
+                          rules={[{ required: true, message: 'Selecciona hora inicio.' }]}
+                        >
+                          <TimePicker style={{ width: '100%' }} format="HH:mm" />
+                        </Form.Item>
+
+                        <Form.Item
+                          name={[field.name, 'HoraFin']}
+                          label="Hora fin"
+                          rules={[{ required: true, message: 'Selecciona hora fin.' }]}
+                        >
+                          <TimePicker style={{ width: '100%' }} format="HH:mm" />
+                        </Form.Item>
+
+                        <Form.Item name={[field.name, 'Activo']} label="Activo" valuePropName="checked">
+                          <Switch
+                            onChange={(checked) => {
+                              if (checked || !estadoClaseActiva) {
+                                return
+                              }
+
+                              const horarios = (form.getFieldValue('Horarios') ?? []) as Array<{ Activo?: boolean }>
+                              const activeCountAfter = horarios.reduce((count, horario, index) => {
+                                const activeValue = index === field.name ? checked : (horario?.Activo ?? false)
+                                return count + (activeValue ? 1 : 0)
+                              }, 0)
+
+                              if (activeCountAfter === 0) {
+                                message.warning('La clase activa debe tener al menos un horario activo.')
+                                form.setFieldValue(['Horarios', field.name, 'Activo'], true)
+                              }
+                            }}
+                          />
+                        </Form.Item>
+
+                        <div className="tms-clases-horario-actions">
+                          <Tooltip title="Eliminar horario">
+                            <Button
+                              type="text"
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={() => remove(field.name)}
+                            />
+                          </Tooltip>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Form.ErrorList errors={errors} />
+                </>
+              )}
             </Form.List>
           </Form>
         </Spin>
