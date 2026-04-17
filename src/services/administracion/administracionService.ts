@@ -26,7 +26,7 @@ export const administracionService = {
   createTarifa: async (payload: Record<string, unknown>) => (await apiClient.post<TarifaDto>('/administracion/tarifas', payload)).data,
   createTarifasBatch: async (payload: Record<string, unknown>) => (await apiClient.post<TarifaDto[]>('/administracion/tarifas/batch', payload)).data,
   updateTarifa: async (tarifaProductoId: number, payload: Record<string, unknown>) => (await apiClient.put<TarifaDto>(`/administracion/tarifas/${tarifaProductoId}`, payload)).data,
-  getClases: async (estado?: 'activa' | 'inactiva') => (await apiClient.get<ClaseDto[]>('/administracion/clases', { params: estado ? { estado } : undefined })).data,
+  getClases: async (activo?: boolean) => (await apiClient.get<ClaseDto[]>('/administracion/clases', { params: activo === undefined ? undefined : { activo } })).data,
   getClaseById: async (claseId: number) => (await apiClient.get<ClaseDto>(`/administracion/clases/${claseId}`)).data,
   createClase: async (payload: Record<string, unknown>) => (await apiClient.post<ClaseDto>('/administracion/clases', payload)).data,
   updateClase: async (claseId: number, payload: Record<string, unknown>) => (await apiClient.put<ClaseDto>(`/administracion/clases/${claseId}`, payload)).data,

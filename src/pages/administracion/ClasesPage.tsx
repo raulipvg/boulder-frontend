@@ -65,7 +65,7 @@ type CalendarEventBase = {
   claseNombre: string
   profesorNombre: string
   cupoMaximo: number
-  estado: string
+  activoClase: boolean
   horarioActivo: boolean
   diaSemana: number
   horaInicio: string
@@ -86,7 +86,7 @@ type HorarioPayload = {
   Activo: boolean
 }
 
-type EstadoFiltro = 'activa' | 'inactiva'
+type EstadoFiltro = 'activo' | 'inactivo'
 
 const getCurrentDay = () => {
   const currentDay = dayjs().day()
@@ -192,14 +192,15 @@ export default function ClasesPage() {
   const [loadingEdit, setLoadingEdit] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [selectedDay, setSelectedDay] = useState<number>(getCurrentDay)
-  const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('activa')
+  const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('activo')
   const [form] = Form.useForm()
 
   const load = async (estado: EstadoFiltro) => {
     setLoading(true)
     try {
+      const activo = estado === 'activo'
       const [clases, profesoresData] = await Promise.all([
-        administracionService.getClases(estado),
+        administracionService.getClases(activo),
         administracionService.getProfesores(),
       ])
       setItems(clases)
@@ -232,7 +233,7 @@ export default function ClasesPage() {
       Nombre: record.Nombre,
       ProfesorEmpresaId: record.ProfesorEmpresaId,
       CupoMaximo: record.CupoMaximo,
-      EstadoActiva: record.Estado === 'activa',
+      EstadoActiva: record.Activo,
       Horarios: (record.Horarios.length > 0 ? record.Horarios : [{ DiaSemana: 1, HoraInicio: '18:00:00', HoraFin: '20:00:00', Activo: true }])
         .map((horario) => ({
           DiaSemana: horario.DiaSemana,
@@ -274,7 +275,7 @@ export default function ClasesPage() {
           claseNombre: record.Nombre,
           profesorNombre: toCapitalCase(record.ProfesorNombre),
           cupoMaximo: record.CupoMaximo,
-          estado: record.Estado,
+          activoClase: record.Activo,
           horarioActivo: horario.Activo,
           diaSemana: horario.DiaSemana,
           horaInicio: horario.HoraInicio,
@@ -355,8 +356,8 @@ export default function ClasesPage() {
               value={estadoFiltro}
               onChange={(event) => setEstadoFiltro(event.target.value as EstadoFiltro)}
               options={[
-                { label: 'Activo', value: 'activa' },
-                { label: 'Inactivo', value: 'inactiva' },
+                { label: 'Activo', value: 'activo' },
+                { label: 'Inactivo', value: 'inactivo' },
               ]}
             />
             <Button icon={<ReloadOutlined />} onClick={() => void load(estadoFiltro)} />
@@ -397,7 +398,7 @@ export default function ClasesPage() {
                       </div>
                       <div className="tms-clases-mobile-card-line">Cupo: {event.cupoMaximo}</div>
                       <div className="tms-clases-mobile-card-tags">
-                        <Tag color={event.estado === 'activa' ? 'green' : 'red'}>{event.estado}</Tag>
+                        <Tag color={event.activoClase ? 'green' : 'red'}>{event.activoClase ? 'activa' : 'inactiva'}</Tag>
                         {!event.horarioActivo ? <Tag color="default">Horario inactivo</Tag> : null}
                       </div>
                     </Card>
@@ -452,7 +453,7 @@ export default function ClasesPage() {
                       const height = Math.max(((event.finMin - event.inicioMin) / 60) * HOUR_HEIGHT, 28)
                       const eventWidth = 100 / event.columns
                       const left = event.column * eventWidth
-                      const isEnabled = event.estado === 'activa' && event.horarioActivo
+                      const isEnabled = event.activoClase && event.horarioActivo
 
                       return (
                         <button
@@ -546,7 +547,7 @@ export default function ClasesPage() {
                   Nombre: values.Nombre,
                   ProfesorEmpresaId: values.ProfesorEmpresaId,
                   CupoMaximo: Number(values.CupoMaximo),
-                  Estado: values.EstadoActiva ? 'activa' : 'inactiva',
+                  Activo: values.EstadoActiva,
                   Horarios: horariosPayload,
                 }
 

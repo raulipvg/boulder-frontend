@@ -132,7 +132,7 @@ export interface ClaseDto {
   ProfesorEmpresaId: number
   ProfesorNombre: string
   CupoMaximo: number
-  Estado: string
+  Activo: boolean
   Horarios: ClaseHorarioDto[]
 }
 
