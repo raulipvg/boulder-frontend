@@ -162,6 +162,204 @@ body {
   color: #6b7280;
 }
 
+.tms-clases-calendar {
+  border: 1px solid #d9dce3;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.tms-clases-calendar-header,
+.tms-clases-calendar-body {
+  display: grid;
+  grid-template-columns: 72px repeat(7, minmax(0, 1fr));
+}
+
+.tms-clases-calendar-header {
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+}
+
+.tms-clases-calendar-time-head,
+.tms-clases-calendar-day-head {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  border-right: 1px solid #edf0f5;
+}
+
+.tms-clases-calendar-time-head {
+  color: #4b5563;
+}
+
+.tms-clases-calendar-day-head:last-child {
+  border-right: 0;
+}
+
+.tms-clases-calendar-body {
+  position: relative;
+  overflow: hidden;
+}
+
+.tms-clases-calendar-time-col,
+.tms-clases-calendar-day-col {
+  position: relative;
+  border-right: 1px solid #edf0f5;
+}
+
+.tms-clases-calendar-day-col:last-child {
+  border-right: 0;
+}
+
+.tms-clases-calendar-time-label {
+  position: absolute;
+  right: 8px;
+  font-size: 11px;
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+}
+
+.tms-clases-calendar-hour-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed #e5e7eb;
+  pointer-events: none;
+}
+
+.tms-clases-calendar-event {
+  position: absolute;
+  border: 1px solid #dbe2ea;
+  border-left: 6px solid #11a769;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  padding: 8px;
+  text-align: left;
+  display: grid;
+  gap: 2px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(17, 24, 39, 0.12);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.tms-clases-calendar-event:hover,
+.tms-clases-calendar-event:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(17, 24, 39, 0.16);
+}
+
+.tms-clases-calendar-event--inactive {
+  border-left-color: #6b7280;
+  background: #f9fafb;
+}
+
+.tms-clases-calendar-event-title {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tms-clases-calendar-event-meta {
+  font-size: 11px;
+  line-height: 1.1;
+  color: #4b5563;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tms-clases-mobile-calendar {
+  display: grid;
+  gap: 12px;
+}
+
+.tms-clases-mobile-list {
+  display: grid;
+  gap: 10px;
+}
+
+.tms-clases-mobile-card-title {
+  font-weight: 600;
+}
+
+.tms-clases-mobile-card-line {
+  color: #4b5563;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.tms-clases-mobile-card-tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.tms-clases-horario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.tms-clases-estado-col {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tms-clases-estado-item {
+  width: fit-content;
+}
+
+.tms-clases-estado-item .ant-form-item-label {
+  text-align: right;
+}
+
+.tms-clases-horario-list {
+  display: grid;
+  gap: 10px;
+}
+
+.tms-clases-horario-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 90px 40px;
+  gap: 10px;
+  align-items: end;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.tms-clases-horario-row .ant-form-item {
+  margin-bottom: 0;
+}
+
+.tms-clases-horario-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 4px;
+}
+
+@media (max-width: 1200px) {
+  .tms-clases-horario-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .tms-clases-horario-actions {
+    justify-content: flex-start;
+    padding-bottom: 0;
+  }
+}
+
 @media (max-width: 900px) {
   .grid-two {
     grid-template-columns: 1fr;
@@ -173,5 +371,15 @@ body {
 
   .tms-inline-search {
     width: 100%;
+  }
+
+  .tms-clases-horario-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .tms-clases-estado-col {
+    justify-content: flex-start;
   }
 }
