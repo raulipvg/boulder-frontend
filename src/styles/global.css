@@ -389,7 +389,289 @@ body {
   padding-bottom: 4px;
 }
 
+.tms-pos-page {
+  position: relative;
+  isolation: isolate;
+}
+
+
+.tms-pos-catalog-card,
+.tms-pos-cart-card {
+  border-radius: 12px;
+  border-color: #dbe2ea;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.06);
+}
+
+.tms-pos-catalog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.tms-pos-catalog-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.tms-pos-catalog-search {
+  width: min(420px, 100%);
+}
+
+.tms-pos-toolbar {
+  display: grid;
+  gap: 12px;
+}
+
+.tms-pos-toolbar-controls {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+  align-items: end;
+}
+
+.tms-pos-filter-wrap {
+  width: 100%;
+}
+
+.tms-pos-filter-segmented {
+  width: 100%;
+}
+
+.tms-pos-product-card {
+  border-radius: 12px;
+  border: 1px solid #dde3eb;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  animation: tms-pos-card-in 0.22s ease;
+}
+
+.tms-pos-product-card:hover,
+.tms-pos-product-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: #9fd5c1;
+  box-shadow: 0 10px 18px rgba(17, 24, 39, 0.12);
+}
+
+.tms-pos-product-card .ant-card-body {
+  display: grid;
+  gap: 12px;
+}
+
+.tms-pos-product-card-head {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.tms-pos-product-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.tms-pos-product-icon--tickets {
+  background: #ecf5ff;
+  color: #1d4ed8;
+}
+
+.tms-pos-product-icon--mensualidades {
+  background: #ecfeff;
+  color: #0e7490;
+}
+
+.tms-pos-product-icon--clases {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.tms-pos-product-icon--arriendo {
+  background: #fffbea;
+  color: #92400e;
+}
+
+.tms-pos-product-icon--mostrador,
+.tms-pos-product-icon--otros {
+  background: #effcf5;
+  color: #047857;
+}
+
+.tms-pos-product-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tms-pos-product-name {
+  font-size: 15px;
+  line-height: 1.15;
+}
+
+.tms-pos-product-family {
+  font-size: 12px;
+}
+
+.tms-pos-product-tags {
+  min-height: 24px;
+}
+
+.tms-pos-product-footer {
+  display: flex;
+  justify-content: end;
+  align-items: center;
+  gap: 8px;
+}
+
+.tms-pos-product-footer--class {
+  justify-content: space-around;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.tms-pos-class-price-block {
+  display: grid;
+  gap: 2px;
+}
+
+.tms-pos-class-price-label {
+  font-size: 11px;
+}
+
+.tms-pos-product-price {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.tms-pos-cart-sticky {
+  position: sticky;
+  top: 10px;
+}
+
+.tms-pos-cart-list {
+  display: grid;
+  gap: 10px;
+}
+
+.tms-pos-cart-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fafcfe;
+  display: grid;
+  gap: 10px;
+}
+
+.tms-pos-cart-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.tms-pos-cart-item-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.tms-pos-client-box {
+  border: 1px dashed #d7dde6;
+  border-radius: 10px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.tms-pos-cart-item-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tms-pos-quantity-control {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.tms-pos-quantity-control .ant-input-number {
+  width: 80px;
+}
+
+.tms-pos-cart-line-total {
+  display: grid;
+  justify-items: end;
+  min-width: 130px;
+}
+
+.tms-pos-preview-card {
+  border-radius: 12px;
+  border-color: #d5dde7;
+}
+
+.tms-pos-preview-row,
+.tms-pos-preview-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tms-pos-preview-row {
+  margin-bottom: 8px;
+}
+
+.tms-pos-payment-block {
+  display: grid;
+  gap: 6px;
+}
+
+@keyframes tms-pos-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 1200px) {
+  .tms-pos-catalog-head {
+    flex-wrap: wrap;
+  }
+
+  .tms-pos-catalog-head-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .tms-pos-catalog-search {
+    width: 100%;
+    flex: 1;
+  }
+
+  .tms-pos-toolbar-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .tms-pos-filter-wrap {
+    width: 100%;
+  }
+
+  .tms-pos-cart-sticky {
+    position: static;
+  }
+
   .tms-clases-horario-row {
     grid-template-columns: 1fr 1fr;
   }
@@ -411,6 +693,15 @@ body {
 
   .tms-inline-search {
     width: 100%;
+  }
+
+  .tms-pos-product-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tms-pos-cart-line-total {
+    justify-items: start;
   }
 
   .tms-clases-horario-header {

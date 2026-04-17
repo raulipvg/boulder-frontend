@@ -1,12 +1,26 @@
-import { ReloadOutlined } from '@ant-design/icons'
-import { Alert, App as AntdApp, AutoComplete, Button, Card, Col, Divider, Form, Input, InputNumber, Modal, Row, Select, Space, Typography } from 'antd'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
+import {
+  AppstoreOutlined,
+  CalendarOutlined,
+  DeleteOutlined,
+  DollarCircleOutlined,
+  ExclamationCircleFilled,
+  FilterOutlined,
+  MinusOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  ShoppingCartOutlined,
+  TagsOutlined,
+  TeamOutlined,
+  UserOutlined,
+} from '@ant-design/icons'
+import { Alert, App as AntdApp, AutoComplete, Button, Card, Col, Divider, Empty, Form, Input, InputNumber, Modal, Row, Segmented, Select, Space, Tag, Typography } from 'antd'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { administracionService } from '../../services/administracion/administracionService'
 import { operacionService } from '../../services/operacion/operacionService'
 import { ventasService } from '../../services/ventas/ventasService'
-import type { ClienteLookupDto, LookupDto, PosCatalogItemDto, TipoClienteDto } from '../../types/models'
+import type { ClienteLookupDto, LookupDto, PosCatalogItemDto, TarifaProductoResumenDto, TipoClienteDto } from '../../types/models'
 import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 import { toCapitalCase } from '../../utils/formatPersonName'
 import { isValidRut, normalizeRut } from '../../utils/rut'
@@ -39,6 +53,65 @@ interface VentaPreviewDto {
   }>
 }
 
+interface ProductTypeMeta {
+  family: string
+  label: string
+  icon: ReactNode
+  color: string
+}
+
+interface ClassTarifaPrices {
+  GENERAL?: number
+  ESTUDIANTE?: number
+}
+
+const currencyFormatter = new Intl.NumberFormat('es-CL')
+
+const formatCurrency = (value?: number | null) => `$ ${currencyFormatter.format(Math.max(0, value ?? 0))}`
+
+const normalizeTypeCode = (value: string) => value.trim().toUpperCase().replace(/\s+/g, '_')
+
+const getTodayDateKey = () => {
+  const date = new Date()
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const normalizeDateKey = (value?: string | null) => (value ?? '').trim().slice(0, 10)
+
+function getProductTypeMeta(typeCode: string): ProductTypeMeta {
+  const normalized = normalizeTypeCode(typeCode)
+
+  if (normalized.includes('PACK') || normalized.includes('TICKET')) {
+    return { family: 'TICKETS', label: 'Tickets', icon: <TagsOutlined />, color: 'geekblue' }
+  }
+
+  if (normalized.includes('MENSUALIDAD')) {
+    return { family: 'MENSUALIDADES', label: 'Mensualidades', icon: <CalendarOutlined />, color: 'cyan' }
+  }
+
+  if (normalized.includes('CLASE')) {
+    return { family: 'CLASES', label: 'Clases', icon: <TeamOutlined />, color: 'volcano' }
+  }
+
+  if (normalized.includes('ARRIENDO') || normalized.includes('ZAPATILLA')) {
+    return { family: 'ARRIENDO', label: 'Arriendo', icon: <AppstoreOutlined />, color: 'orange' }
+  }
+
+  if (normalized.includes('CAJA') || normalized.includes('CAFE') || normalized.includes('BEBIDA')) {
+    return { family: 'MOSTRADOR', label: 'Mostrador', icon: <AppstoreOutlined />, color: 'green' }
+  }
+
+  return {
+    family: 'OTROS',
+    label: toCapitalCase(normalized.replace(/_/g, ' ').toLowerCase()),
+    icon: <AppstoreOutlined />,
+    color: 'default',
+  }
+}
+
 function requiresAssignedClient(product: PosCatalogItemDto): boolean {
   return REQUIRED_CLIENT_CODES.has(product.TipoProductoBaseCodigo)
 }
@@ -62,12 +135,18 @@ export default function PuntoVentaPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [medioPagoId, setMedioPagoId] = useState<number | null>(null)
+  const [productSearch, setProductSearch] = useState('')
+  const [selectedFamily, setSelectedFamily] = useState<string>('ALL')
+  const [classTarifasByProduct, setClassTarifasByProduct] = useState<Record<number, ClassTarifaPrices>>({})
+  const [classTarifasLoadingByProduct, setClassTarifasLoadingByProduct] = useState<Record<number, boolean>>({})
+  const [classTarifasErrorByProduct, setClassTarifasErrorByProduct] = useState<Record<number, string | null>>({})
   const [createClientOpen, setCreateClientOpen] = useState(false)
   const [createClientTargetItemId, setCreateClientTargetItemId] = useState<string | null>(null)
   const [creatingClient, setCreatingClient] = useState(false)
   const [createClientForm] = Form.useForm()
   const lineIdRef = useRef(1)
   const searchTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({})
+  const classTarifasRequestedRef = useRef<Set<number>>(new Set())
 
   const nextLineId = () => {
     const id = `line-${lineIdRef.current}`
@@ -123,6 +202,10 @@ export default function PuntoVentaPage() {
         administracionService.getTiposCliente(),
       ])
       setCatalog(catalogData)
+      setClassTarifasByProduct({})
+      setClassTarifasLoadingByProduct({})
+      setClassTarifasErrorByProduct({})
+      classTarifasRequestedRef.current.clear()
       setMediosPago(medios)
       setTiposCliente(tipos)
       setMedioPagoId((current) => current ?? medios[0]?.Id ?? null)
@@ -228,6 +311,11 @@ export default function PuntoVentaPage() {
     }
   }
 
+  const updateItemQuantity = (itemId: string, value: number) => {
+    const nextValue = Math.max(1, Math.floor(value || 1))
+    setCart((current) => current.map((row) => row.Id === itemId ? { ...row, Quantity: nextValue } : row))
+  }
+
   const openCreateClient = (itemId: string) => {
     const generalTipoClienteId = tiposCliente.find((item) => item.Codigo === 'GENERAL')?.TipoClienteId
       ?? tiposCliente[0]?.TipoClienteId
@@ -245,6 +333,166 @@ export default function PuntoVentaPage() {
     () => cart.find((item) => requiresAssignedClient(item.Product) && !item.ClienteEmpresaIdAsignado),
     [cart],
   )
+
+  const catalogFamilies = useMemo(() => {
+    const familyMap = new Map<string, ProductTypeMeta>()
+    for (const product of catalog) {
+      const meta = getProductTypeMeta(product.TipoProductoBaseCodigo)
+      if (!familyMap.has(meta.family)) {
+        familyMap.set(meta.family, meta)
+      }
+    }
+
+    const order = ['TICKETS', 'MENSUALIDADES', 'CLASES', 'ARRIENDO', 'MOSTRADOR', 'OTROS']
+    return Array.from(familyMap.values())
+      .sort((a, b) => order.indexOf(a.family) - order.indexOf(b.family))
+  }, [catalog])
+
+  const familyFilterOptions = useMemo(() => {
+    return [
+      {
+        value: 'ALL',
+        label: (
+          <Space size={4}>
+            <FilterOutlined />
+            <span>Todos</span>
+          </Space>
+        ),
+      },
+      ...catalogFamilies.map((family) => ({
+        value: family.family,
+        label: (
+          <Space size={4}>
+            {family.icon}
+            <span>{family.label}</span>
+          </Space>
+        ),
+      })),
+    ]
+  }, [catalogFamilies])
+
+  const tipoClienteCodeById = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const tipoCliente of tiposCliente) {
+      map.set(tipoCliente.TipoClienteId, tipoCliente.Codigo)
+    }
+    return map
+  }, [tiposCliente])
+
+  const resolveTarifaClienteCode = (tarifa: TarifaProductoResumenDto): 'GENERAL' | 'ESTUDIANTE' | null => {
+    const byId = tarifa.TipoClienteId ? tipoClienteCodeById.get(tarifa.TipoClienteId)?.toUpperCase() : null
+    if (byId === 'GENERAL' || byId === 'ESTUDIANTE') {
+      return byId
+    }
+
+    const byName = (tarifa.TipoClienteNombre ?? '').trim().toUpperCase()
+    if (byName.includes('ESTUD')) {
+      return 'ESTUDIANTE'
+    }
+
+    if (byName.includes('GENERAL')) {
+      return 'GENERAL'
+    }
+
+    return null
+  }
+
+  const pickVigenteTarifas = (tarifas: TarifaProductoResumenDto[]): ClassTarifaPrices => {
+    const today = getTodayDateKey()
+    const tarifasVigentes = tarifas
+      .filter((tarifa) => {
+        if (!tarifa.Activo) {
+          return false
+        }
+
+        const desde = normalizeDateKey(tarifa.VigenciaDesde)
+        const hasta = normalizeDateKey(tarifa.VigenciaHasta)
+        if (!desde || !hasta) {
+          return false
+        }
+
+        return today >= desde && today <= hasta
+      })
+      .sort((a, b) => normalizeDateKey(b.VigenciaDesde).localeCompare(normalizeDateKey(a.VigenciaDesde)))
+
+    const prices: ClassTarifaPrices = {}
+    for (const tarifa of tarifasVigentes) {
+      const clienteCode = resolveTarifaClienteCode(tarifa)
+      if (!clienteCode) {
+        continue
+      }
+
+      if (prices[clienteCode] == null) {
+        prices[clienteCode] = tarifa.Precio
+      }
+    }
+
+    return prices
+  }
+
+  const loadClassTarifas = async (productoEmpresaId: number) => {
+    setClassTarifasLoadingByProduct((current) => ({ ...current, [productoEmpresaId]: true }))
+    setClassTarifasErrorByProduct((current) => ({ ...current, [productoEmpresaId]: null }))
+
+    try {
+      const tarifas = await administracionService.getTarifasByProducto(productoEmpresaId)
+      const prices = pickVigenteTarifas(tarifas)
+      setClassTarifasByProduct((current) => ({ ...current, [productoEmpresaId]: prices }))
+    } catch (error) {
+      setClassTarifasByProduct((current) => ({ ...current, [productoEmpresaId]: {} }))
+      setClassTarifasErrorByProduct((current) => ({
+        ...current,
+        [productoEmpresaId]: getApiErrorMessage(error, 'No se pudieron cargar tarifas de clases.'),
+      }))
+    } finally {
+      setClassTarifasLoadingByProduct((current) => ({ ...current, [productoEmpresaId]: false }))
+    }
+  }
+
+  const filteredCatalog = useMemo(() => {
+    const term = productSearch.trim().toLowerCase()
+    return catalog.filter((product) => {
+      const meta = getProductTypeMeta(product.TipoProductoBaseCodigo)
+      const byFamily = selectedFamily === 'ALL' || meta.family === selectedFamily
+
+      if (!byFamily) {
+        return false
+      }
+
+      if (!term) {
+        return true
+      }
+
+      const searchTarget = `${product.NombreComercial} ${meta.label} ${product.TipoProductoBaseCodigo}`.toLowerCase()
+      return searchTarget.includes(term)
+    })
+  }, [catalog, productSearch, selectedFamily])
+
+  useEffect(() => {
+    if (selectedFamily === 'ALL') {
+      return
+    }
+
+    const exists = catalogFamilies.some((family) => family.family === selectedFamily)
+    if (!exists) {
+      setSelectedFamily('ALL')
+    }
+  }, [catalogFamilies, selectedFamily])
+
+  useEffect(() => {
+    for (const product of catalog) {
+      if (getProductTypeMeta(product.TipoProductoBaseCodigo).family !== 'CLASES') {
+        continue
+      }
+
+      if (classTarifasRequestedRef.current.has(product.ProductoEmpresaId)) {
+        continue
+      }
+
+      classTarifasRequestedRef.current.add(product.ProductoEmpresaId)
+      void loadClassTarifas(product.ProductoEmpresaId)
+    }
+  }, [catalog])
 
   useEffect(() => {
     const loadPreview = async () => {
@@ -283,124 +531,248 @@ export default function PuntoVentaPage() {
   }, [cart, missingAssignedItem])
 
   return (
-    <div className="tms-page">
+    <div className="tms-page tms-pos-page">
       <RequireCompanyAlert />
-      <PageHeaderCard
-        title="Punto de venta"
-        subtitle="Selecciona productos, asigna clientes cuando corresponda y confirma la venta."
-        actions={<Button icon={<ReloadOutlined />} onClick={() => void loadCatalogData()} />}
-      />
+      <Row gutter={[16, 16]}>
+        <Col xs={24} xl={15} xxl={16}>
+          <Card
+            loading={loading}
+            title={(
+              <div className="tms-pos-catalog-head">
+                <Space><AppstoreOutlined />Productos disponibles</Space>
+                <div className="tms-pos-catalog-head-actions">
+                  <Input
+                    size="large"
+                    value={productSearch}
+                    onChange={(event) => setProductSearch(event.target.value)}
+                    allowClear
+                    prefix={<SearchOutlined />}
+                    placeholder="Buscar por nombre o tipo de producto"
+                    className="tms-pos-catalog-search"
+                  />
+                  <Button size="large" icon={<ReloadOutlined />} onClick={() => void loadCatalogData()}>
+                    Actualizar
+                  </Button>
+                </div>
+              </div>
+            )}
+            className="tms-page-table-card tms-pos-catalog-card"
+          >
+            <Space direction="vertical" size="large" style={{ width: '100%' }}>
+              <div className="tms-pos-toolbar">
+                <div className="tms-pos-toolbar-controls">
+                  <div className="tms-pos-filter-wrap">
+                    <Segmented
+                      size="large"
+                      block
+                      value={selectedFamily}
+                      onChange={(value) => setSelectedFamily(String(value))}
+                      options={familyFilterOptions}
+                      className="tms-pos-filter-segmented"
+                    />
+                  </div>
+                </div>
+              </div>
 
-      <Row gutter={16}>
-        <Col xs={24} xl={15}>
-          <Card loading={loading} title="Productos disponibles" className="tms-page-table-card">
-            <Row gutter={[12, 12]}>
-              {catalog.map((product) => (
-                <Col xs={24} md={12} lg={8} key={product.ProductoEmpresaId}>
-                  <Card hoverable size="small" onClick={() => addProduct(product)}>
-                    <Typography.Title level={5}>{product.NombreComercial}</Typography.Title>
-                    <Typography.Text type="secondary">{product.TipoProductoBaseCodigo}</Typography.Text>
-                    <div>
-                      <Typography.Text strong>
-                        {product.ModoPrecio === 'fijo' ? `$ ${product.PrecioFijo ?? 0}` : 'Precio por tarifa'}
-                      </Typography.Text>
-                    </div>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
+              {filteredCatalog.length === 0 ? (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="No hay coincidencias con los filtros actuales."
+                >
+                  <Button
+                    size="large"
+                    onClick={() => {
+                      setProductSearch('')
+                      setSelectedFamily('ALL')
+                    }}
+                  >
+                    Limpiar filtros
+                  </Button>
+                </Empty>
+              ) : (
+                <Row gutter={[14, 14]}>
+                  {filteredCatalog.map((product) => {
+                    const typeMeta = getProductTypeMeta(product.TipoProductoBaseCodigo)
+                    const isClassProduct = typeMeta.family === 'CLASES'
+                    const classTarifas = classTarifasByProduct[product.ProductoEmpresaId]
+                    const classTarifasLoading = classTarifasLoadingByProduct[product.ProductoEmpresaId]
+                    const classTarifasError = classTarifasErrorByProduct[product.ProductoEmpresaId]
+                    const classPriceRows = [
+                      classTarifas?.GENERAL != null ? { label: 'General', value: classTarifas.GENERAL } : null,
+                      classTarifas?.ESTUDIANTE != null ? { label: 'Estudiante', value: classTarifas.ESTUDIANTE } : null,
+                    ].filter((entry): entry is { label: string, value: number } => Boolean(entry))
+                    const hasClassTarifas = classPriceRows.length > 0
+                    const priceLabel = product.ModoPrecio === 'fijo'
+                      ? formatCurrency(product.PrecioFijo)
+                      : 'Consultar en caja'
+
+                    return (
+                      <Col xs={24} md={12} lg={8} key={product.ProductoEmpresaId}>
+                        <Card hoverable className="tms-pos-product-card" onClick={() => addProduct(product)}>
+                          <div className="tms-pos-product-card-head">
+                            <div className={`tms-pos-product-icon tms-pos-product-icon--${typeMeta.family.toLowerCase()}`}>
+                              {typeMeta.icon}
+                            </div>
+                            <div className="tms-pos-product-copy">
+                              <Typography.Text strong className="tms-pos-product-name">
+                                {product.NombreComercial}
+                              </Typography.Text>
+                              <Typography.Text type="secondary" className="tms-pos-product-family">
+                                {typeMeta.label}
+                              </Typography.Text>
+                            </div>
+                          </div>
+
+                          {isClassProduct ? (
+                            <div className="tms-pos-product-footer tms-pos-product-footer--class">
+                              {classTarifasLoading ? (
+                                <Typography.Text type="secondary">Cargando tarifas...</Typography.Text>
+                              ) : hasClassTarifas ? (
+                                classPriceRows.map((row) => (
+                                  <div key={row.label} className="tms-pos-class-price-block">
+                                    <Typography.Text type="secondary" className="tms-pos-class-price-label">{row.label}</Typography.Text>
+                                    <Typography.Text strong className="tms-pos-product-price">{formatCurrency(row.value)}</Typography.Text>
+                                  </div>
+                                ))
+                              ) : (
+                                <Typography.Text type="secondary">Sin tarifa activa</Typography.Text>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="tms-pos-product-footer">
+                              <Typography.Text strong className="tms-pos-product-price">{priceLabel}</Typography.Text>
+                            </div>
+                          )}
+                          {isClassProduct && classTarifasError && !classTarifasLoading && !hasClassTarifas && (
+                            <Typography.Text type="secondary">No se pudieron cargar tarifas de clases.</Typography.Text>
+                          )}
+                        </Card>
+                      </Col>
+                    )
+                  })}
+                </Row>
+              )}
+            </Space>
           </Card>
         </Col>
 
-        <Col xs={24} xl={9}>
-          <Card title="Caja" className="tms-page-table-card">
-            <Space orientation="vertical" style={{ width: '100%' }} size="middle">
+        <Col xs={24} xl={9} xxl={8}>
+          <Card title={<Space><ShoppingCartOutlined />Caja</Space>} className="tms-page-table-card tms-pos-cart-card tms-pos-cart-sticky">
+            <Space orientation="vertical" style={{ width: '100%' }} size="large">
               {cart.length === 0 ? (
-                <Typography.Text type="secondary">Sin productos en el carro</Typography.Text>
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="Aun no agregas productos al carro"
+                />
               ) : (
-                <div style={{ border: '1px solid #f0f0f0', borderRadius: 8 }}>
+                <div className="tms-pos-cart-list">
                   {cart.map((item) => {
                     const requiresClient = requiresAssignedClient(item.Product)
+                    const typeMeta = getProductTypeMeta(item.Product.TipoProductoBaseCodigo)
                     const assignedClient = item.ClienteEmpresaIdAsignado ? knownClientes[item.ClienteEmpresaIdAsignado] : null
                     const searchValue = clientSearchByItem[item.Id] ?? ''
                     const options = clientOptionsByItem[item.Id] ?? []
                     const searching = searchingByItem[item.Id] ?? false
                     const canSuggestCreate = !assignedClient && searchValue.trim().length >= 2 && !searching && options.length === 0
+                    const lineSubtotal = item.Product.ModoPrecio === 'fijo'
+                      ? (item.Product.PrecioFijo ?? 0) * item.Quantity
+                      : null
 
                     return (
-                      <div key={item.Id} style={{ padding: '12px 12px', borderBottom: '1px solid #f0f0f0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                          <div style={{ flex: 1 }}>
+                      <div key={item.Id} className="tms-pos-cart-item">
+                        <div className="tms-pos-cart-item-head">
+                          <div className="tms-pos-cart-item-copy">
                             <Typography.Text strong>{item.Product.NombreComercial}</Typography.Text>
-                            <br />
-                            <Typography.Text type="secondary">
-                              {item.Product.ModoPrecio === 'fijo' ? `$ ${item.Product.PrecioFijo ?? 0}` : 'Tarifa dinámica'}
-                            </Typography.Text>
-
-                            {requiresClient && (
-                              <div style={{ marginTop: 10 }}>
-                                <AutoComplete
-                                  value={assignedClient ? formatClientLabel(assignedClient) : searchValue}
-                                  onSearch={(value) => onClientSearch(item.Id, value)}
-                                  onSelect={(value) => {
-                                    const cliente = options.find((entry) => `${entry.ClienteEmpresaId}` === value)
-                                    if (cliente) {
-                                      setAssignedClient(item.Id, cliente)
-                                    }
-                                  }}
-                                  options={options.map((cliente) => ({
-                                    value: `${cliente.ClienteEmpresaId}`,
-                                    label: formatClientLabel(cliente),
-                                  }))}
-                                >
-                                  <Input placeholder="Asignar cliente por nombre o RUT (mín. 2 caracteres)" />
-                                </AutoComplete>
-
-                                {assignedClient ? (
-                                  <Space style={{ marginTop: 6 }} size={8}>
-                                    <Typography.Text type="secondary">{assignedClient.TipoCliente} · {assignedClient.Estado}</Typography.Text>
-                                    <Button size="small" onClick={() => clearAssignedClient(item.Id)}>Quitar cliente</Button>
-                                  </Space>
-                                ) : (
-                                  <Typography.Text type="danger" style={{ display: 'block', marginTop: 6 }}>
-                                    Este producto requiere cliente asignado.
-                                  </Typography.Text>
-                                )}
-
-                                {canSuggestCreate && (
-                                  <Space style={{ marginTop: 8 }}>
-                                    <Typography.Text type="secondary">No encontramos coincidencias.</Typography.Text>
-                                    <Button size="small" type="primary" onClick={() => openCreateClient(item.Id)}>
-                                      Crear cliente
-                                    </Button>
-                                  </Space>
-                                )}
-                              </div>
-                            )}
+                            <Space wrap size={[6, 6]}>
+                              <Tag color={typeMeta.color}>{typeMeta.label}</Tag>
+                            </Space>
                           </div>
 
-                            <Space orientation="vertical" align="end">
-                            {requiresClient ? (
-                              <Typography.Text type="secondary">Cantidad fija: 1</Typography.Text>
-                            ) : (
-                              <InputNumber
-                                min={1}
-                                value={item.Quantity}
-                                onChange={(value) => {
-                                  const nextValue = Number(value) || 1
-                                  setCart((current) => current.map((row) => row.Id === item.Id ? { ...row, Quantity: nextValue } : row))
+                          <Button
+                            danger
+                            size="large"
+                            type="text"
+                            icon={<DeleteOutlined />}
+                            onClick={() => removeItem(item.Id)}
+                          />
+                        </div>
+
+                        {requiresClient && (
+                          <div className="tms-pos-client-box">
+                            <Typography.Text type="secondary">Cliente asociado</Typography.Text>
+                            <div>
+                              <AutoComplete
+                                value={assignedClient ? formatClientLabel(assignedClient) : searchValue}
+                                onSearch={(value) => onClientSearch(item.Id, value)}
+                                onSelect={(value) => {
+                                  const cliente = options.find((entry) => `${entry.ClienteEmpresaId}` === value)
+                                  if (cliente) {
+                                    setAssignedClient(item.Id, cliente)
+                                  }
                                 }}
+                                options={options.map((cliente) => ({
+                                  value: `${cliente.ClienteEmpresaId}`,
+                                  label: formatClientLabel(cliente),
+                                }))}
+                              >
+                                <Input size="large" placeholder="Asignar cliente por nombre o RUT (min. 2 caracteres)" prefix={<UserOutlined />} />
+                              </AutoComplete>
+                            </div>
+
+                            {assignedClient ? (
+                              <Space wrap style={{ marginTop: 8 }} size={8}>
+                                <Tag color="success">{assignedClient.TipoCliente} · {assignedClient.Estado}</Tag>
+                                <Button size="large" onClick={() => clearAssignedClient(item.Id)}>Quitar cliente</Button>
+                              </Space>
+                            ) : (
+                              <Alert
+                                showIcon
+                                type="warning"
+                                icon={<ExclamationCircleFilled />}
+                                title="Este producto requiere cliente asignado."
+                                style={{ marginTop: 8 }}
                               />
                             )}
 
-                            {requiresClient && (
-                              <Button size="small" onClick={() => addProduct(item.Product)}>
-                                Agregar otro
-                              </Button>
+                            {canSuggestCreate && (
+                              <Space style={{ marginTop: 8 }} wrap>
+                                <Typography.Text type="secondary">No encontramos coincidencias.</Typography.Text>
+                                <Button size="large" type="primary" onClick={() => openCreateClient(item.Id)}>
+                                  Crear cliente
+                                </Button>
+                              </Space>
                             )}
+                          </div>
+                        )}
 
-                            <Button danger size="small" onClick={() => removeItem(item.Id)}>Quitar</Button>
-                          </Space>
+                        <div className="tms-pos-cart-item-foot">
+                          {requiresClient ? (
+                            <Button size="large" icon={<PlusOutlined />} onClick={() => addProduct(item.Product)}>
+                              Agregar otro
+                            </Button>
+                          ) : (
+                            <div className="tms-pos-quantity-control">
+                              <Button
+                                size="large"
+                                icon={<MinusOutlined />}
+                                disabled={item.Quantity <= 1}
+                                onClick={() => updateItemQuantity(item.Id, item.Quantity - 1)}
+                              />
+                              <InputNumber
+                                min={1}
+                                controls={false}
+                                size="large"
+                                value={item.Quantity}
+                                onChange={(value) => updateItemQuantity(item.Id, Number(value) || 1)}
+                              />
+                              <Button size="large" icon={<PlusOutlined />} onClick={() => updateItemQuantity(item.Id, item.Quantity + 1)} />
+                            </div>
+                          )}
+
+                          <div className="tms-pos-cart-line-total">
+                            <Typography.Text type="secondary">Subtotal linea</Typography.Text>
+                            <Typography.Text strong>{lineSubtotal == null ? 'Se cotiza en tarifa' : formatCurrency(lineSubtotal)}</Typography.Text>
+                          </div>
                         </div>
                       </div>
                     )
@@ -411,32 +783,37 @@ export default function PuntoVentaPage() {
               {previewError && <Alert showIcon type="error" title={previewError} />}
 
               {preview && (
-                <Card size="small" title="Previsualización de venta">
+                <Card size="small" title={<Space><DollarCircleOutlined />Previsualizacion de venta</Space>} className="tms-pos-preview-card">
                   {preview.Detalles.map((detail, index) => (
-                    <div key={`${detail.ProductoEmpresaId}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <span>{detail.ProductoNombre} x {detail.Cantidad}</span>
-                      <strong>$ {detail.Subtotal}</strong>
+                    <div key={`${detail.ProductoEmpresaId}-${index}`} className="tms-pos-preview-row">
+                      <Typography.Text>{detail.ProductoNombre} x {detail.Cantidad}</Typography.Text>
+                      <Typography.Text strong>{formatCurrency(detail.Subtotal)}</Typography.Text>
                     </div>
                   ))}
                   <Divider style={{ margin: '12px 0' }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div className="tms-pos-preview-total">
                     <Typography.Text strong>Total</Typography.Text>
-                    <Typography.Text strong>$ {preview.Total}</Typography.Text>
+                    <Typography.Text strong>{formatCurrency(preview.Total)}</Typography.Text>
                   </div>
                 </Card>
               )}
 
-              <Select
-                placeholder="Medio de pago"
-                value={medioPagoId ?? undefined}
-                onChange={setMedioPagoId}
-                options={mediosPago.map((item) => ({ value: item.Id, label: item.Nombre }))}
-              />
+              <div className="tms-pos-payment-block">
+                <Typography.Text type="secondary">Medio de pago</Typography.Text>
+                <Select
+                  size="large"
+                  placeholder="Selecciona medio de pago"
+                  value={medioPagoId ?? undefined}
+                  onChange={setMedioPagoId}
+                  options={mediosPago.map((item) => ({ value: item.Id, label: item.Nombre }))}
+                />
+              </div>
 
               <Button
                 type="primary"
                 size="large"
                 block
+                icon={<DollarCircleOutlined />}
                 loading={saving}
                 disabled={!preview || !medioPagoId || !!missingAssignedItem}
                 onClick={async () => {
