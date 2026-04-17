@@ -168,6 +168,8 @@ export interface PosCatalogItemDto {
   VisiblePos: boolean
   TarifaGeneralVigente?: number | null
   TarifaEstudianteVigente?: number | null
+  TarifaGeneralBloqueHorario?: string | null
+  TarifaEstudianteBloqueHorario?: string | null
   DiasClase?: string[]
 }
 

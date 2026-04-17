@@ -556,6 +556,11 @@ body {
   font-size: 11px;
 }
 
+.tms-pos-class-price-bloque {
+  font-size: 11px;
+  line-height: 1.1;
+}
+
 .tms-pos-product-price {
   font-size: 16px;
   font-weight: 700;

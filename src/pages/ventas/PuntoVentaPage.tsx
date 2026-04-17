@@ -34,6 +34,15 @@ const REQUIRED_CLIENT_CODES = new Set([
   'TICKET_INDIVIDUAL',
 ])
 
+const DUAL_TARIFA_CODES = new Set([
+  'CLASES',
+  'TICKET_INDIVIDUAL',
+  'PACK_TICKETS',
+  'PACK_10_TICKETS',
+  'MENSUALIDAD_POR_HORARIO',
+  'MENSUALIDAD_TODO_HORARIO',
+])
+
 interface CartItem {
   Id: string
   Product: PosCatalogItemDto
@@ -488,15 +497,19 @@ export default function PuntoVentaPage() {
                   {filteredCatalog.map((product) => {
                     const typeMeta = getProductTypeMeta(product.TipoProductoBaseCodigo)
                     const isClassProduct = typeMeta.family === 'CLASES'
-                    const isTicketIndividualProduct = normalizeTypeCode(product.TipoProductoBaseCodigo) === 'TICKET_INDIVIDUAL'
-                    const isDualTarifaProduct = isClassProduct || isTicketIndividualProduct
+                    const normalizedProductCode = normalizeTypeCode(product.TipoProductoBaseCodigo)
+                    const isDualTarifaProduct = DUAL_TARIFA_CODES.has(normalizedProductCode)
                     const classDaysLabel = isClassProduct && product.DiasClase?.length
                       ? product.DiasClase.map((day) => toDayCapitalCase(day)).join(', ')
                       : null
                     const classPriceRows = [
-                      product.TarifaGeneralVigente != null ? { label: 'General', value: product.TarifaGeneralVigente } : null,
-                      product.TarifaEstudianteVigente != null ? { label: 'Estudiante', value: product.TarifaEstudianteVigente } : null,
-                    ].filter((entry): entry is { label: string, value: number } => Boolean(entry))
+                      product.TarifaGeneralVigente != null
+                        ? { label: 'General', value: product.TarifaGeneralVigente, bloque: product.TarifaGeneralBloqueHorario ?? null }
+                        : null,
+                      product.TarifaEstudianteVigente != null
+                        ? { label: 'Estudiante', value: product.TarifaEstudianteVigente, bloque: product.TarifaEstudianteBloqueHorario ?? null }
+                        : null,
+                    ].filter((entry): entry is { label: string, value: number, bloque: string | null } => Boolean(entry))
                     const hasClassTarifas = classPriceRows.length > 0
                     const priceLabel = product.ModoPrecio === 'fijo'
                       ? formatCurrency(product.PrecioFijo)
@@ -533,6 +546,9 @@ export default function PuntoVentaPage() {
                                   <div key={row.label} className="tms-pos-class-price-block">
                                     <Typography.Text type="secondary" className="tms-pos-class-price-label">{row.label}</Typography.Text>
                                     <Typography.Text strong className="tms-pos-product-price">{formatCurrency(row.value)}</Typography.Text>
+                                    {row.bloque && (
+                                      <Typography.Text type="secondary" className="tms-pos-class-price-bloque">{row.bloque}</Typography.Text>
+                                    )}
                                   </div>
                                 ))
                               ) : (
