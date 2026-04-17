@@ -24,7 +24,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { administracionService } from '../../services/administracion/administracionService'
-import type { ClaseDto, LookupDto } from '../../types/models'
+import type { ClaseAgendaDto, ClaseDto, IdNombreDto } from '../../types/models'
 import { toCapitalCase } from '../../utils/formatPersonName'
 import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 
@@ -183,8 +183,9 @@ export default function ClasesPage() {
   const screens = useBreakpoint()
   const isMobile = !screens.md
 
-  const [items, setItems] = useState<ClaseDto[]>([])
-  const [profesores, setProfesores] = useState<LookupDto[]>([])
+  const [items, setItems] = useState<ClaseAgendaDto[]>([])
+  const [profesores, setProfesores] = useState<IdNombreDto[]>([])
+  const [profesoresLoading, setProfesoresLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<ClaseDto | null>(null)
@@ -194,19 +195,29 @@ export default function ClasesPage() {
   const [selectedDay, setSelectedDay] = useState<number>(getCurrentDay)
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('activo')
   const [form] = Form.useForm()
+  const estadoClaseActiva = Form.useWatch('EstadoActiva', form) ?? true
 
   const load = async (estado: EstadoFiltro) => {
     setLoading(true)
     try {
       const activo = estado === 'activo'
-      const [clases, profesoresData] = await Promise.all([
-        administracionService.getClases(activo),
-        administracionService.getProfesores(),
-      ])
+      const clases = await administracionService.getClases(activo)
       setItems(clases)
-      setProfesores(profesoresData)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadProfesores = async () => {
+    if (profesores.length > 0) {
+      return
+    }
+
+    setProfesoresLoading(true)
+    try {
+      setProfesores(await administracionService.getProfesores())
+    } finally {
+      setProfesoresLoading(false)
     }
   }
 
@@ -214,7 +225,7 @@ export default function ClasesPage() {
     void load(estadoFiltro)
   }, [estadoFiltro])
 
-  const openCreate = () => {
+  const openCreate = async () => {
     setIsEditModal(false)
     setLoadingEdit(false)
     setEditingItem(null)
@@ -225,6 +236,12 @@ export default function ClasesPage() {
       Horarios: [defaultHorarioFormValue()],
     })
     setOpen(true)
+
+    try {
+      await loadProfesores()
+    } catch (error) {
+      message.error(getApiErrorMessage(error, 'No se pudo cargar el catalogo de profesores.'))
+    }
   }
 
   const setFormFromClase = (record: ClaseDto) => {
@@ -252,7 +269,10 @@ export default function ClasesPage() {
     setOpen(true)
 
     try {
-      const claseDetalle = await administracionService.getClaseById(claseId)
+      const [claseDetalle] = await Promise.all([
+        administracionService.getClaseById(claseId),
+        loadProfesores(),
+      ])
       setFormFromClase(claseDetalle)
     } catch (error) {
       message.error(getApiErrorMessage(error, 'No se pudo cargar el detalle de la clase.'))
@@ -266,11 +286,11 @@ export default function ClasesPage() {
 
   const calendarEvents = useMemo<CalendarEventBase[]>(() => {
     return items.flatMap((record) =>
-      record.Horarios.map((horario) => {
+      record.Horarios.map((horario, horarioIndex) => {
         const inicioMin = parseTimeToMinutes(horario.HoraInicio)
         const finMin = parseTimeToMinutes(horario.HoraFin)
         return {
-          eventId: `${record.ClaseId}-${horario.ClaseHorarioId}`,
+          eventId: `${record.ClaseId}-${horario.DiaSemana}-${horario.HoraInicio}-${horario.HoraFin}-${horarioIndex}`,
           claseId: record.ClaseId,
           claseNombre: record.Nombre,
           profesorNombre: toCapitalCase(record.ProfesorNombre),
@@ -361,7 +381,7 @@ export default function ClasesPage() {
               ]}
             />
             <Button icon={<ReloadOutlined />} onClick={() => void load(estadoFiltro)} />
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => void openCreate()}>
               Nueva clase
             </Button>
           </>
@@ -506,7 +526,7 @@ export default function ClasesPage() {
         okButtonProps={{ disabled: loadingEdit }}
         destroyOnHidden
       >
-        <Spin spinning={loadingEdit} tip="Cargando clase...">
+        <Spin spinning={loadingEdit} description="Cargando clase...">
           <Form<ClaseFormValues>
             form={form}
             layout="vertical"
@@ -579,7 +599,10 @@ export default function ClasesPage() {
             </Col>
             <Col xs={24} md={7}>
               <Form.Item name="ProfesorEmpresaId" label="Profesor" rules={[{ required: true }]}>
-                <Select options={profesores.map((profesor) => ({ value: profesor.Id, label: profesor.Nombre }))} />
+                <Select
+                  loading={profesoresLoading}
+                  options={profesores.map((profesor) => ({ value: profesor.Id, label: profesor.Nombre }))}
+                />
               </Form.Item>
             </Col>
             <Col xs={24} md={4}>
@@ -630,7 +653,7 @@ export default function ClasesPage() {
                         rules={[{ required: true, message: 'Selecciona un dia.' }]}
                       >
                         <Select
-                          options={DAY_OPTIONS.map((day) => ({ value: day.value, label: `${day.label} (${day.value})` }))}
+                          options={DAY_OPTIONS.map((day) => ({ value: day.value, label: day.label }))}
                         />
                       </Form.Item>
 
@@ -651,7 +674,24 @@ export default function ClasesPage() {
                       </Form.Item>
 
                       <Form.Item name={[field.name, 'Activo']} label="Activo" valuePropName="checked">
-                        <Switch />
+                        <Switch
+                          onChange={(checked) => {
+                            if (checked || !estadoClaseActiva) {
+                              return
+                            }
+
+                            const horarios = (form.getFieldValue('Horarios') ?? []) as Array<{ Activo?: boolean }>
+                            const activeCountAfter = horarios.reduce((count, horario, index) => {
+                              const activeValue = index === field.name ? checked : (horario?.Activo ?? false)
+                              return count + (activeValue ? 1 : 0)
+                            }, 0)
+
+                            if (activeCountAfter === 0) {
+                              message.warning('La clase activa debe tener al menos un horario activo.')
+                              form.setFieldValue(['Horarios', field.name, 'Activo'], true)
+                            }
+                          }}
+                        />
                       </Form.Item>
 
                       <div className="tms-clases-horario-actions">

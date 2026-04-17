@@ -19,6 +19,11 @@ export interface LookupDto {
   Nombre: string
 }
 
+export interface IdNombreDto {
+  Id: number
+  Nombre: string
+}
+
 export interface BloqueHorarioDto {
   BloqueHorarioComercialId: number
   Nombre: string
@@ -124,6 +129,22 @@ export interface ClaseHorarioDto {
   HoraInicio: string
   HoraFin: string
   Activo: boolean
+}
+
+export interface ClaseAgendaHorarioDto {
+  DiaSemana: number
+  HoraInicio: string
+  HoraFin: string
+  Activo: boolean
+}
+
+export interface ClaseAgendaDto {
+  ClaseId: number
+  Nombre: string
+  ProfesorNombre: string
+  CupoMaximo: number
+  Activo: boolean
+  Horarios: ClaseAgendaHorarioDto[]
 }
 
 export interface ClaseDto {

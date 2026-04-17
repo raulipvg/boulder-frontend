@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { administracionService } from '../../services/administracion/administracionService'
-import type { ClaseDto, LookupDto, ProductoDto } from '../../types/models'
+import type { ClaseAgendaDto, LookupDto, ProductoDto } from '../../types/models'
 import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 
 export default function ProductosPage() {
@@ -12,7 +12,7 @@ export default function ProductosPage() {
   const [items, setItems] = useState<ProductoDto[]>([])
   const [tipos, setTipos] = useState<LookupDto[]>([])
   const [bloques, setBloques] = useState<LookupDto[]>([])
-  const [clases, setClases] = useState<ClaseDto[]>([])
+  const [clases, setClases] = useState<ClaseAgendaDto[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<ProductoDto | null>(null)

@@ -22,7 +22,7 @@ import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 import { administracionService } from '../../../services/administracion/administracionService'
-import type { ClaseDto, LookupDto, ProductoDto, TarifaProductoResumenDto, TipoClienteDto } from '../../../types/models'
+import type { ClaseAgendaDto, LookupDto, ProductoDto, TarifaProductoResumenDto, TipoClienteDto } from '../../../types/models'
 import { getApiErrorMessage } from '../../../utils/getApiErrorMessage'
 
 export interface ProductosTabHandle {
@@ -84,7 +84,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
   const [tipos, setTipos] = useState<LookupDto[]>([])
   const [tiposCliente, setTiposCliente] = useState<TipoClienteDto[]>([])
   const [bloques, setBloques] = useState<LookupDto[]>([])
-  const [clases, setClases] = useState<ClaseDto[]>([])
+  const [clases, setClases] = useState<ClaseAgendaDto[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<ProductoDto | null>(null)
