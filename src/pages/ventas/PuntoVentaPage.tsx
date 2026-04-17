@@ -488,6 +488,8 @@ export default function PuntoVentaPage() {
                   {filteredCatalog.map((product) => {
                     const typeMeta = getProductTypeMeta(product.TipoProductoBaseCodigo)
                     const isClassProduct = typeMeta.family === 'CLASES'
+                    const isTicketIndividualProduct = normalizeTypeCode(product.TipoProductoBaseCodigo) === 'TICKET_INDIVIDUAL'
+                    const isDualTarifaProduct = isClassProduct || isTicketIndividualProduct
                     const classDaysLabel = isClassProduct && product.DiasClase?.length
                       ? product.DiasClase.map((day) => toDayCapitalCase(day)).join(', ')
                       : null
@@ -524,7 +526,7 @@ export default function PuntoVentaPage() {
                             </div>
                           </div>
 
-                          {isClassProduct ? (
+                          {isDualTarifaProduct ? (
                             <div className="tms-pos-product-footer tms-pos-product-footer--class">
                               {hasClassTarifas ? (
                                 classPriceRows.map((row) => (
