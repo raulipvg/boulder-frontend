@@ -1,5 +1,18 @@
-import { ClockCircleOutlined, LeftOutlined, ReloadOutlined, RightOutlined, UserOutlined } from '@ant-design/icons'
-import { Avatar, Button, Card, Empty, Tag, Typography } from 'antd'
+import { CheckCircleOutlined, ClockCircleOutlined, LeftOutlined, ReloadOutlined, RightOutlined, UserOutlined } from '@ant-design/icons'
+import {
+  App as AntdApp,
+  Avatar,
+  Button,
+  Card,
+  Empty,
+  Grid,
+  Modal,
+  Space,
+  Table,
+  Tag,
+  Typography,
+} from 'antd'
+import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
 import { useEffect, useState } from 'react'
@@ -9,27 +22,142 @@ import { PageFiltersCard } from '../../components/shared/PageFiltersCard'
 import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { operacionService } from '../../services/operacion/operacionService'
-import type { ClaseSesionDto } from '../../types/models'
+import type { ClaseSesionDto, ClaseSesionInscritoDto } from '../../types/models'
+import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 import { toCapitalCase } from '../../utils/formatPersonName'
 
+const { useBreakpoint } = Grid
+
 export default function OperacionClasesPage() {
+  const { message } = AntdApp.useApp()
+  const screens = useBreakpoint()
+  const isMobile = !screens.md
+
   const [fecha, setFecha] = useState(dayjs())
   const [items, setItems] = useState<ClaseSesionDto[]>([])
   const [loading, setLoading] = useState(true)
+  const [sesionSeleccionada, setSesionSeleccionada] = useState<ClaseSesionDto | null>(null)
+  const [inscritos, setInscritos] = useState<ClaseSesionInscritoDto[]>([])
+  const [inscritosLoading, setInscritosLoading] = useState(false)
+  const [registrandoClienteId, setRegistrandoClienteId] = useState<number | null>(null)
 
   const dateOptions = Array.from({ length: 7 }, (_, i) => fecha.subtract(3, 'day').add(i, 'day'))
+  const fechaSeleccionada = fecha.format('YYYY-MM-DD')
 
   const load = async (fechaValue: string) => {
     setLoading(true)
     try {
       setItems(await operacionService.getSesiones(fechaValue))
+    } catch (error) {
+      setItems([])
+      message.error(getApiErrorMessage(error, 'No se pudieron cargar las sesiones.'))
     } finally {
       setLoading(false)
     }
   }
 
+  const loadInscritos = async (claseSesionId: number) => {
+    setInscritosLoading(true)
+    try {
+      setInscritos(await operacionService.getInscritosSesion(claseSesionId))
+    } catch (error) {
+      setInscritos([])
+      message.error(getApiErrorMessage(error, 'No se pudo cargar la lista de inscritos.'))
+    } finally {
+      setInscritosLoading(false)
+    }
+  }
+
+  const abrirAsistenciaSesion = (record: ClaseSesionDto) => {
+    setSesionSeleccionada(record)
+    void loadInscritos(record.ClaseSesionId)
+  }
+
+  const cerrarAsistenciaSesion = () => {
+    setSesionSeleccionada(null)
+    setInscritos([])
+  }
+
+  const handleRegistrarAsistencia = async (inscrito: ClaseSesionInscritoDto) => {
+    if (!sesionSeleccionada || inscrito.AsistenciaRegistrada) {
+      return
+    }
+
+    setRegistrandoClienteId(inscrito.ClienteEmpresaId)
+    try {
+      await operacionService.registrarAsistencia({
+        ClaseSesionId: sesionSeleccionada.ClaseSesionId,
+        ClienteEmpresaId: inscrito.ClienteEmpresaId,
+        BeneficioClienteId: inscrito.BeneficioClienteId,
+      })
+
+      message.success(`Asistencia registrada para ${toCapitalCase(inscrito.ClienteNombre)}`)
+
+      await Promise.all([
+        loadInscritos(sesionSeleccionada.ClaseSesionId),
+        load(fechaSeleccionada),
+      ])
+    } catch (error) {
+      message.error(getApiErrorMessage(error, 'No se pudo registrar la asistencia.'))
+    } finally {
+      setRegistrandoClienteId(null)
+    }
+  }
+
+  const inscritosColumns: ColumnsType<ClaseSesionInscritoDto> = [
+    {
+      title: 'Cliente',
+      key: 'cliente',
+      render: (_, record) => (
+        <div>
+          <div style={{ fontWeight: 600 }}>{toCapitalCase(record.ClienteNombre)}</div>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>{record.Rut}</Typography.Text>
+        </div>
+      ),
+    },
+    {
+      title: 'Beneficio',
+      key: 'beneficio',
+      render: (_, record) => (
+        <div>
+          <div>{record.ProductoNombre}</div>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {record.AccesoIlimitado ? 'Usos: ilimitado' : `Usos: ${record.UsosConsumidos}/${record.UsosTotales ?? '∞'}`}
+          </Typography.Text>
+        </div>
+      ),
+    },
+    {
+      title: 'Estado',
+      dataIndex: 'AsistenciaRegistrada',
+      key: 'AsistenciaRegistrada',
+      width: 170,
+      render: (registrada: boolean) => (
+        <Tag color={registrada ? 'green' : 'gold'}>{registrada ? 'Registrada' : 'Pendiente'}</Tag>
+      ),
+    },
+    {
+      title: 'Accion',
+      key: 'accion',
+      width: 180,
+      render: (_, record) => (
+        <Button
+          type="primary"
+          icon={<CheckCircleOutlined />}
+          disabled={record.AsistenciaRegistrada}
+          loading={registrandoClienteId === record.ClienteEmpresaId}
+          onClick={() => void handleRegistrarAsistencia(record)}
+        >
+          {record.AsistenciaRegistrada ? 'Registrada' : 'Marcar asistencia'}
+        </Button>
+      ),
+    },
+  ]
+
+  const asistenciasRegistradas = inscritos.filter(x => x.AsistenciaRegistrada).length
+
   useEffect(() => {
-    void load(fecha.format('YYYY-MM-DD'))
+    void load(fechaSeleccionada)
   }, [fecha])
 
   return (
@@ -90,6 +218,7 @@ export default function OperacionClasesPage() {
               <Card
                 key={record.ClaseSesionId}
                 hoverable
+                onClick={() => abrirAsistenciaSesion(record)}
                 style={{ borderRadius: 16, overflow: 'hidden', borderLeft: record.Estado === 'programada' ? '4px solid #374151' : '4px solid #ff4d4f' }}
                 bodyStyle={{ padding: 20 }}
               >
@@ -116,14 +245,89 @@ export default function OperacionClasesPage() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid #f0f0f0' }}>
-                  <span style={{ color: '#8c8c8c', fontSize: 13 }}>Cupo Máximo</span>
-                  <span style={{ fontWeight: 600, fontSize: 15 }}>{record.CupoMaximo}</span>
+                  <span style={{ color: '#8c8c8c', fontSize: 13 }}>Cupo</span>
+                  <span style={{ fontWeight: 600, fontSize: 15 }}>{record.CupoMaximo} personas</span>
                 </div>
               </Card>
             ))}
           </div>
         )}
       </div>
+
+      <Modal
+        open={Boolean(sesionSeleccionada)}
+        onCancel={cerrarAsistenciaSesion}
+        footer={null}
+        width={isMobile ? '100%' : 980}
+        style={isMobile ? { top: 12 } : undefined}
+        title={sesionSeleccionada ? `Asistencia · ${sesionSeleccionada.ClaseNombre}` : 'Asistencia'}
+      >
+        {sesionSeleccionada ? (
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <div>
+                <Typography.Text type="secondary">
+                  {sesionSeleccionada.HoraInicio.slice(0, 5)} - {sesionSeleccionada.HoraFin.slice(0, 5)} · Profesor {toCapitalCase(sesionSeleccionada.ProfesorNombre)}
+                </Typography.Text>
+                <div style={{ marginTop: 4 }}>
+                  <Tag color="blue" style={{ marginInlineEnd: 8 }}>{`Inscritos ${inscritos.length}`}</Tag>
+                  <Tag color="green">{`Registradas ${asistenciasRegistradas}`}</Tag>
+                </div>
+              </div>
+              <Button
+                icon={<ReloadOutlined />}
+                loading={inscritosLoading}
+                onClick={() => void loadInscritos(sesionSeleccionada.ClaseSesionId)}
+              >
+                Actualizar
+              </Button>
+            </div>
+
+            {inscritosLoading ? (
+              <Card loading={true} />
+            ) : inscritos.length === 0 ? (
+              <Empty description="No hay clientes inscritos con beneficio vigente" />
+            ) : isMobile ? (
+              <div style={{ display: 'grid', gap: 10 }}>
+                {inscritos.map((record) => (
+                  <Card size="small" key={record.ClienteEmpresaId}>
+                    <div style={{ display: 'grid', gap: 6 }}>
+                      <strong>{toCapitalCase(record.ClienteNombre)}</strong>
+                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>{record.Rut}</Typography.Text>
+                      <span>{record.ProductoNombre}</span>
+                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        {record.AccesoIlimitado ? 'Usos: ilimitado' : `Usos: ${record.UsosConsumidos}/${record.UsosTotales ?? '∞'}`}
+                      </Typography.Text>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Tag color={record.AsistenciaRegistrada ? 'green' : 'gold'}>{record.AsistenciaRegistrada ? 'Registrada' : 'Pendiente'}</Tag>
+                        <Button
+                          size="small"
+                          type="primary"
+                          icon={<CheckCircleOutlined />}
+                          disabled={record.AsistenciaRegistrada}
+                          loading={registrandoClienteId === record.ClienteEmpresaId}
+                          onClick={() => void handleRegistrarAsistencia(record)}
+                        >
+                          {record.AsistenciaRegistrada ? 'Registrada' : 'Marcar asistencia'}
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Table
+                rowKey="ClienteEmpresaId"
+                columns={inscritosColumns}
+                dataSource={inscritos}
+                pagination={false}
+                scroll={{ x: 860 }}
+                tableLayout="auto"
+              />
+            )}
+          </Space>
+        ) : null}
+      </Modal>
     </div>
   )
 }

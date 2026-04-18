@@ -250,6 +250,19 @@ export interface ClaseSesionDto {
   Estado: string
 }
 
+export interface ClaseSesionInscritoDto {
+  ClienteEmpresaId: number
+  ClienteNombre: string
+  Rut: string
+  EstadoCliente: string
+  BeneficioClienteId: number
+  ProductoNombre: string
+  UsosTotales?: number | null
+  UsosConsumidos: number
+  AccesoIlimitado: boolean
+  AsistenciaRegistrada: boolean
+}
+
 export interface ClaseAsistenciaDto {
   ClaseAsistenciaId: number
   ClaseSesionId: number
