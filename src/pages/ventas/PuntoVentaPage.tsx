@@ -13,8 +13,9 @@ import {
   TagsOutlined,
   TeamOutlined,
   UserOutlined,
+  CloseCircleFilled,
 } from '@ant-design/icons'
-import { Alert, App as AntdApp, AutoComplete, Button, Card, Col, Divider, Empty, Form, Input, InputNumber, Modal, Row, Segmented, Select, Space, Tag, Typography } from 'antd'
+import { Alert, App as AntdApp, AutoComplete, Button, Card, Col, Divider, Empty, Form, Input, InputNumber, Modal, Row, Segmented, Select, Space, Tag, Typography, Skeleton } from 'antd'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { administracionService } from '../../services/administracion/administracionService'
@@ -437,7 +438,6 @@ export default function PuntoVentaPage() {
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={15} xxl={16}>
           <Card
-            loading={loading}
             title={(
               <div className="tms-pos-catalog-head">
                 <Space><AppstoreOutlined />Productos disponibles</Space>
@@ -457,112 +457,142 @@ export default function PuntoVentaPage() {
             )}
             className="tms-page-table-card tms-pos-catalog-card"
           >
-            <Space direction="vertical" size="large" style={{ width: '100%' }}>
-              <div className="tms-pos-toolbar">
-                <div className="tms-pos-toolbar-controls">
-                  <div className="tms-pos-filter-wrap">
-                    <Segmented
-                      size="large"
-                      block
-                      value={selectedFamily}
-                      onChange={(value) => setSelectedFamily(String(value))}
-                      options={familyFilterOptions}
-                      className="tms-pos-filter-segmented"
-                    />
+            {loading ? (
+              <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                <div className="tms-pos-toolbar">
+                  <div className="tms-pos-toolbar-controls">
+                    <div className="tms-pos-filter-wrap">
+                      <Skeleton.Button active block size="large" style={{ height: 44, borderRadius: 12 }} />
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {filteredCatalog.length === 0 ? (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="No hay coincidencias con los filtros actuales."
-                >
-                  <Button
-                    size="large"
-                    onClick={() => {
-                      setProductSearch('')
-                      setSelectedFamily('ALL')
-                    }}
-                  >
-                    Limpiar filtros
-                  </Button>
-                </Empty>
-              ) : (
                 <Row gutter={[14, 14]}>
-                  {filteredCatalog.map((product) => {
-                    const typeMeta = getProductTypeMeta(product.TipoProductoBaseCodigo)
-                    const isClassProduct = typeMeta.family === 'CLASES'
-                    const normalizedProductCode = normalizeTypeCode(product.TipoProductoBaseCodigo)
-                    const isDualTarifaProduct = DUAL_TARIFA_CODES.has(normalizedProductCode)
-                    const classDaysLabel = isClassProduct && product.DiasClase?.length
-                      ? product.DiasClase.map((day) => toDayCapitalCase(day)).join(', ')
-                      : null
-                    const classPriceRows = [
-                      product.TarifaGeneralVigente != null
-                        ? { label: 'General', value: product.TarifaGeneralVigente }
-                        : null,
-                      product.TarifaEstudianteVigente != null
-                        ? { label: 'Estudiante', value: product.TarifaEstudianteVigente }
-                        : null,
-                    ].filter((entry): entry is { label: string, value: number } => Boolean(entry))
-                    const hasClassTarifas = classPriceRows.length > 0
-                    const priceLabel = product.ModoPrecio === 'fijo'
-                      ? formatCurrency(product.PrecioFijo)
-                      : 'Consultar en caja'
+                  {Array.from({ length: 9 }).map((_, index) => (
+                    <Col xs={24} md={12} lg={8} key={`skeleton-${index}`}>
+                      <Card className="tms-pos-product-card" bordered={false}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr', gap: '14px', marginBottom: '16px' }}>
+                          <Skeleton.Avatar active shape="square" size={48} style={{ borderRadius: 14 }} />
+                          <div style={{ display: 'grid', gap: '8px' }}>
+                            <Skeleton.Input active size="small" style={{ width: '80%', height: 16 }} />
+                            <Skeleton.Input active size="small" style={{ width: '40%', height: 14 }} />
+                          </div>
+                        </div>
+                        <div className="tms-pos-product-footer">
+                          <Skeleton.Input active size="small" style={{ width: '60px', height: 16 }} />
+                        </div>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+              </Space>
+            ) : (
+              <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                <div className="tms-pos-toolbar">
+                  <div className="tms-pos-toolbar-controls">
+                    <div className="tms-pos-filter-wrap">
+                      <Segmented
+                        size="large"
+                        block
+                        value={selectedFamily}
+                        onChange={(value) => setSelectedFamily(String(value))}
+                        options={familyFilterOptions}
+                        className="tms-pos-filter-segmented"
+                      />
+                    </div>
+                  </div>
+                </div>
 
-                    return (
-                      <Col xs={24} md={12} lg={8} key={product.ProductoEmpresaId}>
-                        <Card hoverable className="tms-pos-product-card" onClick={() => addProduct(product)}>
-                          <div className="tms-pos-product-card-head">
-                            <div className={`tms-pos-product-icon tms-pos-product-icon--${typeMeta.family.toLowerCase()}`}>
-                              {typeMeta.icon}
-                            </div>
-                            <div className="tms-pos-product-copy">
-                              <Typography.Text strong className="tms-pos-product-name">
-                                {product.NombreComercial}
-                              </Typography.Text>
-                              <div className="tms-pos-product-family-row">
-                                <Typography.Text type="secondary" className="tms-pos-product-family">
-                                  {typeMeta.label}
+                {filteredCatalog.length === 0 ? (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="No hay coincidencias con los filtros actuales."
+                  >
+                    <Button
+                      size="large"
+                      onClick={() => {
+                        setProductSearch('')
+                        setSelectedFamily('ALL')
+                      }}
+                    >
+                      Limpiar filtros
+                    </Button>
+                  </Empty>
+                ) : (
+                  <Row gutter={[14, 14]}>
+                    {filteredCatalog.map((product) => {
+                      const typeMeta = getProductTypeMeta(product.TipoProductoBaseCodigo)
+                      const isClassProduct = typeMeta.family === 'CLASES'
+                      const normalizedProductCode = normalizeTypeCode(product.TipoProductoBaseCodigo)
+                      const isDualTarifaProduct = DUAL_TARIFA_CODES.has(normalizedProductCode)
+                      const classDaysLabel = isClassProduct && product.DiasClase?.length
+                        ? product.DiasClase.map((day) => toDayCapitalCase(day)).join(', ')
+                        : null
+                      const classPriceRows = [
+                        product.TarifaGeneralVigente != null
+                          ? { label: 'General', value: product.TarifaGeneralVigente }
+                          : null,
+                        product.TarifaEstudianteVigente != null
+                          ? { label: 'Estudiante', value: product.TarifaEstudianteVigente }
+                          : null,
+                      ].filter((entry): entry is { label: string, value: number } => Boolean(entry))
+                      const hasClassTarifas = classPriceRows.length > 0
+                      const priceLabel = product.ModoPrecio === 'fijo'
+                        ? formatCurrency(product.PrecioFijo)
+                        : 'Consultar en caja'
+
+                      return (
+                        <Col xs={24} md={12} lg={8} key={product.ProductoEmpresaId}>
+                          <Card hoverable className="tms-pos-product-card" onClick={() => addProduct(product)}>
+                            <div className="tms-pos-product-card-head">
+                              <div className={`tms-pos-product-icon tms-pos-product-icon--${typeMeta.family.toLowerCase()}`}>
+                                {typeMeta.icon}
+                              </div>
+                              <div className="tms-pos-product-copy">
+                                <Typography.Text strong className="tms-pos-product-name">
+                                  {product.NombreComercial}
                                 </Typography.Text>
-                                {classDaysLabel && (
-                                  <Typography.Text type="secondary" className="tms-pos-product-days">
-                                    {classDaysLabel}
+                                <div className="tms-pos-product-family-row">
+                                  <Typography.Text type="secondary" className="tms-pos-product-family">
+                                    {typeMeta.label}
                                   </Typography.Text>
-                                )}
+                                  {classDaysLabel && (
+                                    <Typography.Text type="secondary" className="tms-pos-product-days">
+                                      {classDaysLabel}
+                                    </Typography.Text>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          {isDualTarifaProduct ? (
-                            <div className="tms-pos-product-footer tms-pos-product-footer--class">
-                              {hasClassTarifas ? (
-                                classPriceRows.map((row) => (
-                                  <div key={row.label} className="tms-pos-class-price-block">
-                                    <div className="tms-pos-class-price-label-row">
-                                      <Typography.Text type="secondary" className="tms-pos-class-price-label">{row.label}</Typography.Text>
+                            {isDualTarifaProduct ? (
+                              <div className="tms-pos-product-footer tms-pos-product-footer--class">
+                                {hasClassTarifas ? (
+                                  classPriceRows.map((row) => (
+                                    <div key={row.label} className="tms-pos-class-price-block">
+                                      <div className="tms-pos-class-price-label-row">
+                                        <Typography.Text type="secondary" className="tms-pos-class-price-label">{row.label}</Typography.Text>
 
+                                      </div>
+                                      <Typography.Text strong className="tms-pos-product-price">{formatCurrency(row.value)}</Typography.Text>
                                     </div>
-                                    <Typography.Text strong className="tms-pos-product-price">{formatCurrency(row.value)}</Typography.Text>
-                                  </div>
-                                ))
-                              ) : (
-                                <Typography.Text type="secondary">Sin tarifa activa</Typography.Text>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="tms-pos-product-footer">
-                              <Typography.Text strong className="tms-pos-product-price">{priceLabel}</Typography.Text>
-                            </div>
-                          )}
-                        </Card>
-                      </Col>
-                    )
-                  })}
-                </Row>
-              )}
-            </Space>
+                                  ))
+                                ) : (
+                                  <Typography.Text type="secondary">Sin tarifa activa</Typography.Text>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="tms-pos-product-footer">
+                                <Typography.Text strong className="tms-pos-product-price">{priceLabel}</Typography.Text>
+                              </div>
+                            )}
+                          </Card>
+                        </Col>
+                      )
+                    })}
+                  </Row>
+                )}
+              </Space>
+            )}
           </Card>
         </Col>
 
@@ -578,7 +608,6 @@ export default function PuntoVentaPage() {
                 <div className="tms-pos-cart-list">
                   {cart.map((item) => {
                     const requiresClient = requiresAssignedClient(item.Product)
-                    const typeMeta = getProductTypeMeta(item.Product.TipoProductoBaseCodigo)
                     const assignedClient = item.ClienteEmpresaIdAsignado ? knownClientes[item.ClienteEmpresaIdAsignado] : null
                     const searchValue = clientSearchByItem[item.Id] ?? ''
                     const options = clientOptionsByItem[item.Id] ?? []
@@ -593,9 +622,6 @@ export default function PuntoVentaPage() {
                         <div className="tms-pos-cart-item-head">
                           <div className="tms-pos-cart-item-copy">
                             <Typography.Text strong>{item.Product.NombreComercial}</Typography.Text>
-                            <Space wrap size={[6, 6]}>
-                              <Tag color={typeMeta.color}>{typeMeta.label}</Tag>
-                            </Space>
                           </div>
 
                           <Button
@@ -609,57 +635,76 @@ export default function PuntoVentaPage() {
 
                         {requiresClient && (
                           <div className="tms-pos-client-box">
-                            <Typography.Text type="secondary">Cliente asociado</Typography.Text>
-                            <div>
-                              <AutoComplete
-                                value={assignedClient ? formatClientLabel(assignedClient) : searchValue}
-                                onSearch={(value) => onClientSearch(item.Id, value)}
-                                onSelect={(value) => {
-                                  const cliente = options.find((entry) => `${entry.ClienteEmpresaId}` === value)
-                                  if (cliente) {
-                                    setAssignedClient(item.Id, cliente)
-                                  }
-                                }}
-                                options={options.map((cliente) => ({
-                                  value: `${cliente.ClienteEmpresaId}`,
-                                  label: formatClientLabel(cliente),
-                                }))}
-                              >
-                                <Input size="large" placeholder="Asignar cliente por nombre o RUT (min. 2 caracteres)" prefix={<UserOutlined />} />
-                              </AutoComplete>
+                            <div className="tms-pos-client-box-header">
+                              <Typography.Text type="secondary">Cliente</Typography.Text>
+                              <div className="tms-pos-client-box-input">
+                                <Space.Compact style={{ width: '100%' }}>
+                                  <AutoComplete
+                                    style={{ flex: 1, minWidth: 0, width: '100%' }}
+                                    value={assignedClient ? formatClientLabel(assignedClient) : searchValue}
+                                    onSearch={(value) => onClientSearch(item.Id, value)}
+                                    onSelect={(value) => {
+                                      const cliente = options.find((entry) => `${entry.ClienteEmpresaId}` === value)
+                                      if (cliente) {
+                                        setAssignedClient(item.Id, cliente)
+                                      }
+                                    }}
+                                    options={options.map((cliente) => ({
+                                      value: `${cliente.ClienteEmpresaId}`,
+                                      label: formatClientLabel(cliente),
+                                    }))}
+                                  >
+                                    <Input
+                                      size="large"
+                                      placeholder="Asignar cliente por nombre o RUT (min. 2 caracteres)"
+                                      prefix={<UserOutlined />}
+                                      readOnly={!!assignedClient}
+                                      suffix={
+                                        assignedClient ? (
+                                          <CloseCircleFilled
+                                            style={{ cursor: 'pointer', color: '#bfbfbf', fontSize: '14px' }}
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              clearAssignedClient(item.Id)
+                                            }}
+                                          />
+                                        ) : null
+                                      }
+                                    />
+                                  </AutoComplete>
+                                  {canSuggestCreate && (
+                                    <Button
+                                      size="large"
+                                      type="primary"
+                                      icon={<PlusOutlined />}
+                                      onClick={() => openCreateClient(item.Id)}
+                                    />
+                                  )}
+                                </Space.Compact>
+                              </div>
                             </div>
 
                             {assignedClient ? (
-                              <Space wrap style={{ marginTop: 8 }} size={8}>
-                                <Tag color="success">{assignedClient.TipoCliente} · {assignedClient.Estado}</Tag>
-                                <Button size="large" onClick={() => clearAssignedClient(item.Id)}>Quitar cliente</Button>
-                              </Space>
+                              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+                                <Tag color="info" style={{ margin: 0 }}>{assignedClient.TipoCliente} · {assignedClient.Estado}</Tag>
+                              </div>
                             ) : (
                               <Alert
                                 showIcon
                                 type="warning"
                                 icon={<ExclamationCircleFilled />}
                                 title="Este producto requiere cliente asignado."
-                                style={{ marginTop: 8 }}
+                                style={{ marginTop: 5, padding: '5px 10px', border: 'none' }}
                               />
                             )}
 
-                            {canSuggestCreate && (
-                              <Space style={{ marginTop: 8 }} wrap>
-                                <Typography.Text type="secondary">No encontramos coincidencias.</Typography.Text>
-                                <Button size="large" type="primary" onClick={() => openCreateClient(item.Id)}>
-                                  Crear cliente
-                                </Button>
-                              </Space>
-                            )}
+
                           </div>
                         )}
 
                         <div className="tms-pos-cart-item-foot">
                           {requiresClient ? (
-                            <Button size="large" icon={<PlusOutlined />} onClick={() => addProduct(item.Product)}>
-                              Agregar otro
-                            </Button>
+                            <div />
                           ) : (
                             <div className="tms-pos-quantity-control">
                               <Button
@@ -690,10 +735,22 @@ export default function PuntoVentaPage() {
                 </div>
               )}
 
+              <div className="tms-pos-payment-block">
+                <Typography.Text type="secondary">Medio de pago</Typography.Text>
+                <Select
+                  size="large"
+                  placeholder="Selecciona medio de pago"
+                  value={medioPagoId ?? undefined}
+                  onChange={setMedioPagoId}
+                  options={mediosPago.map((item) => ({ value: item.Id, label: item.Nombre }))}
+                />
+              </div>
+
               {previewError && <Alert showIcon type="error" title={previewError} />}
 
+
               {preview && (
-                <Card size="small" title={<Space><DollarCircleOutlined />Previsualizacion de venta</Space>} className="tms-pos-preview-card">
+                <Card size="small" variant='borderless' className="tms-pos-preview-card">
                   {preview.Detalles.map((detail, index) => (
                     <div key={`${detail.ProductoEmpresaId}-${index}`} className="tms-pos-preview-row">
                       <Typography.Text>{detail.ProductoNombre} x {detail.Cantidad}</Typography.Text>
@@ -708,16 +765,7 @@ export default function PuntoVentaPage() {
                 </Card>
               )}
 
-              <div className="tms-pos-payment-block">
-                <Typography.Text type="secondary">Medio de pago</Typography.Text>
-                <Select
-                  size="large"
-                  placeholder="Selecciona medio de pago"
-                  value={medioPagoId ?? undefined}
-                  onChange={setMedioPagoId}
-                  options={mediosPago.map((item) => ({ value: item.Id, label: item.Nombre }))}
-                />
-              </div>
+
 
               <Button
                 type="primary"
