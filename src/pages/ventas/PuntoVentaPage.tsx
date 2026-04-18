@@ -451,9 +451,7 @@ export default function PuntoVentaPage() {
                     placeholder="Buscar por nombre o tipo de producto"
                     className="tms-pos-catalog-search"
                   />
-                  <Button size="large" icon={<ReloadOutlined />} onClick={() => void loadCatalogData()}>
-                    Actualizar
-                  </Button>
+                  <Button size="large" icon={<ReloadOutlined />} onClick={() => void loadCatalogData()}></Button>
                 </div>
               </div>
             )}
@@ -502,12 +500,12 @@ export default function PuntoVentaPage() {
                       : null
                     const classPriceRows = [
                       product.TarifaGeneralVigente != null
-                        ? { label: 'General', value: product.TarifaGeneralVigente, bloque: product.TarifaGeneralBloqueHorario ?? null }
+                        ? { label: 'General', value: product.TarifaGeneralVigente }
                         : null,
                       product.TarifaEstudianteVigente != null
-                        ? { label: 'Estudiante', value: product.TarifaEstudianteVigente, bloque: product.TarifaEstudianteBloqueHorario ?? null }
+                        ? { label: 'Estudiante', value: product.TarifaEstudianteVigente }
                         : null,
-                    ].filter((entry): entry is { label: string, value: number, bloque: string | null } => Boolean(entry))
+                    ].filter((entry): entry is { label: string, value: number } => Boolean(entry))
                     const hasClassTarifas = classPriceRows.length > 0
                     const priceLabel = product.ModoPrecio === 'fijo'
                       ? formatCurrency(product.PrecioFijo)
@@ -542,11 +540,11 @@ export default function PuntoVentaPage() {
                               {hasClassTarifas ? (
                                 classPriceRows.map((row) => (
                                   <div key={row.label} className="tms-pos-class-price-block">
-                                    <Typography.Text type="secondary" className="tms-pos-class-price-label">{row.label}</Typography.Text>
+                                    <div className="tms-pos-class-price-label-row">
+                                      <Typography.Text type="secondary" className="tms-pos-class-price-label">{row.label}</Typography.Text>
+
+                                    </div>
                                     <Typography.Text strong className="tms-pos-product-price">{formatCurrency(row.value)}</Typography.Text>
-                                    {row.bloque && (
-                                      <Typography.Text type="secondary" className="tms-pos-class-price-bloque">{row.bloque}</Typography.Text>
-                                    )}
                                   </div>
                                 ))
                               ) : (

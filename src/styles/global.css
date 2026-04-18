@@ -549,16 +549,23 @@ body {
 
 .tms-pos-class-price-block {
   display: grid;
-  gap: 2px;
+}
+
+.tms-pos-class-price-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .tms-pos-class-price-label {
   font-size: 11px;
 }
 
-.tms-pos-class-price-bloque {
+.tms-pos-class-price-horario {
   font-size: 11px;
   line-height: 1.1;
+  white-space: nowrap;
 }
 
 .tms-pos-product-price {
