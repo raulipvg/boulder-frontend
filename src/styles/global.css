@@ -33,12 +33,12 @@ body {
 }
 
 #root,
-.ant-layout,
-.ant-layout-content {
+.ant-layout {
   min-height: 100vh;
 }
 
 .ant-layout-content {
+  min-height: 0;
   background: var(--tms-content-bg);
 }
 
@@ -392,6 +392,19 @@ body {
 .tms-pos-page {
   position: relative;
   isolation: isolate;
+  flex: 1;
+  min-height: 0;
+}
+
+.tms-pos-layout-row {
+  flex: 1;
+  min-height: 0;
+}
+
+.tms-pos-layout-row>.ant-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 
@@ -644,6 +657,41 @@ body {
 .tms-pos-cart-sticky {
   position: sticky;
   top: 16px;
+  height: calc(100vh - 96px);
+  height: calc(100dvh - 96px);
+  max-height: calc(100vh - 96px);
+  max-height: calc(100dvh - 96px);
+  display: flex;
+  flex-direction: column;
+}
+
+.tms-pos-cart-sticky .ant-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0 !important;
+}
+
+.tms-pos-cart-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.tms-pos-cart-list-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+.tms-pos-cart-footer {
+  flex-shrink: 0;
+  padding: 16px 20px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .tms-pos-cart-list {
@@ -676,10 +724,7 @@ body {
 }
 
 .tms-pos-client-box {
-  border-radius: 12px;
-  padding: 8px 14px 8px 14px;
-  background: #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.01) inset;
+  padding: 8px;
 }
 
 .tms-pos-client-box-header {
@@ -762,8 +807,7 @@ body {
 }
 
 .tms-pos-preview-card {
-  border-radius: 16px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: transparent;
 }
 
 
@@ -773,11 +817,6 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-}
-
-.tms-pos-preview-row {
-  margin-bottom: 10px;
-  color: #475569;
 }
 
 .tms-pos-preview-row .ant-typography:last-child {
@@ -798,9 +837,6 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: #ffffff;
-  padding: 5px;
-  border-radius: 16px;
 }
 
 .tms-pos-payment-block .ant-select {
@@ -850,6 +886,7 @@ body {
 
   .tms-pos-cart-sticky {
     position: static;
+    height: auto;
   }
 
   .tms-clases-horario-row {

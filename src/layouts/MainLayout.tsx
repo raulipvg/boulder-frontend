@@ -275,7 +275,7 @@ export default function MainLayout() {
           )}
         </Header>
 
-        <Content style={{ margin: isMobile ? '6px' : '16px', display: 'flex', flexDirection: 'column' }}>
+        <Content style={{ padding: isMobile ? '6px' : '16px', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <Outlet />
         </Content>
       </Layout>
