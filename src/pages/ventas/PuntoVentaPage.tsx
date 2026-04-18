@@ -65,7 +65,6 @@ interface ProductTypeMeta {
   family: string
   label: string
   icon: ReactNode
-  color: string
 }
 
 const currencyFormatter = new Intl.NumberFormat('es-CL')
@@ -87,30 +86,29 @@ function getProductTypeMeta(typeCode: string): ProductTypeMeta {
   const normalized = normalizeTypeCode(typeCode)
 
   if (normalized.includes('PACK') || normalized.includes('TICKET')) {
-    return { family: 'TICKETS', label: 'Tickets', icon: <TagsOutlined />, color: 'geekblue' }
+    return { family: 'TICKETS', label: 'Tickets', icon: <TagsOutlined /> }
   }
 
   if (normalized.includes('MENSUALIDAD')) {
-    return { family: 'MENSUALIDADES', label: 'Mensualidades', icon: <CalendarOutlined />, color: 'cyan' }
+    return { family: 'MENSUALIDADES', label: 'Mensualidades', icon: <CalendarOutlined /> }
   }
 
   if (normalized.includes('CLASE')) {
-    return { family: 'CLASES', label: 'Clases', icon: <TeamOutlined />, color: 'volcano' }
+    return { family: 'CLASES', label: 'Clases', icon: <TeamOutlined /> }
   }
 
   if (normalized.includes('ARRIENDO') || normalized.includes('ZAPATILLA')) {
-    return { family: 'ARRIENDO', label: 'Arriendo', icon: <AppstoreOutlined />, color: 'orange' }
+    return { family: 'ARRIENDO', label: 'Arriendo', icon: <AppstoreOutlined /> }
   }
 
   if (normalized.includes('CAJA') || normalized.includes('CAFE') || normalized.includes('BEBIDA')) {
-    return { family: 'MOSTRADOR', label: 'Mostrador', icon: <AppstoreOutlined />, color: 'green' }
+    return { family: 'MOSTRADOR', label: 'Mostrador', icon: <AppstoreOutlined /> }
   }
 
   return {
     family: 'OTROS',
     label: toCapitalCase(normalized.replace(/_/g, ' ').toLowerCase()),
     icon: <AppstoreOutlined />,
-    color: 'default',
   }
 }
 
@@ -544,7 +542,7 @@ export default function PuntoVentaPage() {
                         <Col xs={24} md={12} lg={8} key={product.ProductoEmpresaId}>
                           <Card hoverable className="tms-pos-product-card" onClick={() => addProduct(product)}>
                             <div className="tms-pos-product-card-head">
-                              <div className={`tms-pos-product-icon tms-pos-product-icon--${typeMeta.family.toLowerCase()}`}>
+                              <div className="tms-pos-product-icon">
                                 {typeMeta.icon}
                               </div>
                               <div className="tms-pos-product-copy">

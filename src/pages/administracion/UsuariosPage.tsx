@@ -7,6 +7,7 @@ import {
 } from '@ant-design/icons'
 import {
   App as AntdApp,
+  Avatar,
   Button,
   Card,
   Empty,
@@ -19,6 +20,7 @@ import {
   Table,
   Tag,
   Tooltip,
+  Typography,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
@@ -31,7 +33,7 @@ import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 
 const { useBreakpoint } = Grid
 
-const estadoTag = (estado: string) => <Tag color={estado === 'activo' ? 'green' : 'red'}>{estado === 'activo' ? 'Activo' : 'Inactivo'}</Tag>
+const estadoTag = (estado: string) => <Tag bordered={false} color={estado === 'activo' ? 'success' : 'default'}>{estado === 'activo' ? 'ACTIVO' : 'INACTIVO'}</Tag>
 
 export default function UsuariosPage() {
   const { message } = AntdApp.useApp()
@@ -98,32 +100,52 @@ export default function UsuariosPage() {
 
   const roleTags = (record: UsuarioDto) => {
     if (!record.Roles?.length) {
-      return <Tag>Sin roles</Tag>
+      return <Tag bordered={false}>Sin roles</Tag>
     }
 
     return (
       <Space size={4} wrap>
         {record.Roles.map((rol) => (
-          <Tag key={rol} color="blue">{rol}</Tag>
+          <Tag key={rol} color="blue" bordered={false}>{rol}</Tag>
         ))}
       </Space>
     )
   }
 
   const actionButtons = (record: UsuarioDto) => (
-    <Space size={2}>
-      <Tooltip title="Editar usuario">
-        <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+    <Space size={8}>
+      <Tooltip title="Editar perfil de usuario">
+        <Button size="small" type="primary" ghost icon={<EditOutlined />} onClick={() => openEdit(record)}>Editar</Button>
       </Tooltip>
       <Tooltip title="Cambiar contrasena">
-        <Button type="text" icon={<KeyOutlined />} onClick={() => openPassword(record)} />
+        <Button size="small" icon={<KeyOutlined />} onClick={() => openPassword(record)}>Clave</Button>
       </Tooltip>
     </Space>
   )
 
   const columns: ColumnsType<UsuarioDto> = [
-    { title: 'Nombre', key: 'NombreCompleto', render: (_, record) => toCapitalCase(record.NombreCompleto) },
-    { title: 'Correo', dataIndex: 'EmailLogin', key: 'EmailLogin', ellipsis: true },
+    {
+      title: 'Usuario',
+      key: 'NombreCompleto',
+      render: (_, record) => (
+        <Space>
+          <Avatar style={{ backgroundColor: '#1890ff', verticalAlign: 'middle' }}>{record.NombreCompleto.charAt(0).toUpperCase()}</Avatar>
+          <Typography.Text strong>{toCapitalCase(record.NombreCompleto)}</Typography.Text>
+        </Space>
+      )
+    },
+    {
+      title: 'Cuenta / Correo',
+      dataIndex: 'EmailLogin',
+      key: 'EmailLogin',
+      ellipsis: true,
+      render: (email) => (
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <MailOutlined style={{ marginRight: 6, color: '#8c8c8c' }} />
+          <Typography.Text>{email}</Typography.Text>
+        </div>
+      )
+    },
     {
       title: 'Estado',
       key: 'Estado',
@@ -136,10 +158,17 @@ export default function UsuariosPage() {
       responsive: ['md'],
       render: (_, record) => roleTags(record),
     },
-    { title: 'Empresa', dataIndex: 'EmpresaNombre', key: 'EmpresaNombre', responsive: ['lg'] },
+    {
+      title: 'Empresa',
+      dataIndex: 'EmpresaNombre',
+      key: 'EmpresaNombre',
+      responsive: ['lg'],
+      render: (empresa) => empresa ? <Typography.Text>{empresa}</Typography.Text> : <Typography.Text type="secondary">N/A</Typography.Text>
+    },
     {
       title: 'Acciones',
       key: 'acciones',
+      align: 'right',
       render: (_, record) => actionButtons(record),
     },
   ]
@@ -165,19 +194,26 @@ export default function UsuariosPage() {
             <div style={{ display: 'grid', gap: 10 }}>
               {items.map((record) => (
                 <Card size="small" key={record.UsuarioId}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 600 }}>{toCapitalCase(record.NombreCompleto)}</div>
-                      <div style={{ color: '#6b7280', fontSize: 12, marginTop: 3 }}>
-                        <MailOutlined style={{ marginRight: 6 }} />
-                        {record.EmailLogin}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ minWidth: 0, width: '100%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontWeight: 600, fontSize: 16 }}>
+                        <Avatar style={{ backgroundColor: '#1890ff', flexShrink: 0 }}>{record.NombreCompleto.charAt(0).toUpperCase()}</Avatar>
+                        <div>
+                          <div style={{ lineHeight: 1.2 }}>{toCapitalCase(record.NombreCompleto)}</div>
+                        </div>
                       </div>
-                      <div style={{ marginTop: 8 }}>{estadoTag(record.Estado)}</div>
-                      <div style={{ marginTop: 8 }}>{roleTags(record)}</div>
-                      <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280' }}>
-                        Empresa: {record.EmpresaNombre || 'Sin empresa'}
+
+                      <div style={{ marginTop: 16, display: 'grid', gap: 8, fontSize: 13, background: '#fafafa', padding: 12, borderRadius: 8 }}>
+                        <span style={{ display: 'flex', alignItems: 'center' }}><MailOutlined style={{ marginRight: 8, color: '#8c8c8c' }} /><Typography.Text ellipsis>{record.EmailLogin}</Typography.Text></span>
+                        <span style={{ display: 'flex', alignItems: 'center', color: '#8c8c8c' }}>Empresa: <Typography.Text style={{ marginLeft: 4 }}>{record.EmpresaNombre || 'Sin empresa'}</Typography.Text></span>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                          {estadoTag(record.Estado)}
+                          {roleTags(record)}
+                        </div>
                       </div>
                     </div>
+                  </div>
+                  <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                     {actionButtons(record)}
                   </div>
                 </Card>

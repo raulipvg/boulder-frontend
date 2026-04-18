@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons'
 import {
   App as AntdApp,
+  Avatar,
   Button,
   Card,
   Empty,
@@ -17,9 +18,11 @@ import {
   Input,
   Modal,
   Select,
+  Space,
   Table,
   Tag,
   Tooltip,
+  Typography,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
@@ -35,9 +38,9 @@ import { isValidRut, normalizeRut } from '../../utils/rut'
 const { useBreakpoint } = Grid
 
 const estadoTag = (estado: string) => {
-  if (estado === 'activo') return <Tag color="green">Activo</Tag>
-  if (estado === 'inactivo') return <Tag color="red">Inactivo</Tag>
-  return <Tag color="orange">Bloqueado</Tag>
+  if (estado === 'activo') return <Tag color="success" bordered={false}>ACTIVO</Tag>
+  if (estado === 'inactivo') return <Tag color="default" bordered={false}>INACTIVO</Tag>
+  return <Tag color="error" bordered={false}>BLOQUEADO</Tag>
 }
 
 export default function ClientesPage() {
@@ -103,11 +106,42 @@ export default function ClientesPage() {
   }
 
   const columns: ColumnsType<ClienteDto> = [
-    { title: 'Nombre', key: 'NombreCompleto', render: (_, record) => toCapitalCase(record.NombreCompleto) },
-    { title: 'RUT', dataIndex: 'Rut', key: 'Rut', responsive: ['sm'] },
-    { title: 'Correo', dataIndex: 'Correo', key: 'Correo', ellipsis: true, responsive: ['md'] },
-    { title: 'Telefono', dataIndex: 'Telefono', key: 'Telefono', responsive: ['md'] },
-    { title: 'Tipo cliente', dataIndex: 'TipoCliente', key: 'TipoCliente', responsive: ['sm'] },
+    { 
+      title: 'Cliente', 
+      key: 'NombreCompleto', 
+      render: (_, record) => (
+        <Space>
+          <Avatar style={{ backgroundColor: '#1890ff', verticalAlign: 'middle' }}>{record.NombreCompleto.charAt(0).toUpperCase()}</Avatar>
+          <Typography.Text strong>{toCapitalCase(record.NombreCompleto)}</Typography.Text>
+        </Space>
+      ) 
+    },
+    { 
+      title: 'RUT', 
+      dataIndex: 'Rut', 
+      key: 'Rut', 
+      responsive: ['sm'],
+      render: (rut) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace' }}>{rut}</Typography.Text>
+    },
+    { 
+       title: 'Contacto', 
+       key: 'Contacto', 
+       responsive: ['md'],
+       render: (_, record) => (
+         <div style={{ display: 'grid', gap: 4 }}>
+           {record.Correo ? <div style={{ fontSize: 13, display: 'flex', alignItems: 'center' }}><MailOutlined style={{ marginRight: 6, color: '#8c8c8c' }}/> <Typography.Text ellipsis style={{ maxWidth: 150 }}>{record.Correo}</Typography.Text></div> : null}
+           {record.Telefono ? <div style={{ fontSize: 13 }}><PhoneOutlined style={{ marginRight: 6, color: '#8c8c8c' }}/>{record.Telefono}</div> : null}
+           {!record.Correo && !record.Telefono ? <Typography.Text type="secondary" style={{ fontSize: 13 }}>No registrado</Typography.Text> : null}
+         </div>
+       )
+    },
+    { 
+      title: 'Tipo cliente', 
+      dataIndex: 'TipoCliente', 
+      key: 'TipoCliente', 
+      responsive: ['sm'],
+      render: (tipo) => <Tag color="blue" bordered={false}>{tipo || 'Sin tipo'}</Tag>
+    },
     {
       title: 'Estado',
       key: 'Estado',
@@ -117,9 +151,10 @@ export default function ClientesPage() {
     {
       title: 'Acciones',
       key: 'acciones',
+      align: 'right',
       render: (_, record) => (
-        <Tooltip title="Editar">
-          <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+        <Tooltip title="Editar perfil del cliente">
+          <Button size="small" type="primary" ghost icon={<EditOutlined />} onClick={() => openEdit(record)}>Editar</Button>
         </Tooltip>
       ),
     },
@@ -158,23 +193,28 @@ export default function ClientesPage() {
             <div style={{ display: 'grid', gap: 10 }}>
               {items.map((record) => (
                 <Card size="small" key={record.ClienteEmpresaId}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 600 }}>
-                        <UserOutlined style={{ marginRight: 6 }} />
-                        {toCapitalCase(record.NombreCompleto)}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ minWidth: 0, width: '100%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontWeight: 600, fontSize: 16 }}>
+                        <Avatar style={{ backgroundColor: '#1890ff', flexShrink: 0 }}>{record.NombreCompleto.charAt(0).toUpperCase()}</Avatar>
+                        <div>
+                           <div style={{ lineHeight: 1.2 }}>{toCapitalCase(record.NombreCompleto)}</div>
+                           <div style={{ color: '#8c8c8c', fontSize: 12, fontWeight: 'normal', fontFamily: 'monospace', marginTop: 2 }}>{record.Rut}</div>
+                        </div>
                       </div>
-                      <div style={{ color: '#6b7280', fontSize: 12, marginTop: 3 }}>{record.Rut}</div>
-                      <div style={{ marginTop: 8, display: 'grid', gap: 4, fontSize: 12 }}>
-                        <span><MailOutlined style={{ marginRight: 6 }} />{record.Correo || 'Sin correo'}</span>
-                        <span><PhoneOutlined style={{ marginRight: 6 }} />{record.Telefono || 'Sin telefono'}</span>
-                        <span>Tipo: {record.TipoCliente || 'Sin tipo'}</span>
+                      
+                      <div style={{ marginTop: 16, display: 'grid', gap: 8, fontSize: 13, background: '#fafafa', padding: 12, borderRadius: 8 }}>
+                        <span style={{ display: 'flex', alignItems: 'center' }}><MailOutlined style={{ marginRight: 8, color: '#8c8c8c' }} /><Typography.Text ellipsis>{record.Correo || 'Sin correo'}</Typography.Text></span>
+                        <span style={{ display: 'flex', alignItems: 'center' }}><PhoneOutlined style={{ marginRight: 8, color: '#8c8c8c' }} />{record.Telefono || 'Sin telefono'}</span>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                          <Tag color="blue" bordered={false}>{record.TipoCliente || 'Sin tipo'}</Tag>
+                          {estadoTag(record.Estado)}
+                        </div>
                       </div>
-                      <div style={{ marginTop: 8 }}>{estadoTag(record.Estado)}</div>
                     </div>
 
                     <Tooltip title="Editar">
-                      <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+                      <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} style={{ marginLeft: 8 }} />
                     </Tooltip>
                   </div>
                 </Card>
