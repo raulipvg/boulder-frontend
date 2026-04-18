@@ -745,6 +745,8 @@ export default function PuntoVentaPage() {
                     placeholder="Selecciona medio de pago"
                     value={medioPagoId ?? undefined}
                     onChange={setMedioPagoId}
+                    style={{ backgroundColor: 'transparent', border: 'none', textAlign: 'right' }}
+                    allowClear
                     options={mediosPago.map((item) => ({ value: item.Id, label: item.Nombre }))}
                   />
                 </div>
