@@ -51,7 +51,6 @@ export default function MainLayout() {
       children: [
         { key: '/operacion/accesos', label: 'Accesos', roles: ROLES_VENTAS_OPERACION },
         { key: '/operacion/clases', label: 'Clases', roles: ROLES_VENTAS_OPERACION },
-        { key: '/operacion/asistencias', label: 'Asistencias', roles: ROLES_VENTAS_OPERACION },
       ],
     },
     {

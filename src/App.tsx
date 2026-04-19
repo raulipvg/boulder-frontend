@@ -15,7 +15,6 @@ import VentasPage from './pages/ventas/VentasPage'
 import AnulacionesPage from './pages/ventas/AnulacionesPage'
 import AccesosPage from './pages/operacion/AccesosPage'
 import OperacionClasesPage from './pages/operacion/ClasesPage'
-import AsistenciasPage from './pages/operacion/AsistenciasPage'
 import VentasReportPage from './pages/reportes/VentasReportPage'
 import AccesosReportPage from './pages/reportes/AccesosReportPage'
 import ClasesReportPage from './pages/reportes/ClasesReportPage'
@@ -48,7 +47,6 @@ export default function App() {
         <Route path="ventas/anulaciones" element={<ProtectedRoute roles={ROLES_VENTAS_OPERACION}><AnulacionesPage /></ProtectedRoute>} />
         <Route path="operacion/accesos" element={<ProtectedRoute roles={ROLES_VENTAS_OPERACION}><AccesosPage /></ProtectedRoute>} />
         <Route path="operacion/clases" element={<ProtectedRoute roles={ROLES_VENTAS_OPERACION}><OperacionClasesPage /></ProtectedRoute>} />
-        <Route path="operacion/asistencias" element={<ProtectedRoute roles={ROLES_VENTAS_OPERACION}><AsistenciasPage /></ProtectedRoute>} />
         <Route path="reportes/ventas" element={<ProtectedRoute roles={ROLES_ADMIN}><VentasReportPage /></ProtectedRoute>} />
         <Route path="reportes/accesos" element={<ProtectedRoute roles={ROLES_ADMIN}><AccesosReportPage /></ProtectedRoute>} />
         <Route path="reportes/clases" element={<ProtectedRoute roles={ROLES_ADMIN}><ClasesReportPage /></ProtectedRoute>} />
