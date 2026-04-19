@@ -68,21 +68,7 @@
   font-size: 14px;
 }
 
-.assignedClientMeta {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 4px;
-}
 
-.assignedClientTag {
-  margin: 0;
-}
-
-.clientWarning {
-  margin-top: 5px;
-  padding: 5px 10px;
-  border: none;
-}
 
 .itemFoot {
   display: flex;

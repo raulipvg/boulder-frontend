@@ -5,7 +5,7 @@ import {
   MinusOutlined,
   PlusOutlined,
 } from '@ant-design/icons'
-import { Alert, AutoComplete, Button, Input, InputNumber, Space, Tag, Typography } from 'antd'
+import { AutoComplete, Button, Input, InputNumber, Space, Tag, Typography } from 'antd'
 import type { CartItem } from './puntoVenta.types'
 import { formatClientLabel, formatCurrency, requiresAssignedClient } from './puntoVenta.helpers'
 import type { ClienteLookupDto } from '../../types/models'
@@ -54,14 +54,21 @@ export function PuntoVentaCartItem({
         <div className={styles.itemCopy}>
           <Typography.Text strong>{item.Product.NombreComercial}</Typography.Text>
         </div>
+        <div>
+          {assignedClient ? (
+            <Tag color="info" icon={null} style={{ margin: 0 }}>{assignedClient.TipoCliente} · {assignedClient.Estado}</Tag>
+          ) : requiresClient ? (
+            <Tag color="warning" icon={<ExclamationCircleFilled />} style={{ margin: 0 }}>Requiere cliente</Tag>
+          ) : null}
 
-        <Button
-          danger
-          size="large"
-          type="text"
-          icon={<DeleteOutlined />}
-          onClick={() => onRemoveItem(item.Id)}
-        />
+          <Button
+            danger
+            size="large"
+            type="text"
+            icon={<DeleteOutlined />}
+            onClick={() => onRemoveItem(item.Id)}
+          />
+        </div>
       </div>
 
       {requiresClient ? (
@@ -115,19 +122,6 @@ export function PuntoVentaCartItem({
             </div>
           </div>
 
-          {assignedClient ? (
-            <div className={styles.assignedClientMeta}>
-              <Tag color="info" className={styles.assignedClientTag}>{assignedClient.TipoCliente} · {assignedClient.Estado}</Tag>
-            </div>
-          ) : (
-            <Alert
-              showIcon
-              type="warning"
-              icon={<ExclamationCircleFilled />}
-              title="Este producto requiere cliente asignado."
-              className={styles.clientWarning}
-            />
-          )}
         </div>
       ) : null}
 
