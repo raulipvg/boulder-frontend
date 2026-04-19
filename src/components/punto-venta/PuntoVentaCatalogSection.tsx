@@ -1,9 +1,7 @@
 import {
-  AppstoreOutlined,
   ReloadOutlined,
-  SearchOutlined,
 } from '@ant-design/icons'
-import { Button, Card, Col, Empty, Input, Row, Segmented, Skeleton, Space } from 'antd'
+import { Button, Card, Col, Empty, Row, Segmented, Skeleton, Space } from 'antd'
 import type { ReactNode } from 'react'
 import type { PosCatalogItemDto } from '../../types/models'
 import { PuntoVentaProductCard } from './PuntoVentaProductCard'
@@ -11,11 +9,9 @@ import styles from './PuntoVentaCatalogSection.module.css'
 
 interface PuntoVentaCatalogSectionProps {
   loading: boolean
-  productSearch: string
   selectedFamily: string
   familyFilterOptions: Array<{ value: string, label: ReactNode }>
   filteredCatalog: PosCatalogItemDto[]
-  onProductSearchChange: (value: string) => void
   onReload: () => void
   onFamilyChange: (value: string) => void
   onClearFilters: () => void
@@ -24,11 +20,9 @@ interface PuntoVentaCatalogSectionProps {
 
 export function PuntoVentaCatalogSection({
   loading,
-  productSearch,
   selectedFamily,
   familyFilterOptions,
   filteredCatalog,
-  onProductSearchChange,
   onReload,
   onFamilyChange,
   onClearFilters,
@@ -36,26 +30,7 @@ export function PuntoVentaCatalogSection({
 }: PuntoVentaCatalogSectionProps) {
   return (
     <Col xs={24} xl={15} xxl={16}>
-      <Card
-        title={(
-          <div className={styles.catalogHead}>
-            <Space><AppstoreOutlined />Productos disponibles</Space>
-            <div className={styles.catalogHeadActions}>
-              <Input
-                size="large"
-                value={productSearch}
-                onChange={(event) => onProductSearchChange(event.target.value)}
-                allowClear
-                prefix={<SearchOutlined />}
-                placeholder="Buscar por nombre o tipo de producto"
-                className={styles.catalogSearch}
-              />
-              <Button size="large" icon={<ReloadOutlined />} onClick={onReload}></Button>
-            </div>
-          </div>
-        )}
-        className={styles.catalogCard}
-      >
+      <Card className={styles.catalogCard} styles={{ body: { padding: 0 } }}>
         {loading ? (
           <Space direction="vertical" size="large" className={styles.contentStack}>
             <div className={styles.toolbar}>
@@ -63,6 +38,7 @@ export function PuntoVentaCatalogSection({
                 <div className={styles.filterWrap}>
                   <Skeleton.Button active block size="large" className={styles.skeletonFilterButton} />
                 </div>
+                <Button size="large" icon={<ReloadOutlined />} onClick={onReload} />
               </div>
             </div>
             <Row gutter={[14, 14]}>
@@ -98,6 +74,7 @@ export function PuntoVentaCatalogSection({
                     className={styles.filterSegmented}
                   />
                 </div>
+                <Button size="large" icon={<ReloadOutlined />} onClick={onReload} />
               </div>
             </div>
 

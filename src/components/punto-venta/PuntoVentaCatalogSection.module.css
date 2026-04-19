@@ -4,47 +4,6 @@
   box-shadow: none;
 }
 
-.catalogCard :global(.ant-card-head) {
-  border-bottom: none;
-  padding-left: 0;
-  padding-right: 0;
-}
-
-.catalogCard :global(.ant-card-body) {
-  padding-left: 0;
-  padding-right: 0;
-}
-
-.catalogCard :global(.ant-card-head-title) {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #111827;
-}
-
-.catalogHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-}
-
-.catalogHeadActions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  justify-content: flex-end;
-}
-
-.catalogSearch {
-  width: min(420px, 100%);
-  border-radius: 10px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s;
-}
-
 .contentStack {
   width: 100%;
 }
@@ -55,14 +14,14 @@
 }
 
 .toolbarControls {
-  display: grid;
+  display: flex;
   gap: 12px;
-  grid-template-columns: 1fr;
-  align-items: end;
+  align-items: center;
 }
 
 .filterWrap {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .filterSegmented {
@@ -144,25 +103,12 @@
 }
 
 @media (max-width: 1200px) {
-  .catalogHead {
-    flex-wrap: wrap;
-  }
-
-  .catalogHeadActions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .catalogSearch {
-    width: 100%;
-    flex: 1;
-  }
-
   .toolbarControls {
-    grid-template-columns: 1fr;
+    flex-wrap: wrap;
   }
 
   .filterWrap {
     width: 100%;
+    flex: auto;
   }
 }

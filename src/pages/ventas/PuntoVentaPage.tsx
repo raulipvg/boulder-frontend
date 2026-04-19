@@ -1,5 +1,5 @@
-import { FilterOutlined } from '@ant-design/icons'
-import { App as AntdApp, Form, Row, Space } from 'antd'
+import { FilterOutlined, SearchOutlined } from '@ant-design/icons'
+import { App as AntdApp, Form, Input, Row, Space, Typography } from 'antd'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   PuntoVentaCartSection,
@@ -13,6 +13,7 @@ import {
   type VentaPreviewDto,
 } from '../../components/punto-venta'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
+import { useHeaderContent } from '../../context/HeaderContentContext'
 import { administracionService } from '../../services/administracion/administracionService'
 import { operacionService } from '../../services/operacion/operacionService'
 import { ventasService } from '../../services/ventas/ventasService'
@@ -23,6 +24,7 @@ import styles from './PuntoVentaPage.module.css'
 
 export default function PuntoVentaPage() {
   const { message } = AntdApp.useApp()
+  const { setHeaderContent } = useHeaderContent()
   const [catalog, setCatalog] = useState<PosCatalogItemDto[]>([])
   const [mediosPago, setMediosPago] = useState<LookupDto[]>([])
   const [tiposCliente, setTiposCliente] = useState<TipoClienteDto[]>([])
@@ -44,6 +46,26 @@ export default function PuntoVentaPage() {
   const [createClientForm] = Form.useForm<CreateClientFormValues>()
   const lineIdRef = useRef(1)
   const searchTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({})
+
+  useEffect(() => {
+    setHeaderContent(
+      <Space size="middle" style={{ flex: 1, minWidth: 0 }}>
+        <Typography.Text strong style={{ fontSize: 16, whiteSpace: 'nowrap' }}>
+          Productos disponibles
+        </Typography.Text>
+        <Input
+          value={productSearch}
+          onChange={(event) => setProductSearch(event.target.value)}
+          allowClear
+          prefix={<SearchOutlined />}
+          placeholder="Buscar productos..."
+          className="tms-inline-search"
+          style={{ maxWidth: 420 }}
+        />
+      </Space>,
+    )
+    return () => setHeaderContent(null)
+  }, [productSearch, setHeaderContent])
 
   const nextLineId = () => {
     const id = `line-${lineIdRef.current}`
@@ -422,11 +444,9 @@ export default function PuntoVentaPage() {
       <Row gutter={[16, 0]} className={styles.layoutRow}>
         <PuntoVentaCatalogSection
           loading={loading}
-          productSearch={productSearch}
           selectedFamily={selectedFamily}
           familyFilterOptions={familyFilterOptions}
           filteredCatalog={filteredCatalog}
-          onProductSearchChange={setProductSearch}
           onReload={() => { void reloadCatalog() }}
           onFamilyChange={setSelectedFamily}
           onClearFilters={() => {

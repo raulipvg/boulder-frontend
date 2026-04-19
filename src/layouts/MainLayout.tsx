@@ -15,6 +15,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { ROLES_ADMIN, ROLES_ADMIN_TOTAL, ROLES_VENTAS_OPERACION } from '../constants/roles'
 import { useAuth } from '../context/AuthContext'
 import { useEmpresa } from '../context/EmpresaContext'
+import { useHeaderContent } from '../context/HeaderContentContext'
 import { toCapitalCase } from '../utils/formatPersonName'
 
 const { Header, Content, Sider } = Layout
@@ -24,6 +25,7 @@ const { useBreakpoint } = Grid
 export default function MainLayout() {
   const { user, logout, hasRole } = useAuth()
   const { empresas, empresaObjetivoId, setEmpresaObjetivoId, isAdminTotal } = useEmpresa()
+  const { headerContent } = useHeaderContent()
   const screens = useBreakpoint()
   const isMobile = !screens.md
 
@@ -231,9 +233,27 @@ export default function MainLayout() {
                 style={{ color: 'var(--tms-header-mobile-text)' }}
               />
 
-              {isAdminTotal && (
+              {headerContent ?? (
+                <>
+                  {isAdminTotal && (
+                    <Select
+                      style={{ flex: 1, minWidth: 140 }}
+                      placeholder="Empresa objetivo"
+                      value={empresaObjetivoId ?? undefined}
+                      options={empresas.map((empresa) => ({ value: empresa.EmpresaId, label: empresa.NombreComercial }))}
+                      onChange={(value) => {
+                        setEmpresaObjetivoId(value)
+                        navigate('/ventas/punto-venta')
+                      }}
+                    />
+                  )}
+                  {!isAdminTotal && <div style={{ flex: 1 }} />}
+                </>
+              )}
+
+              {headerContent && isAdminTotal && (
                 <Select
-                  style={{ flex: 1, minWidth: 140 }}
+                  style={{ minWidth: 140 }}
                   placeholder="Empresa objetivo"
                   value={empresaObjetivoId ?? undefined}
                   options={empresas.map((empresa) => ({ value: empresa.EmpresaId, label: empresa.NombreComercial }))}
@@ -244,15 +264,16 @@ export default function MainLayout() {
                 />
               )}
 
-              {!isAdminTotal && <div style={{ flex: 1 }} />}
               {userDropdown}
             </div>
           ) : (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <Text strong style={{ fontSize: 16, color: 'var(--tms-header-desktop-text)' }}>
-                  Centro de escalada
-                </Text>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 0 }}>
+                {headerContent ?? (
+                  <Text strong style={{ fontSize: 16, color: 'var(--tms-header-desktop-text)' }}>
+                    Centro de escalada
+                  </Text>
+                )}
                 {isAdminTotal ? (
                   <Select
                     style={{ minWidth: 240 }}
