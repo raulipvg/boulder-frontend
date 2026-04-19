@@ -1,10 +1,11 @@
 import { CheckCircleOutlined, SafetyCertificateOutlined, SearchOutlined } from '@ant-design/icons'
-import { Alert, App as AntdApp, AutoComplete, Avatar, Button, Card, Col, Divider, Empty, Grid, Input, List, Row, Space, Spin, Tag, Typography } from 'antd'
+import { Alert, App as AntdApp, AutoComplete, Avatar, Button, Card, Divider, Empty, Input, List, Space, Spin, Tag, Typography } from 'antd'
 import { useEffect, useState } from 'react'
 import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { operacionService } from '../../services/operacion/operacionService'
 import type { AccessOptionDto, AccessPreviewDto, ClienteLookupDto } from '../../types/models'
+import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 import { toCapitalCase } from '../../utils/formatPersonName'
 
 export default function AccesosPage() {
@@ -15,44 +16,91 @@ export default function AccesosPage() {
   const [selectedCliente, setSelectedCliente] = useState<ClienteLookupDto | null>(null)
   const [preview, setPreview] = useState<AccessPreviewDto | null>(null)
   const [result, setResult] = useState<{ autorizado: boolean; mensaje: string } | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [validandoBeneficioId, setValidandoBeneficioId] = useState<number | null>(null)
+
+  const loadPreview = async (clienteEmpresaId: number) => {
+    setPreviewLoading(true)
+    try {
+      setPreview(await operacionService.previewAcceso(clienteEmpresaId))
+    } catch (error) {
+      setPreview(null)
+      message.error(getApiErrorMessage(error, 'No se pudieron cargar los beneficios del cliente.'))
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
+  const getOptionState = (option: AccessOptionDto): { color: string; label: string } => {
+    if (option.PuedeValidarAhora) {
+      return { color: 'green', label: 'Disponible ahora' }
+    }
+
+    if (option.YaValidadoHoy) {
+      return { color: 'blue', label: 'Ya validado hoy' }
+    }
+
+    if (!option.DentroBloqueHorario) {
+      return { color: 'gold', label: 'Fuera de horario' }
+    }
+
+    return { color: 'default', label: 'No disponible' }
+  }
 
   useEffect(() => {
     if (!search || search.length < 2) {
       setClientes([])
-      setIsLoading(false)
+      setSearchLoading(false)
       return
     }
 
-    setIsLoading(true)
+    setSearchLoading(true)
     const timeout = setTimeout(async () => {
       try {
         setClientes(await operacionService.buscarClientes(search))
+      } catch (error) {
+        setClientes([])
+        message.error(getApiErrorMessage(error, 'No fue posible buscar clientes.'))
       } finally {
-        setIsLoading(false)
+        setSearchLoading(false)
       }
     }, 250)
 
     return () => clearTimeout(timeout)
-  }, [search])
+  }, [message, search])
 
   useEffect(() => {
     if (!selectedCliente) {
       setPreview(null)
+      setPreviewLoading(false)
       return
     }
 
-    void operacionService.previewAcceso(selectedCliente.ClienteEmpresaId).then(setPreview)
+    void loadPreview(selectedCliente.ClienteEmpresaId)
   }, [selectedCliente])
 
   const handleValidar = async (option: AccessOptionDto, currentPreview: AccessPreviewDto) => {
-    const response = await operacionService.validarAcceso({
-      ClienteEmpresaId: currentPreview.ClienteEmpresaId,
-      BeneficioClienteId: option.BeneficioClienteId,
-    })
-    setResult({ autorizado: response.Autorizado, mensaje: response.Mensaje })
-    message[response.Autorizado ? 'success' : 'error'](response.Mensaje)
-    setPreview(await operacionService.previewAcceso(currentPreview.ClienteEmpresaId))
+    if (!option.PuedeValidarAhora) {
+      message.warning(option.MotivoNoValidable || 'Este beneficio no puede validarse ahora.')
+      return
+    }
+
+    setValidandoBeneficioId(option.BeneficioClienteId)
+    try {
+      const response = await operacionService.validarAcceso({
+        ClienteEmpresaId: currentPreview.ClienteEmpresaId,
+        BeneficioClienteId: option.BeneficioClienteId,
+      })
+
+      setResult({ autorizado: response.Autorizado, mensaje: response.Mensaje })
+      message[response.Autorizado ? 'success' : 'error'](response.Mensaje)
+      await loadPreview(currentPreview.ClienteEmpresaId)
+    } catch (error) {
+      message.error(getApiErrorMessage(error, 'No fue posible validar el acceso.'))
+    } finally {
+      setValidandoBeneficioId(null)
+    }
   }
 
   return (
@@ -70,7 +118,7 @@ export default function AccesosPage() {
         value={selectedCliente ? `${toCapitalCase(selectedCliente.NombreCompleto)} (${selectedCliente.Rut})` : search}
         onSearch={setSearch}
         notFoundContent={
-          isLoading ? (
+          searchLoading ? (
             <div style={{ padding: '24px 16px', textAlign: 'center' }}>
               <Spin tip="Buscando clientes..." size="small" />
             </div>
@@ -127,7 +175,7 @@ export default function AccesosPage() {
       )}
 
       {preview && (
-        <Card style={{ marginTop: 24, borderRadius: 16, boxShadow: '0 8px 30px rgba(0,0,0,0.06)' }} bordered={false}>
+        <Card style={{ marginTop: 24, borderRadius: 16, boxShadow: '0 8px 30px rgba(0,0,0,0.06)' }} bordered={false} loading={previewLoading}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
             <Avatar size={64} style={{ backgroundColor: '#374151', fontSize: 24 }}>{preview.ClienteNombre.charAt(0).toUpperCase()}</Avatar>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -164,27 +212,52 @@ export default function AccesosPage() {
             <List
               itemLayout="horizontal"
               dataSource={preview.Opciones}
-              renderItem={(item) => (
-                <List.Item
-                  style={{ background: '#fafafa', borderRadius: 10, padding: '12px 16px', marginBottom: 12, border: '1px solid #f0f0f0' }}
-                  actions={[
-                    <Button type="primary" icon={<CheckCircleOutlined />} onClick={() => void handleValidar(item, preview)} style={{ borderRadius: 8 }}>
-                      Validar
-                    </Button>
-                  ]}
-                >
-                  <List.Item.Meta
-                    avatar={<SafetyCertificateOutlined style={{ fontSize: 24, color: '#52c41a', marginTop: 4 }} />}
-                    title={<Typography.Text strong style={{ fontSize: 15 }}>{item.ProductoNombre}</Typography.Text>}
-                    description={
-                      <div style={{ color: '#8c8c8c', fontSize: 13, marginTop: 4, display: 'flex', gap: 16 }}>
-                        <span>Vigencia: {new Date(`${item.FechaInicio}T00:00:00`).toLocaleDateString('es-CL')} al {new Date(`${item.FechaTermino}T00:00:00`).toLocaleDateString('es-CL')}</span>
-                        <span>Usos: {item.UsosConsumidos} / {item.UsosTotales ?? '∞'}</span>
-                      </div>
-                    }
-                  />
-                </List.Item>
-              )}
+              renderItem={(item) => {
+                const optionState = getOptionState(item)
+                return (
+                  <List.Item
+                    style={{ background: '#fafafa', borderRadius: 10, padding: '12px 16px', marginBottom: 12, border: '1px solid #f0f0f0' }}
+                    actions={[
+                      <Button
+                        type="primary"
+                        icon={<CheckCircleOutlined />}
+                        onClick={() => void handleValidar(item, preview)}
+                        style={{ borderRadius: 8 }}
+                        disabled={!item.PuedeValidarAhora}
+                        loading={validandoBeneficioId === item.BeneficioClienteId}
+                      >
+                        Validar
+                      </Button>
+                    ]}
+                  >
+                    <List.Item.Meta
+                      avatar={<SafetyCertificateOutlined style={{ fontSize: 24, color: '#52c41a', marginTop: 4 }} />}
+                      title={(
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                          <Typography.Text strong style={{ fontSize: 15 }}>{item.ProductoNombre}</Typography.Text>
+                          <Space size="small" wrap>
+                            <Tag color={optionState.color} bordered={false}>{optionState.label}</Tag>
+                            <Tag color="default" bordered={false}>{item.Estado.toUpperCase()}</Tag>
+                          </Space>
+                        </div>
+                      )}
+                      description={
+                        <div style={{ marginTop: 4, display: 'grid', gap: 6 }}>
+                          <div style={{ color: '#8c8c8c', fontSize: 13, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                            <span>Vigencia: {new Date(`${item.FechaInicio}T00:00:00`).toLocaleDateString('es-CL')} al {new Date(`${item.FechaTermino}T00:00:00`).toLocaleDateString('es-CL')}</span>
+                            <span>Usos: {item.UsosConsumidos} / {item.UsosTotales ?? '∞'}</span>
+                          </div>
+                          {!item.PuedeValidarAhora && item.MotivoNoValidable && (
+                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                              {item.MotivoNoValidable}
+                            </Typography.Text>
+                          )}
+                        </div>
+                      }
+                    />
+                  </List.Item>
+                )
+              }}
             />
           )}
         </Card>

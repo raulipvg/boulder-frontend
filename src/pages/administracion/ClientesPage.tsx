@@ -5,7 +5,6 @@ import {
   PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
-  UserOutlined,
 } from '@ant-design/icons'
 import {
   App as AntdApp,
@@ -106,39 +105,39 @@ export default function ClientesPage() {
   }
 
   const columns: ColumnsType<ClienteDto> = [
-    { 
-      title: 'Cliente', 
-      key: 'NombreCompleto', 
+    {
+      title: 'Cliente',
+      key: 'NombreCompleto',
       render: (_, record) => (
         <Space>
           <Avatar style={{ backgroundColor: '#1890ff', verticalAlign: 'middle' }}>{record.NombreCompleto.charAt(0).toUpperCase()}</Avatar>
           <Typography.Text strong>{toCapitalCase(record.NombreCompleto)}</Typography.Text>
         </Space>
-      ) 
+      )
     },
-    { 
-      title: 'RUT', 
-      dataIndex: 'Rut', 
-      key: 'Rut', 
+    {
+      title: 'RUT',
+      dataIndex: 'Rut',
+      key: 'Rut',
       responsive: ['sm'],
       render: (rut) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace' }}>{rut}</Typography.Text>
     },
-    { 
-       title: 'Contacto', 
-       key: 'Contacto', 
-       responsive: ['md'],
-       render: (_, record) => (
-         <div style={{ display: 'grid', gap: 4 }}>
-           {record.Correo ? <div style={{ fontSize: 13, display: 'flex', alignItems: 'center' }}><MailOutlined style={{ marginRight: 6, color: '#8c8c8c' }}/> <Typography.Text ellipsis style={{ maxWidth: 150 }}>{record.Correo}</Typography.Text></div> : null}
-           {record.Telefono ? <div style={{ fontSize: 13 }}><PhoneOutlined style={{ marginRight: 6, color: '#8c8c8c' }}/>{record.Telefono}</div> : null}
-           {!record.Correo && !record.Telefono ? <Typography.Text type="secondary" style={{ fontSize: 13 }}>No registrado</Typography.Text> : null}
-         </div>
-       )
+    {
+      title: 'Contacto',
+      key: 'Contacto',
+      responsive: ['md'],
+      render: (_, record) => (
+        <div style={{ display: 'grid', gap: 4 }}>
+          {record.Correo ? <div style={{ fontSize: 13, display: 'flex', alignItems: 'center' }}><MailOutlined style={{ marginRight: 6, color: '#8c8c8c' }} /> <Typography.Text ellipsis style={{ maxWidth: 150 }}>{record.Correo}</Typography.Text></div> : null}
+          {record.Telefono ? <div style={{ fontSize: 13 }}><PhoneOutlined style={{ marginRight: 6, color: '#8c8c8c' }} />{record.Telefono}</div> : null}
+          {!record.Correo && !record.Telefono ? <Typography.Text type="secondary" style={{ fontSize: 13 }}>No registrado</Typography.Text> : null}
+        </div>
+      )
     },
-    { 
-      title: 'Tipo cliente', 
-      dataIndex: 'TipoCliente', 
-      key: 'TipoCliente', 
+    {
+      title: 'Tipo cliente',
+      dataIndex: 'TipoCliente',
+      key: 'TipoCliente',
       responsive: ['sm'],
       render: (tipo) => <Tag color="blue" bordered={false}>{tipo || 'Sin tipo'}</Tag>
     },
@@ -198,11 +197,11 @@ export default function ClientesPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontWeight: 600, fontSize: 16 }}>
                         <Avatar style={{ backgroundColor: '#1890ff', flexShrink: 0 }}>{record.NombreCompleto.charAt(0).toUpperCase()}</Avatar>
                         <div>
-                           <div style={{ lineHeight: 1.2 }}>{toCapitalCase(record.NombreCompleto)}</div>
-                           <div style={{ color: '#8c8c8c', fontSize: 12, fontWeight: 'normal', fontFamily: 'monospace', marginTop: 2 }}>{record.Rut}</div>
+                          <div style={{ lineHeight: 1.2 }}>{toCapitalCase(record.NombreCompleto)}</div>
+                          <div style={{ color: '#8c8c8c', fontSize: 12, fontWeight: 'normal', fontFamily: 'monospace', marginTop: 2 }}>{record.Rut}</div>
                         </div>
                       </div>
-                      
+
                       <div style={{ marginTop: 16, display: 'grid', gap: 8, fontSize: 13, background: '#fafafa', padding: 12, borderRadius: 8 }}>
                         <span style={{ display: 'flex', alignItems: 'center' }}><MailOutlined style={{ marginRight: 8, color: '#8c8c8c' }} /><Typography.Text ellipsis>{record.Correo || 'Sin correo'}</Typography.Text></span>
                         <span style={{ display: 'flex', alignItems: 'center' }}><PhoneOutlined style={{ marginRight: 8, color: '#8c8c8c' }} />{record.Telefono || 'Sin telefono'}</span>

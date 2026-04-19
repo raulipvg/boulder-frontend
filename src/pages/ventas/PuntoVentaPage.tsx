@@ -12,7 +12,6 @@ import {
   ShoppingCartOutlined,
   TagsOutlined,
   TeamOutlined,
-  UserOutlined,
   CloseCircleFilled,
 } from '@ant-design/icons'
 import { Alert, App as AntdApp, AutoComplete, Button, Card, Col, Divider, Empty, Form, Input, InputNumber, Modal, Row, Segmented, Select, Space, Tag, Typography, Skeleton } from 'antd'

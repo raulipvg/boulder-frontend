@@ -222,6 +222,10 @@ export interface AccessOptionDto {
   FechaTermino: string
   UsosTotales?: number | null
   UsosConsumidos: number
+  PuedeValidarAhora: boolean
+  YaValidadoHoy: boolean
+  DentroBloqueHorario: boolean
+  MotivoNoValidable?: string | null
 }
 
 export interface AccessPreviewDto {
