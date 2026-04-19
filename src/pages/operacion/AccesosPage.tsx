@@ -34,18 +34,18 @@ export default function AccesosPage() {
 
   const getOptionState = (option: AccessOptionDto): { color: string; label: string } => {
     if (option.PuedeValidarAhora) {
-      return { color: 'green', label: 'Disponible ahora' }
+      return { color: 'green', label: 'Disponible Ahora' }
     }
 
     if (option.YaValidadoHoy) {
-      return { color: 'blue', label: 'Ya validado hoy' }
+      return { color: 'blue', label: 'Validado Hoy' }
     }
 
     if (!option.DentroBloqueHorario) {
-      return { color: 'gold', label: 'Fuera de horario' }
+      return { color: 'gold', label: 'Fuera de Horario' }
     }
 
-    return { color: 'default', label: 'No disponible' }
+    return { color: 'default', label: 'No Disponible' }
   }
 
   useEffect(() => {
@@ -233,11 +233,11 @@ export default function AccesosPage() {
                     <List.Item.Meta
                       avatar={<SafetyCertificateOutlined style={{ fontSize: 24, color: '#52c41a', marginTop: 4 }} />}
                       title={(
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <Typography.Text strong style={{ fontSize: 15 }}>{item.ProductoNombre}</Typography.Text>
                           <Space size="small" wrap>
-                            <Tag color={optionState.color} bordered={false}>{optionState.label}</Tag>
-                            <Tag color="default" bordered={false}>{item.Estado.toUpperCase()}</Tag>
+                            <Tag color={optionState.color} bordered={false} style={{ fontWeight: 400 }}>{optionState.label}</Tag>
+                            <Tag color="default" bordered={false} style={{ fontWeight: 400 }}>{item.Estado.toUpperCase()}</Tag>
                           </Space>
                         </div>
                       )}
