@@ -13,6 +13,12 @@
   color: #111827;
 }
 
+.previewCard {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
 .cartSticky {
   position: sticky;
   top: 16px;
