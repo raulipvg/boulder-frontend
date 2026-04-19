@@ -5,8 +5,9 @@ import {
 } from '@ant-design/icons'
 import { Button, Card, Col, Empty, Input, Row, Segmented, Skeleton, Space } from 'antd'
 import type { ReactNode } from 'react'
-import type { PosCatalogItemDto } from '../../../types/models'
+import type { PosCatalogItemDto } from '../../types/models'
 import { PuntoVentaProductCard } from './PuntoVentaProductCard'
+import styles from './PuntoVentaCatalogSection.module.css'
 
 interface PuntoVentaCatalogSectionProps {
   loading: boolean
@@ -37,9 +38,9 @@ export function PuntoVentaCatalogSection({
     <Col xs={24} xl={15} xxl={16}>
       <Card
         title={(
-          <div className="tms-pos-catalog-head">
+          <div className={styles.catalogHead}>
             <Space><AppstoreOutlined />Productos disponibles</Space>
-            <div className="tms-pos-catalog-head-actions">
+            <div className={styles.catalogHeadActions}>
               <Input
                 size="large"
                 value={productSearch}
@@ -47,36 +48,36 @@ export function PuntoVentaCatalogSection({
                 allowClear
                 prefix={<SearchOutlined />}
                 placeholder="Buscar por nombre o tipo de producto"
-                className="tms-pos-catalog-search"
+                className={styles.catalogSearch}
               />
               <Button size="large" icon={<ReloadOutlined />} onClick={onReload}></Button>
             </div>
           </div>
         )}
-        className="tms-page-table-card tms-pos-catalog-card"
+        className={styles.catalogCard}
       >
         {loading ? (
-          <Space direction="vertical" size="large" style={{ width: '100%' }}>
-            <div className="tms-pos-toolbar">
-              <div className="tms-pos-toolbar-controls">
-                <div className="tms-pos-filter-wrap">
-                  <Skeleton.Button active block size="large" style={{ height: 44, borderRadius: 12 }} />
+          <Space direction="vertical" size="large" className={styles.contentStack}>
+            <div className={styles.toolbar}>
+              <div className={styles.toolbarControls}>
+                <div className={styles.filterWrap}>
+                  <Skeleton.Button active block size="large" className={styles.skeletonFilterButton} />
                 </div>
               </div>
             </div>
             <Row gutter={[14, 14]}>
               {Array.from({ length: 9 }).map((_, index) => (
                 <Col xs={24} md={12} lg={8} key={`skeleton-${index}`}>
-                  <Card className="tms-pos-product-card" bordered={false}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr', gap: '14px', marginBottom: '16px' }}>
-                      <Skeleton.Avatar active shape="square" size={48} style={{ borderRadius: 14 }} />
-                      <div style={{ display: 'grid', gap: '8px' }}>
-                        <Skeleton.Input active size="small" style={{ width: '80%', height: 16 }} />
-                        <Skeleton.Input active size="small" style={{ width: '40%', height: 14 }} />
+                  <Card className={styles.skeletonCard} bordered={false}>
+                    <div className={styles.skeletonHeader}>
+                      <Skeleton.Avatar active shape="square" size={48} className={styles.skeletonAvatar} />
+                      <div className={styles.skeletonHeaderCopy}>
+                        <Skeleton.Input active size="small" className={styles.skeletonTitle} />
+                        <Skeleton.Input active size="small" className={styles.skeletonSubtitle} />
                       </div>
                     </div>
-                    <div className="tms-pos-product-footer">
-                      <Skeleton.Input active size="small" style={{ width: '60px', height: 16 }} />
+                    <div className={styles.skeletonFooter}>
+                      <Skeleton.Input active size="small" className={styles.skeletonPrice} />
                     </div>
                   </Card>
                 </Col>
@@ -84,17 +85,17 @@ export function PuntoVentaCatalogSection({
             </Row>
           </Space>
         ) : (
-          <Space direction="vertical" size="large" style={{ width: '100%' }}>
-            <div className="tms-pos-toolbar">
-              <div className="tms-pos-toolbar-controls">
-                <div className="tms-pos-filter-wrap">
+          <Space direction="vertical" size="large" className={styles.contentStack}>
+            <div className={styles.toolbar}>
+              <div className={styles.toolbarControls}>
+                <div className={styles.filterWrap}>
                   <Segmented
                     size="large"
                     block
                     value={selectedFamily}
                     onChange={(value) => onFamilyChange(String(value))}
                     options={familyFilterOptions}
-                    className="tms-pos-filter-segmented"
+                    className={styles.filterSegmented}
                   />
                 </div>
               </div>

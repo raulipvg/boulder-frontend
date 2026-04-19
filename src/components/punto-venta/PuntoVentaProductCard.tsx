@@ -1,5 +1,5 @@
 import { Card, Col, Typography } from 'antd'
-import type { PosCatalogItemDto } from '../../../types/models'
+import type { PosCatalogItemDto } from '../../types/models'
 import {
   DUAL_TARIFA_CODES,
   formatCurrency,
@@ -7,6 +7,7 @@ import {
   normalizeTypeCode,
   toDayCapitalCase,
 } from './puntoVenta.helpers'
+import styles from './PuntoVentaProductCard.module.css'
 
 interface PuntoVentaProductCardProps {
   product: PosCatalogItemDto
@@ -36,21 +37,21 @@ export function PuntoVentaProductCard({ product, onAddProduct }: PuntoVentaProdu
 
   return (
     <Col xs={24} md={12} lg={8}>
-      <Card hoverable className="tms-pos-product-card" onClick={() => onAddProduct(product)}>
-        <div className="tms-pos-product-card-head">
-          <div className="tms-pos-product-icon">
+      <Card hoverable className={styles.card} onClick={() => onAddProduct(product)}>
+        <div className={styles.cardHead}>
+          <div className={styles.iconBox}>
             {typeMeta.icon}
           </div>
-          <div className="tms-pos-product-copy">
-            <Typography.Text strong className="tms-pos-product-name">
+          <div className={styles.copy}>
+            <Typography.Text strong className={styles.name}>
               {product.NombreComercial}
             </Typography.Text>
-            <div className="tms-pos-product-family-row">
-              <Typography.Text type="secondary" className="tms-pos-product-family">
+            <div className={styles.familyRow}>
+              <Typography.Text type="secondary" className={styles.family}>
                 {typeMeta.label}
               </Typography.Text>
               {classDaysLabel ? (
-                <Typography.Text type="secondary" className="tms-pos-product-days">
+                <Typography.Text type="secondary" className={styles.days}>
                   {classDaysLabel}
                 </Typography.Text>
               ) : null}
@@ -59,15 +60,15 @@ export function PuntoVentaProductCard({ product, onAddProduct }: PuntoVentaProdu
         </div>
 
         {isDualTarifaProduct ? (
-          <div className="tms-pos-product-footer tms-pos-product-footer--class">
+          <div className={`${styles.footer} ${styles.footerClass}`}>
             {hasClassTarifas ? (
               classPriceRows.map((row) => (
-                <div key={row.label} className="tms-pos-class-price-block">
-                  <div className="tms-pos-class-price-label-row">
-                    <Typography.Text type="secondary" className="tms-pos-class-price-label">{row.label}</Typography.Text>
+                <div key={row.label} className={styles.classPriceBlock}>
+                  <div className={styles.classPriceLabelRow}>
+                    <Typography.Text type="secondary" className={styles.classPriceLabel}>{row.label}</Typography.Text>
 
                   </div>
-                  <Typography.Text strong className="tms-pos-product-price">{formatCurrency(row.value)}</Typography.Text>
+                  <Typography.Text strong className={styles.price}>{formatCurrency(row.value)}</Typography.Text>
                 </div>
               ))
             ) : (
@@ -75,8 +76,8 @@ export function PuntoVentaProductCard({ product, onAddProduct }: PuntoVentaProdu
             )}
           </div>
         ) : (
-          <div className="tms-pos-product-footer">
-            <Typography.Text strong className="tms-pos-product-price">{priceLabel}</Typography.Text>
+          <div className={styles.footer}>
+            <Typography.Text strong className={styles.price}>{priceLabel}</Typography.Text>
           </div>
         )}
       </Card>

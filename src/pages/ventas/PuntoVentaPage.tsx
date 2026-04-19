@@ -19,6 +19,7 @@ import { ventasService } from '../../services/ventas/ventasService'
 import type { ClienteLookupDto, LookupDto, PosCatalogItemDto, TipoClienteDto } from '../../types/models'
 import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 import { isValidRut, normalizeRut } from '../../utils/rut'
+import styles from './PuntoVentaPage.module.css'
 
 export default function PuntoVentaPage() {
   const { message } = AntdApp.useApp()
@@ -89,7 +90,7 @@ export default function PuntoVentaPage() {
     })
   }
 
-  const loadCatalogData = async () => {
+  const loadInitialData = async () => {
     setLoading(true)
     try {
       const [catalogData, medios, tipos] = await Promise.all([
@@ -106,8 +107,18 @@ export default function PuntoVentaPage() {
     }
   }
 
+  const reloadCatalog = async () => {
+    setLoading(true)
+    try {
+      const catalogData = await ventasService.getPosCatalog()
+      setCatalog(catalogData)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    void loadCatalogData()
+    void loadInitialData()
 
     return () => {
       for (const timeout of Object.values(searchTimeoutsRef.current)) {
@@ -405,10 +416,10 @@ export default function PuntoVentaPage() {
   }
 
   return (
-    <div className="tms-page tms-pos-page">
+    <div className={styles.page}>
       <RequireCompanyAlert />
 
-      <Row gutter={[16, 0]} className="tms-pos-layout-row">
+      <Row gutter={[16, 0]} className={styles.layoutRow}>
         <PuntoVentaCatalogSection
           loading={loading}
           productSearch={productSearch}
@@ -416,7 +427,7 @@ export default function PuntoVentaPage() {
           familyFilterOptions={familyFilterOptions}
           filteredCatalog={filteredCatalog}
           onProductSearchChange={setProductSearch}
-          onReload={() => { void loadCatalogData() }}
+          onReload={() => { void reloadCatalog() }}
           onFamilyChange={setSelectedFamily}
           onClearFilters={() => {
             setProductSearch('')

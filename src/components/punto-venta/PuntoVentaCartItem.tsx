@@ -8,7 +8,8 @@ import {
 import { Alert, AutoComplete, Button, Input, InputNumber, Space, Tag, Typography } from 'antd'
 import type { CartItem } from './puntoVenta.types'
 import { formatClientLabel, formatCurrency, requiresAssignedClient } from './puntoVenta.helpers'
-import type { ClienteLookupDto } from '../../../types/models'
+import type { ClienteLookupDto } from '../../types/models'
+import styles from './PuntoVentaCartItem.module.css'
 
 interface PuntoVentaCartItemProps {
   item: CartItem
@@ -48,9 +49,9 @@ export function PuntoVentaCartItem({
     : null
 
   return (
-    <div className="tms-pos-cart-item">
-      <div className="tms-pos-cart-item-head">
-        <div className="tms-pos-cart-item-copy">
+    <div className={styles.cartItem}>
+      <div className={styles.itemHead}>
+        <div className={styles.itemCopy}>
           <Typography.Text strong>{item.Product.NombreComercial}</Typography.Text>
         </div>
 
@@ -64,13 +65,13 @@ export function PuntoVentaCartItem({
       </div>
 
       {requiresClient ? (
-        <div className="tms-pos-client-box">
-          <div className="tms-pos-client-box-header">
+        <div className={styles.clientBox}>
+          <div className={styles.clientBoxHeader}>
             <Typography.Text type="secondary">Cliente</Typography.Text>
-            <div className="tms-pos-client-box-input">
-              <Space.Compact style={{ width: '100%' }}>
+            <div className={styles.clientBoxInput}>
+              <Space.Compact className={styles.clientCompact}>
                 <AutoComplete
-                  style={{ flex: 1, minWidth: 0, width: '100%', backgroundColor: 'transparent', border: 'none' }}
+                  className={styles.clientAutoComplete}
                   value={assignedClient ? formatClientLabel(assignedClient) : searchValue}
                   onSearch={(value) => onClientSearch(item.Id, value)}
                   onSelect={(value) => {
@@ -88,11 +89,11 @@ export function PuntoVentaCartItem({
                     size="large"
                     placeholder="Buscar por nombre o RUT"
                     readOnly={!!assignedClient}
-                    style={{ backgroundColor: 'transparent', border: 'none' }}
+                    className={styles.clientInput}
                     suffix={
                       assignedClient ? (
                         <CloseCircleFilled
-                          style={{ cursor: 'pointer', color: '#bfbfbf', fontSize: '14px' }}
+                          className={styles.clearClientIcon}
                           onClick={(event) => {
                             event.stopPropagation()
                             onClearAssignedClient(item.Id)
@@ -115,8 +116,8 @@ export function PuntoVentaCartItem({
           </div>
 
           {assignedClient ? (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-              <Tag color="info" style={{ margin: 0 }}>{assignedClient.TipoCliente} · {assignedClient.Estado}</Tag>
+            <div className={styles.assignedClientMeta}>
+              <Tag color="info" className={styles.assignedClientTag}>{assignedClient.TipoCliente} · {assignedClient.Estado}</Tag>
             </div>
           ) : (
             <Alert
@@ -124,17 +125,17 @@ export function PuntoVentaCartItem({
               type="warning"
               icon={<ExclamationCircleFilled />}
               title="Este producto requiere cliente asignado."
-              style={{ marginTop: 5, padding: '5px 10px', border: 'none' }}
+              className={styles.clientWarning}
             />
           )}
         </div>
       ) : null}
 
-      <div className="tms-pos-cart-item-foot">
+      <div className={styles.itemFoot}>
         {requiresClient ? (
           <div />
         ) : (
-          <div className="tms-pos-quantity-control">
+          <div className={styles.quantityControl}>
             <Button
               size="large"
               icon={<MinusOutlined />}
@@ -152,7 +153,7 @@ export function PuntoVentaCartItem({
           </div>
         )}
 
-        <div className="tms-pos-cart-line-total">
+        <div className={styles.lineTotal}>
           <Typography.Text type="secondary">Subtotal linea</Typography.Text>
           <Typography.Text strong>{lineSubtotal == null ? 'Se cotiza en tarifa' : formatCurrency(lineSubtotal)}</Typography.Text>
         </div>

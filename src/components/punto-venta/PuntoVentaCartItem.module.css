@@ -1,0 +1,151 @@
+.cartItem {
+  border-radius: 16px;
+  padding: 10px;
+  background: #f8fafc;
+  display: grid;
+  transition: all 0.2s ease;
+}
+
+.itemHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.itemCopy {
+  display: grid;
+}
+
+.itemCopy :global(.ant-typography) {
+  font-size: 15px;
+  color: #1e293b;
+}
+
+.clientBox {
+  padding: 8px;
+}
+
+.clientBoxHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.clientBoxHeader :global(.ant-typography) {
+  font-weight: 500;
+  color: #64748b;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.clientBoxInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.clientCompact {
+  width: 100%;
+}
+
+.clientAutoComplete {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  background-color: transparent;
+  border: none;
+}
+
+.clientInput {
+  background-color: transparent;
+  border: none;
+}
+
+.clearClientIcon {
+  cursor: pointer;
+  color: #bfbfbf;
+  font-size: 14px;
+}
+
+.assignedClientMeta {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.assignedClientTag {
+  margin: 0;
+}
+
+.clientWarning {
+  margin-top: 5px;
+  padding: 5px 10px;
+  border: none;
+}
+
+.itemFoot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+
+.quantityControl {
+  display: inline-flex;
+  gap: 6px;
+  border-radius: 10px;
+}
+
+.quantityControl :global(.ant-btn) {
+  border: none;
+  background: #f1f5f9;
+  border-radius: 8px;
+  color: #475569;
+}
+
+.quantityControl :global(.ant-btn:hover) {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.quantityControl :global(.ant-input-number) {
+  width: 50px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.quantityControl :global(.ant-input-number-input) {
+  text-align: center;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.lineTotal {
+  display: grid;
+  justify-items: end;
+  min-width: 100px;
+}
+
+.lineTotal :global(.ant-typography:first-child) {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.lineTotal :global(.ant-typography:last-child) {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+@media (max-width: 900px) {
+  .lineTotal {
+    justify-items: start;
+  }
+}

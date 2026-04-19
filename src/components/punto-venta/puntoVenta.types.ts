@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { PosCatalogItemDto } from '../../../types/models'
+import type { PosCatalogItemDto } from '../../types/models'
 
 export interface CartItem {
   Id: string

@@ -1,6 +1,6 @@
 import { Form, Input, Modal, Select } from 'antd'
 import type { FormInstance } from 'antd'
-import type { TipoClienteDto } from '../../../types/models'
+import type { TipoClienteDto } from '../../types/models'
 import type { CreateClientFormValues } from './puntoVenta.types'
 
 interface PuntoVentaCreateClientModalProps {
