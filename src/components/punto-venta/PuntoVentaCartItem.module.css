@@ -1,6 +1,6 @@
 .cartItem {
   border-radius: 16px;
-  padding: 10px;
+  padding: 1px 8px 1px 8px;
   background: #f8fafc;
   display: grid;
   transition: all 0.2s ease;

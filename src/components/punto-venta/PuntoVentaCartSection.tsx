@@ -98,7 +98,7 @@ export function PuntoVentaCartSection({
             {previewError ? <Alert showIcon type="error" title={previewError} /> : null}
 
             {preview ? (
-              <div className={styles.previewCard}>
+              <div>
                 {preview.Detalles.map((detail, index) => (
                   <div key={`${detail.ProductoEmpresaId}-${index}`} className={styles.previewRow}>
                     <Typography.Text>{detail.ProductoNombre} x {detail.Cantidad}</Typography.Text>
