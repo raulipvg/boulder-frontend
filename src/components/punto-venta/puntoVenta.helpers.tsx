@@ -4,8 +4,8 @@ import {
   TagsOutlined,
   TeamOutlined,
 } from '@ant-design/icons'
-import type { ClienteLookupDto, PosCatalogItemDto } from '../../../types/models'
-import { toCapitalCase } from '../../../utils/formatPersonName'
+import type { ClienteLookupDto, PosCatalogItemDto } from '../../types/models'
+import { toCapitalCase } from '../../utils/formatPersonName'
 import type { ProductTypeMeta } from './puntoVenta.types'
 
 export const REQUIRED_CLIENT_CODES = new Set([

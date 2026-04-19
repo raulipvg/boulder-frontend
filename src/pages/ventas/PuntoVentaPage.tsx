@@ -11,7 +11,7 @@ import {
   type CartItem,
   type CreateClientFormValues,
   type VentaPreviewDto,
-} from '../../components/ventas/punto-venta'
+} from '../../components/punto-venta'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { administracionService } from '../../services/administracion/administracionService'
 import { operacionService } from '../../services/operacion/operacionService'
