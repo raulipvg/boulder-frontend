@@ -12,7 +12,6 @@ import ConfiguracionComercialPage from './pages/administracion/ConfiguracionCome
 import ClasesPage from './pages/administracion/ClasesPage'
 import PuntoVentaPage from './pages/ventas/PuntoVentaPage'
 import VentasPage from './pages/ventas/VentasPage'
-import AnulacionesPage from './pages/ventas/AnulacionesPage'
 import AccesosPage from './pages/operacion/AccesosPage'
 import OperacionClasesPage from './pages/operacion/ClasesPage'
 import VentasReportPage from './pages/reportes/VentasReportPage'
@@ -44,7 +43,6 @@ export default function App() {
           <Route path="ventas/punto-venta" element={<PuntoVentaPage />} />
         </Route>
         <Route path="ventas/ventas" element={<ProtectedRoute roles={ROLES_VENTAS_OPERACION}><VentasPage /></ProtectedRoute>} />
-        <Route path="ventas/anulaciones" element={<ProtectedRoute roles={ROLES_VENTAS_OPERACION}><AnulacionesPage /></ProtectedRoute>} />
         <Route path="operacion/accesos" element={<ProtectedRoute roles={ROLES_VENTAS_OPERACION}><AccesosPage /></ProtectedRoute>} />
         <Route path="operacion/clases" element={<ProtectedRoute roles={ROLES_VENTAS_OPERACION}><OperacionClasesPage /></ProtectedRoute>} />
         <Route path="reportes/ventas" element={<ProtectedRoute roles={ROLES_ADMIN}><VentasReportPage /></ProtectedRoute>} />
