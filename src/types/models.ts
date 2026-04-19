@@ -191,6 +191,16 @@ export interface VentaPagoDto {
   Referencia?: string | null
 }
 
+export interface VentaResumenDto {
+  VentaId: number
+  NumeroComprobante: string
+  FechaHora: string
+  Estado: string
+  Total: number
+  ClienteNombre?: string | null
+  MotivoAnulacion?: string | null
+}
+
 export interface VentaDto {
   VentaId: number
   NumeroComprobante: string

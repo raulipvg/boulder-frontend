@@ -1,5 +1,5 @@
 import apiClient from '../apiClient'
-import type { PosCatalogItemDto, VentaDto } from '../../types/models'
+import type { PosCatalogItemDto, VentaDto, VentaResumenDto } from '../../types/models'
 
 interface VentaPreviewDto {
   Subtotal: number
@@ -40,6 +40,8 @@ export const ventasService = {
   getPosCatalog: async () => (await apiClient.get<PosCatalogItemDto[]>('/ventas/pos/catalogo')).data,
   previewVenta: async (payload: PreviewVentaRequest) => (await apiClient.post<VentaPreviewDto>('/ventas/pos/preview', payload)).data,
   createVenta: async (payload: CreateVentaRequest) => (await apiClient.post<VentaDto>('/ventas/pos/ventas', payload)).data,
-  getVentas: async () => (await apiClient.get<VentaDto[]>('/ventas/ventas')).data,
+  getVentas: async (estado?: 'emitida' | 'anulada') =>
+    (await apiClient.get<VentaResumenDto[]>('/ventas/ventas', { params: estado ? { estado } : undefined })).data,
+  getVenta: async (ventaId: number) => (await apiClient.get<VentaDto>(`/ventas/ventas/${ventaId}`)).data,
   anularVenta: async (ventaId: number, Motivo: string) => (await apiClient.post<VentaDto>(`/ventas/ventas/${ventaId}/anular`, { Motivo })).data,
 }

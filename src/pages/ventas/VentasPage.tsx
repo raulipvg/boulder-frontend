@@ -1,139 +1,176 @@
-import { CheckCircleOutlined, CloseCircleOutlined, ReloadOutlined, FileTextOutlined } from '@ant-design/icons'
-import { Button, Card, Divider, Input, Modal, Space, Table, Tag, Typography } from 'antd'
-import { useEffect, useState } from 'react'
+import { Card, Grid, Input, Modal, Space, Tabs, Typography } from 'antd'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { AnulacionesTab } from '../../components/ventas/AnulacionesTab'
+import { VentasTab } from '../../components/ventas/VentasTab'
+import { VentasToolbar } from '../../components/ventas/VentasToolbar'
 import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { ventasService } from '../../services/ventas/ventasService'
-import type { VentaDto } from '../../types/models'
-import { toCapitalCase } from '../../utils/formatPersonName'
+import type { VentaDto, VentaResumenDto } from '../../types/models'
+import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 
-const VoucherPreview = ({ venta }: { venta: VentaDto }) => {
-  const isAnulada = venta.Estado === 'anulada'
+const { useBreakpoint } = Grid
 
-  return (
-    <div style={{
-      margin: '24px auto',
-      padding: '32px',
-      background: '#ffffff',
-      borderRadius: '16px',
-      boxShadow: '0 8px 30px rgba(0,0,0,0.08), 0 2px 10px rgba(0,0,0,0.03)',
-      maxWidth: 600,
-      borderTop: `8px solid ${isAnulada ? '#ff4d4f' : '#333'}`,
-      position: 'relative'
-    }}>
-      {isAnulada && (
-        <div style={{ position: 'absolute', top: 32, right: 32, opacity: 0.1, pointerEvents: 'none' }}>
-          <CloseCircleOutlined style={{ fontSize: 120, color: '#ff4d4f' }} />
-        </div>
-      )}
-      {!isAnulada && (
-        <div style={{ position: 'absolute', top: 32, right: 32, opacity: 0.05, pointerEvents: 'none' }}>
-          <CheckCircleOutlined style={{ fontSize: 120, color: '#52c41a' }} />
-        </div>
-      )}
+type VentasTabKey = 'ventas' | 'anulaciones'
+type VentaEstadoFiltro = 'emitida' | 'anulada'
 
-      <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <Typography.Title level={3} style={{ margin: 0, fontWeight: 700, color: '#1f1f1f' }}>
-          Comprobante de Venta
-        </Typography.Title>
-        <Typography.Text type="secondary" style={{ fontSize: 16 }}>
-          #{venta.NumeroComprobante}
-        </Typography.Text>
-      </div>
-      
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div>
-          <Typography.Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Fecha de emisión</Typography.Text>
-          <br/>
-          <Typography.Text strong style={{ fontSize: 15 }}>{new Date(venta.FechaHora).toLocaleString()}</Typography.Text>
-        </div>
-        {venta.ClienteNombre && (
-          <div style={{ textAlign: 'right' }}>
-            <Typography.Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Cliente</Typography.Text>
-            <br/>
-            <Typography.Text strong style={{ fontSize: 15 }}>{toCapitalCase(venta.ClienteNombre)}</Typography.Text>
-          </div>
-        )}
-      </div>
-
-      <Divider style={{ margin: '16px 0', borderColor: '#f0f0f0' }} />
-
-      <div style={{ marginBottom: 24 }}>
-        <Typography.Text strong style={{ display: 'block', marginBottom: 12, fontSize: 12, textTransform: 'uppercase', color: '#8c8c8c', letterSpacing: 1 }}>Productos / Servicios</Typography.Text>
-        {venta.Detalles.map(d => (
-          <div key={d.VentaDetalleId} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, alignItems: 'center' }}>
-            <div>
-               <Typography.Text strong style={{ fontSize: 15 }}>{d.Cantidad}x {d.ProductoNombre}</Typography.Text>
-               <br />
-               <Typography.Text type="secondary" style={{ fontSize: 13 }}>${d.PrecioUnitario.toLocaleString()} c/u</Typography.Text>
-            </div>
-            <Typography.Text strong style={{ fontSize: 16 }}>${d.Subtotal.toLocaleString()}</Typography.Text>
-          </div>
-        ))}
-      </div>
-
-      <Divider style={{ margin: '16px 0', borderColor: '#f0f0f0' }} />
-
-      <div style={{ background: '#fafafa', padding: '16px 20px', borderRadius: 12, marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <Typography.Text type="secondary">Subtotal</Typography.Text>
-          <Typography.Text>${venta.Subtotal.toLocaleString()}</Typography.Text>
-        </div>
-        {venta.Descuento > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <Typography.Text type="danger">Descuento</Typography.Text>
-            <Typography.Text type="danger">-${venta.Descuento.toLocaleString()}</Typography.Text>
-          </div>
-        )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, paddingTop: 12, borderTop: '1px dashed #e8e8e8' }}>
-          <Typography.Text style={{ fontSize: 18, fontWeight: 600 }}>Total Final</Typography.Text>
-          <Typography.Text style={{ fontSize: 20, fontWeight: 700, color: '#1890ff' }}>${venta.Total.toLocaleString()}</Typography.Text>
-        </div>
-      </div>
-
-      {venta.Pagos.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <Typography.Text strong style={{ display: 'block', marginBottom: 12, fontSize: 12, textTransform: 'uppercase', color: '#8c8c8c', letterSpacing: 1 }}>Métodos de Pago</Typography.Text>
-          {venta.Pagos.map(p => (
-            <div key={p.VentaPagoId} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' }}>
-              <Space>
-                 <Tag color="blue">{toCapitalCase(p.MedioPago)}</Tag>
-                 {p.Referencia && <Typography.Text type="secondary" style={{ fontSize: 12 }}>Ref: {p.Referencia}</Typography.Text>}
-              </Space>
-              <Typography.Text strong>${p.Monto.toLocaleString()}</Typography.Text>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {isAnulada && venta.MotivoAnulacion && (
-        <div style={{ background: '#fff2f0', padding: '16px', borderRadius: 12, border: '1px solid #ffccc7' }}>
-          <Typography.Text type="danger" strong style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <CloseCircleOutlined /> Motivo de Anulación
-          </Typography.Text>
-          <div style={{ marginTop: 8, color: '#cf1322' }}>{venta.MotivoAnulacion}</div>
-        </div>
-      )}
-    </div>
-  )
+const ESTADO_BY_TAB: Record<VentasTabKey, VentaEstadoFiltro> = {
+  ventas: 'emitida',
+  anulaciones: 'anulada',
 }
 
+const getActiveTabFromSearch = (searchParams: URLSearchParams): VentasTabKey =>
+  searchParams.get('tab') === 'anulaciones' ? 'anulaciones' : 'ventas'
+
 export default function VentasPage() {
-  const [items, setItems] = useState<VentaDto[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedSale, setSelectedSale] = useState<VentaDto | null>(null)
+  const screens = useBreakpoint()
+  const isMobile = !screens.md
+
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [ventasItems, setVentasItems] = useState<VentaResumenDto[]>([])
+  const [anulacionesItems, setAnulacionesItems] = useState<VentaResumenDto[]>([])
+  const [loadingByTab, setLoadingByTab] = useState<Record<VentasTabKey, boolean>>({
+    ventas: false,
+    anulaciones: false,
+  })
+  const [loadedByTab, setLoadedByTab] = useState<Record<VentasTabKey, boolean>>({
+    ventas: false,
+    anulaciones: false,
+  })
+  const [ventaDetalleById, setVentaDetalleById] = useState<Record<number, VentaDto>>({})
+  const [detalleLoadingById, setDetalleLoadingById] = useState<Record<number, boolean>>({})
+  const [detalleErrorById, setDetalleErrorById] = useState<Record<number, string>>({})
+  const [selectedSale, setSelectedSale] = useState<VentaResumenDto | null>(null)
   const [motivo, setMotivo] = useState('')
 
-  const load = async () => {
-    setLoading(true)
+  const activeTab = getActiveTabFromSearch(searchParams)
+  const activeLoading = loadingByTab[activeTab]
+
+  const loadTab = async (tabKey: VentasTabKey, force = false) => {
+    if (!force && loadedByTab[tabKey]) {
+      return
+    }
+
+    setLoadingByTab((prev) => ({ ...prev, [tabKey]: true }))
     try {
-      setItems(await ventasService.getVentas())
+      const items = await ventasService.getVentas(ESTADO_BY_TAB[tabKey])
+      if (tabKey === 'ventas') {
+        setVentasItems(items)
+      } else {
+        setAnulacionesItems(items)
+      }
+      setLoadedByTab((prev) => ({ ...prev, [tabKey]: true }))
     } finally {
-      setLoading(false)
+      setLoadingByTab((prev) => ({ ...prev, [tabKey]: false }))
     }
   }
 
-  useEffect(() => { void load() }, [])
+  useEffect(() => {
+    void loadTab(activeTab)
+  }, [activeTab])
+
+  const loadDetalle = async (ventaId: number, force = false) => {
+    if (detalleLoadingById[ventaId]) {
+      return
+    }
+
+    if (!force && ventaDetalleById[ventaId]) {
+      return
+    }
+
+    setDetalleLoadingById((prev) => ({ ...prev, [ventaId]: true }))
+    setDetalleErrorById((prev) => {
+      const next = { ...prev }
+      delete next[ventaId]
+      return next
+    })
+
+    try {
+      const detalle = await ventasService.getVenta(ventaId)
+      setVentaDetalleById((prev) => ({ ...prev, [ventaId]: detalle }))
+    } catch (error) {
+      setDetalleErrorById((prev) => ({
+        ...prev,
+        [ventaId]: getApiErrorMessage(error, 'No se pudo cargar el comprobante.'),
+      }))
+    } finally {
+      setDetalleLoadingById((prev) => ({ ...prev, [ventaId]: false }))
+    }
+  }
+
+  const handleTabChange = (tabKey: VentasTabKey) => {
+    const nextSearchParams = new URLSearchParams(searchParams)
+
+    if (tabKey === 'ventas') {
+      nextSearchParams.delete('tab')
+    } else {
+      nextSearchParams.set('tab', tabKey)
+    }
+
+    setSearchParams(nextSearchParams, { replace: true })
+  }
+
+  const toolbar = <VentasToolbar loading={activeLoading} onReload={() => void loadTab(activeTab, true)} />
+
+  const wrapWithMobileToolbar = (content: ReactNode) => {
+    if (!isMobile) {
+      return content
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ padding: '12px 16px', background: '#fafafa', borderRadius: 8, border: '1px solid #f0f0f0' }}>
+          {toolbar}
+        </div>
+        {content}
+      </div>
+    )
+  }
+
+  const tabItems = useMemo(
+    () => [
+      {
+        key: 'ventas',
+        label: 'Ventas',
+        children: wrapWithMobileToolbar(
+          <VentasTab
+            items={ventasItems}
+            loading={loadingByTab.ventas}
+            onAnularVenta={(venta) => setSelectedSale(venta)}
+            ventaDetalleById={ventaDetalleById}
+            detalleLoadingById={detalleLoadingById}
+            detalleErrorById={detalleErrorById}
+            onLoadDetalle={loadDetalle}
+          />,
+        ),
+      },
+      {
+        key: 'anulaciones',
+        label: 'Anulaciones',
+        children: wrapWithMobileToolbar(
+          <AnulacionesTab
+            items={anulacionesItems}
+            loading={loadingByTab.anulaciones}
+            ventaDetalleById={ventaDetalleById}
+            detalleLoadingById={detalleLoadingById}
+            detalleErrorById={detalleErrorById}
+            onLoadDetalle={loadDetalle}
+          />,
+        ),
+      },
+    ],
+    [
+      anulacionesItems,
+      detalleErrorById,
+      detalleLoadingById,
+      isMobile,
+      loadingByTab.anulaciones,
+      loadingByTab.ventas,
+      ventaDetalleById,
+      ventasItems,
+    ],
+  )
 
   return (
     <div className="tms-page">
@@ -141,59 +178,14 @@ export default function VentasPage() {
       <PageHeaderCard
         title="Ventas"
         subtitle="Historial operativo de ventas y anulaciones."
-        actions={<Button icon={<ReloadOutlined />} onClick={() => void load()} />}
       />
 
-      <Card className="tms-page-table-card">
-        <Table
-          rowKey="VentaId"
-          loading={loading}
-          dataSource={items}
-          expandable={{ expandedRowRender: (record) => <VoucherPreview venta={record} /> }}
-          columns={[
-            {
-              title: 'Comprobante',
-              render: (_, record) => (
-                <Space>
-                  <FileTextOutlined style={{ color: '#8c8c8c' }} />
-                  <Typography.Text strong>#{record.NumeroComprobante}</Typography.Text>
-                </Space>
-              ),
-            },
-            {
-              title: 'Fecha / Hora',
-              render: (_, record) => new Date(record.FechaHora).toLocaleString('es-CL', {
-                year: 'numeric', month: 'numeric', day: 'numeric',
-                hour: '2-digit', minute: '2-digit', second: '2-digit',
-                hour12: false
-              }),
-            },
-            {
-              title: 'Cliente',
-              render: (_, record) => record.ClienteNombre ? toCapitalCase(record.ClienteNombre) : <Typography.Text type="secondary">Consumidor Final</Typography.Text>,
-            },
-            {
-              title: 'Estado',
-              render: (_, record) => (
-                <Tag color={record.Estado === 'emitida' ? 'success' : 'error'} bordered={false}>
-                  {record.Estado.toUpperCase()}
-                </Tag>
-              ),
-            },
-            {
-              title: 'Total',
-              render: (_, record) => (
-                <Typography.Text strong style={{ color: record.Estado === 'anulada' ? '#bfbfbf' : '#000000', textDecoration: record.Estado === 'anulada' ? 'line-through' : 'none', fontSize: 15 }}>
-                  ${record.Total.toLocaleString('es-CL')}
-                </Typography.Text>
-              ),
-            },
-            {
-              title: 'Acciones',
-              align: 'right',
-              render: (_, record) => record.Estado === 'emitida' ? <Button size="small" type="primary" danger ghost onClick={(e) => { e.stopPropagation(); setSelectedSale(record); }}>Anular Venta</Button> : null,
-            },
-          ]}
+      <Card className="tms-page-table-card" styles={{ body: { paddingTop: 8, paddingBottom: 8 } }}>
+        <Tabs
+          activeKey={activeTab}
+          onChange={(key) => handleTabChange(key as VentasTabKey)}
+          tabBarExtraContent={!isMobile ? toolbar : undefined}
+          items={tabItems}
         />
       </Card>
 
@@ -206,7 +198,11 @@ export default function VentasPage() {
           await ventasService.anularVenta(selectedSale.VentaId, motivo)
           setSelectedSale(null)
           setMotivo('')
-          await load()
+          setLoadedByTab({ ventas: false, anulaciones: false })
+          setVentaDetalleById({})
+          setDetalleErrorById({})
+          setDetalleLoadingById({})
+          await loadTab('ventas', true)
         }}
       >
         <Space orientation="vertical" style={{ width: '100%' }}>
@@ -214,6 +210,6 @@ export default function VentasPage() {
           <Input.TextArea value={motivo} onChange={(event) => setMotivo(event.target.value)} rows={4} />
         </Space>
       </Modal>
-    </div>
+    </div >
   )
 }

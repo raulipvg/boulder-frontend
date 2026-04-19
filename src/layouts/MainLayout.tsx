@@ -41,7 +41,6 @@ export default function MainLayout() {
       children: [
         { key: '/ventas/punto-venta', label: 'Punto de venta', roles: ROLES_VENTAS_OPERACION },
         { key: '/ventas/ventas', label: 'Ventas', roles: ROLES_VENTAS_OPERACION },
-        { key: '/ventas/anulaciones', label: 'Anulaciones', roles: ROLES_VENTAS_OPERACION },
       ],
     },
     {
