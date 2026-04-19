@@ -37,7 +37,7 @@ export function PuntoVentaProductCard({ product, onAddProduct }: PuntoVentaProdu
 
   return (
     <Col xs={24} md={12} lg={8}>
-      <Card hoverable className={styles.card} onClick={() => onAddProduct(product)}>
+      <Card hoverable className={styles.card} style={{ border: 'none' }} onClick={() => onAddProduct(product)}>
         <div className={styles.cardHead}>
           <div className={styles.iconBox}>
             {typeMeta.icon}
