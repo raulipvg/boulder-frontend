@@ -2,6 +2,7 @@ import { Typography } from 'antd'
 import type { TableProps } from 'antd'
 import type { VentaDto, VentaResumenDto } from '../../types/models'
 import { VentasTable } from './VentasTable'
+import styles from './AnulacionesTab.module.css'
 
 interface AnulacionesTabProps {
   items: VentaResumenDto[]
@@ -23,12 +24,12 @@ export function AnulacionesTab({
   const extraColumns: NonNullable<TableProps<VentaResumenDto>['columns']> = [
     {
       title: 'Motivo',
-      render: (_, record) => <Typography.Text style={{ color: '#d4380d' }}>{record.MotivoAnulacion}</Typography.Text>,
+      render: (_, record) => <Typography.Text className={styles.motivoValue}>{record.MotivoAnulacion}</Typography.Text>,
     },
     {
       title: 'Total',
       render: (_, record) => (
-        <Typography.Text strong style={{ color: '#bfbfbf', textDecoration: 'line-through', fontSize: 15 }}>
+        <Typography.Text strong className={styles.totalValue}>
           ${record.Total.toLocaleString('es-CL')}
         </Typography.Text>
       ),

@@ -2,6 +2,7 @@ import { Button, Tag, Typography } from 'antd'
 import type { TableProps } from 'antd'
 import type { VentaDto, VentaResumenDto } from '../../types/models'
 import { VentasTable } from './VentasTable'
+import styles from './VentasTab.module.css'
 
 interface VentasTabProps {
   items: VentaResumenDto[]
@@ -34,7 +35,7 @@ export function VentasTab({
     {
       title: 'Total',
       render: (_, record) => (
-        <Typography.Text strong style={{ fontSize: 15 }}>
+        <Typography.Text strong className={styles.totalValue}>
           ${record.Total.toLocaleString('es-CL')}
         </Typography.Text>
       ),

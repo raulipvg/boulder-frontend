@@ -9,6 +9,7 @@ import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert
 import { ventasService } from '../../services/ventas/ventasService'
 import type { VentaDto, VentaResumenDto } from '../../types/models'
 import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
+import styles from './VentasPage.module.css'
 
 const { useBreakpoint } = Grid
 
@@ -119,8 +120,8 @@ export default function VentasPage() {
     }
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ padding: '12px 16px', background: '#fafafa', borderRadius: 8, border: '1px solid #f0f0f0' }}>
+      <div className={styles.mobileToolbarLayout}>
+        <div className={styles.mobileToolbarBox}>
           {toolbar}
         </div>
         {content}
@@ -173,14 +174,14 @@ export default function VentasPage() {
   )
 
   return (
-    <div className="tms-page">
+    <div className={styles.page}>
       <RequireCompanyAlert />
       <PageHeaderCard
         title="Ventas"
         subtitle="Historial operativo de ventas y anulaciones."
       />
 
-      <Card className="tms-page-table-card" styles={{ body: { paddingTop: 8, paddingBottom: 8 } }}>
+      <Card className={styles.tableCard}>
         <Tabs
           activeKey={activeTab}
           onChange={(key) => handleTabChange(key as VentasTabKey)}
@@ -205,11 +206,11 @@ export default function VentasPage() {
           await loadTab('ventas', true)
         }}
       >
-        <Space orientation="vertical" style={{ width: '100%' }}>
+        <Space orientation="vertical" className={styles.modalForm}>
           <Typography.Text>Motivo de anulación</Typography.Text>
           <Input.TextArea value={motivo} onChange={(event) => setMotivo(event.target.value)} rows={4} />
         </Space>
       </Modal>
-    </div >
+    </div>
   )
 }

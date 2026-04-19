@@ -1,0 +1,9 @@
+.motivoValue {
+  color: #d4380d;
+}
+
+.totalValue {
+  color: #bfbfbf;
+  text-decoration: line-through;
+  font-size: 15px;
+}

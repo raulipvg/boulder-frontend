@@ -4,6 +4,7 @@ import type { TableProps } from 'antd'
 import type { VentaDto, VentaResumenDto } from '../../types/models'
 import { toCapitalCase } from '../../utils/formatPersonName'
 import { ComprobanteVentaPreview } from './ComprobanteVentaPreview'
+import styles from './VentasTable.module.css'
 
 interface VentasTableProps {
   items: VentaResumenDto[]
@@ -20,7 +21,7 @@ const BASE_COLUMNS: NonNullable<TableProps<VentaResumenDto>['columns']> = [
     title: 'Comprobante',
     render: (_, record) => (
       <Space>
-        <FileTextOutlined style={{ color: '#8c8c8c' }} />
+        <FileTextOutlined className={styles.comprobanteIcon} />
         <Typography.Text strong>#{record.NumeroComprobante}</Typography.Text>
       </Space>
     ),
@@ -66,7 +67,7 @@ export function VentasTable({
 
     if (loadingDetalle) {
       return (
-        <div style={{ padding: 16, textAlign: 'center' }}>
+        <div className={styles.expandedLoading}>
           <Spin />
         </div>
       )
@@ -88,7 +89,7 @@ export function VentasTable({
 
     if (!detalle) {
       return (
-        <div style={{ padding: 16 }}>
+        <div className={styles.expandedPlaceholder}>
           <Typography.Text type="secondary">Cargando comprobante...</Typography.Text>
         </div>
       )

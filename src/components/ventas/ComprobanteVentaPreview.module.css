@@ -1,0 +1,177 @@
+.container {
+  margin: 24px auto;
+  padding: 32px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08), 0 2px 10px rgba(0, 0, 0, 0.03);
+  max-width: 600px;
+  position: relative;
+}
+
+.containerEmitida {
+  border-top: 8px solid #333333;
+}
+
+.containerAnulada {
+  border-top: 8px solid #ff4d4f;
+}
+
+.watermark {
+  position: absolute;
+  top: 32px;
+  right: 32px;
+  pointer-events: none;
+}
+
+.watermarkEmitida {
+  opacity: 0.05;
+}
+
+.watermarkAnulada {
+  opacity: 0.1;
+}
+
+.watermarkIcon {
+  font-size: 120px;
+}
+
+.watermarkIconEmitida {
+  color: #52c41a;
+}
+
+.watermarkIconAnulada {
+  color: #ff4d4f;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.title {
+  margin: 0;
+  font-weight: 700;
+  color: #1f1f1f;
+}
+
+.comprobanteNumber {
+  font-size: 16px;
+}
+
+.metaRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.metaRight {
+  text-align: right;
+}
+
+.labelCaps {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.metaValue {
+  font-size: 15px;
+}
+
+.sectionDivider {
+  margin: 16px 0;
+  border-color: #f0f0f0;
+}
+
+.section {
+  margin-bottom: 24px;
+}
+
+.labelCapsBlock {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #8c8c8c;
+  letter-spacing: 1px;
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.detailTitle {
+  font-size: 15px;
+}
+
+.detailUnitPrice {
+  font-size: 13px;
+}
+
+.detailSubtotal {
+  font-size: 16px;
+}
+
+.totalsBox {
+  background: #fafafa;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.rowBetweenWithGap8 {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e8e8e8;
+}
+
+.totalLabel {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.totalValue {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1890ff;
+}
+
+.paymentRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.paymentRef {
+  font-size: 12px;
+}
+
+.cancelReasonBox {
+  background: #fff2f0;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #ffccc7;
+}
+
+.cancelReasonTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cancelReasonValue {
+  margin-top: 8px;
+  color: #cf1322;
+}
