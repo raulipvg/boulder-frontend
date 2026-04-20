@@ -1,3 +1,5 @@
+import { Spin } from 'antd'
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { ROLES_ADMIN, ROLES_ADMIN_TOTAL, ROLES_VENTAS_OPERACION } from './constants/roles'
@@ -14,9 +16,16 @@ import PuntoVentaPage from './pages/ventas/PuntoVentaPage'
 import VentasPage from './pages/ventas/VentasPage'
 import AccesosPage from './pages/operacion/AccesosPage'
 import OperacionClasesPage from './pages/operacion/ClasesPage'
-import VentasReportPage from './pages/reportes/VentasReportPage'
-import AccesosReportPage from './pages/reportes/AccesosReportPage'
-import ClasesReportPage from './pages/reportes/ClasesReportPage'
+
+const VentasReportPage = lazy(() => import('./pages/reportes/VentasReportPage'))
+const AccesosReportPage = lazy(() => import('./pages/reportes/AccesosReportPage'))
+const ClasesReportPage = lazy(() => import('./pages/reportes/ClasesReportPage'))
+
+const reportesFallback = (
+  <div style={{ minHeight: 220, display: 'grid', placeItems: 'center' }}>
+    <Spin size="large" />
+  </div>
+)
 
 export default function App() {
   return (
@@ -45,9 +54,36 @@ export default function App() {
         <Route path="ventas/ventas" element={<ProtectedRoute roles={ROLES_VENTAS_OPERACION}><VentasPage /></ProtectedRoute>} />
         <Route path="operacion/accesos" element={<ProtectedRoute roles={ROLES_VENTAS_OPERACION}><AccesosPage /></ProtectedRoute>} />
         <Route path="operacion/clases" element={<ProtectedRoute roles={ROLES_VENTAS_OPERACION}><OperacionClasesPage /></ProtectedRoute>} />
-        <Route path="reportes/ventas" element={<ProtectedRoute roles={ROLES_ADMIN}><VentasReportPage /></ProtectedRoute>} />
-        <Route path="reportes/accesos" element={<ProtectedRoute roles={ROLES_ADMIN}><AccesosReportPage /></ProtectedRoute>} />
-        <Route path="reportes/clases" element={<ProtectedRoute roles={ROLES_ADMIN}><ClasesReportPage /></ProtectedRoute>} />
+        <Route
+          path="reportes/ventas"
+          element={(
+            <ProtectedRoute roles={ROLES_ADMIN}>
+              <Suspense fallback={reportesFallback}>
+                <VentasReportPage />
+              </Suspense>
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="reportes/accesos"
+          element={(
+            <ProtectedRoute roles={ROLES_ADMIN}>
+              <Suspense fallback={reportesFallback}>
+                <AccesosReportPage />
+              </Suspense>
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="reportes/clases"
+          element={(
+            <ProtectedRoute roles={ROLES_ADMIN}>
+              <Suspense fallback={reportesFallback}>
+                <ClasesReportPage />
+              </Suspense>
+            </ProtectedRoute>
+          )}
+        />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
