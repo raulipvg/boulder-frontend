@@ -1,4 +1,4 @@
-import { ReloadOutlined } from '@ant-design/icons'
+import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { App as AntdApp, Button, Card, Col, Row, Statistic, Table } from 'antd'
 import { useEffect, useState } from 'react'
@@ -11,8 +11,27 @@ import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { DEFAULT_REPORTE_PERIODO, type ReportePeriodo } from '../../constants/reportes'
 import { reportesService } from '../../services/reportes/reportesService'
-import type { DashboardReportDto, SimpleReportItemDto } from '../../types/models'
+import type { DashboardReportDto, SimpleReportItemDto, VentaReporteExportDto } from '../../types/models'
+import type { CsvColumn } from '../../utils/csv'
+import { downloadCsv } from '../../utils/csv'
 import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
+
+const CSV_COLUMNS: CsvColumn<VentaReporteExportDto>[] = [
+  { header: 'VentaId', value: (row) => row.VentaId },
+  { header: 'VentaDetalleId', value: (row) => row.VentaDetalleId },
+  { header: 'NumeroComprobante', value: (row) => row.NumeroComprobante },
+  { header: 'FechaHoraVenta', value: (row) => row.FechaHoraVenta },
+  { header: 'ClienteNombre', value: (row) => row.ClienteNombre },
+  { header: 'ClienteRut', value: (row) => row.ClienteRut },
+  { header: 'TipoCliente', value: (row) => row.TipoCliente },
+  { header: 'VendedorNombre', value: (row) => row.VendedorNombre },
+  { header: 'ProductoNombre', value: (row) => row.ProductoNombre },
+  { header: 'Cantidad', value: (row) => row.Cantidad },
+  { header: 'PrecioUnitario', value: (row) => row.PrecioUnitario },
+  { header: 'SubtotalDetalle', value: (row) => row.SubtotalDetalle },
+  { header: 'TotalVenta', value: (row) => row.TotalVenta },
+  { header: 'EstadoVenta', value: (row) => row.EstadoVenta },
+]
 
 export default function VentasReportPage() {
   const { message } = AntdApp.useApp()
@@ -22,14 +41,17 @@ export default function VentasReportPage() {
   const [periodo, setPeriodo] = useState<ReportePeriodo>(DEFAULT_REPORTE_PERIODO)
   const [fechaReferencia, setFechaReferencia] = useState(() => normalizeFechaReferencia(DEFAULT_REPORTE_PERIODO, dayjs()))
   const [loading, setLoading] = useState(false)
+  const [exportingCsv, setExportingCsv] = useState(false)
+
+  const getFiltroParams = (periodoFiltro = periodo, fechaFiltro = fechaReferencia) => ({
+    periodo: periodoFiltro,
+    fechaReferencia: buildFechaReferenciaParam(periodoFiltro, fechaFiltro),
+  })
 
   const load = async (periodoFiltro = periodo, fechaFiltro = fechaReferencia) => {
     setLoading(true)
     try {
-      const params = {
-        periodo: periodoFiltro,
-        fechaReferencia: buildFechaReferenciaParam(periodoFiltro, fechaFiltro),
-      }
+      const params = getFiltroParams(periodoFiltro, fechaFiltro)
 
       const [dashboardData, productoData, tipoClienteData] = await Promise.all([
         reportesService.dashboard(params),
@@ -43,6 +65,25 @@ export default function VentasReportPage() {
       message.error(getApiErrorMessage(error, 'No se pudieron cargar los reportes de ventas.'))
     } finally {
       setLoading(false)
+    }
+  }
+
+  const exportCsv = async () => {
+    setExportingCsv(true)
+    try {
+      const params = getFiltroParams()
+      const rows = await reportesService.exportarVentas(params)
+
+      downloadCsv({
+        fileName: `reporte-ventas-${params.periodo}-${params.fechaReferencia}.csv`,
+        columns: CSV_COLUMNS,
+        rows,
+        delimiter: ';',
+      })
+    } catch (error) {
+      message.error(getApiErrorMessage(error, 'No se pudo descargar el CSV de ventas.'))
+    } finally {
+      setExportingCsv(false)
     }
   }
 
@@ -67,6 +108,7 @@ export default function VentasReportPage() {
           setFechaReferencia((value) => normalizeFechaReferencia(nextPeriodo, value))
         }}
         onFechaChange={(value) => setFechaReferencia(normalizeFechaReferencia(periodo, value))}
+        actions={<Button icon={<DownloadOutlined />} onClick={() => void exportCsv()} loading={exportingCsv}>Descargar CSV</Button>}
       />
 
       <Row gutter={16} className="tms-kpi-row">

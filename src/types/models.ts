@@ -298,3 +298,48 @@ export interface SimpleReportItemDto {
   Etiqueta: string
   Valor: number
 }
+
+export interface VentaReporteExportDto {
+  VentaId: number
+  VentaDetalleId: number
+  NumeroComprobante: string
+  FechaHoraVenta: string
+  ClienteNombre?: string | null
+  ClienteRut?: string | null
+  TipoCliente?: string | null
+  VendedorNombre: string
+  ProductoNombre: string
+  Cantidad: number
+  PrecioUnitario: number
+  SubtotalDetalle: number
+  TotalVenta: number
+  EstadoVenta: string
+}
+
+export interface AccesoReporteExportDto {
+  AccesoEventoId: number
+  FechaHoraAcceso: string
+  Resultado: string
+  MotivoRechazo?: string | null
+  ClienteNombre: string
+  ClienteRut: string
+  TipoCliente: string
+  ProductoNombre?: string | null
+  BloqueHorario?: string | null
+  UsuarioValidador: string
+}
+
+export interface ClaseReporteExportDto {
+  ClaseAsistenciaId: number
+  FechaHoraRegistro: string
+  FechaSesion: string
+  HoraInicioSesion: string
+  HoraFinSesion: string
+  ClaseNombre: string
+  ProfesorNombre: string
+  ClienteNombre: string
+  ClienteRut: string
+  TipoCliente: string
+  ProductoBeneficio: string
+  EstadoAsistencia: string
+}

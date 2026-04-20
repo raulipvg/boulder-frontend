@@ -1,5 +1,6 @@
 import type { Dayjs } from 'dayjs'
 import { DatePicker, Select, Typography } from 'antd'
+import type { ReactNode } from 'react'
 import {
   DEFAULT_REPORTE_PERIODO,
   REPORTE_PERIODO_OPTIONS,
@@ -36,6 +37,7 @@ interface ReportesPeriodoFilterProps {
   fechaReferencia: Dayjs
   onPeriodoChange: (periodo: ReportePeriodo) => void
   onFechaChange: (fecha: Dayjs) => void
+  actions?: ReactNode
 }
 
 export function ReportesPeriodoFilter({
@@ -43,6 +45,7 @@ export function ReportesPeriodoFilter({
   fechaReferencia,
   onPeriodoChange,
   onFechaChange,
+  actions,
 }: ReportesPeriodoFilterProps) {
   const config = DATE_PICKER_CONFIG[periodo] ?? DATE_PICKER_CONFIG[DEFAULT_REPORTE_PERIODO]
 
@@ -69,6 +72,8 @@ export function ReportesPeriodoFilter({
           }
         }}
       />
+
+      {actions ? <div style={{ marginInlineStart: 'auto', display: 'flex', gap: 8 }}>{actions}</div> : null}
     </PageFiltersCard>
   )
 }
