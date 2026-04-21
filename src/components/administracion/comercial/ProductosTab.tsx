@@ -20,9 +20,9 @@ import {
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { administracionService } from '../../../services/administracion/administracionService'
-import type { ClaseAgendaDto, LookupDto, ProductoDto, TarifaProductoResumenDto, TipoClienteDto } from '../../../types/models'
+import type { ClaseAgendaDto, IdNombreDto, LookupDto, ProductoDto, TarifaProductoResumenDto } from '../../../types/models'
 import { getApiErrorMessage } from '../../../utils/getApiErrorMessage'
 
 export interface ProductosTabHandle {
@@ -75,6 +75,13 @@ const getTipoProductoLabel = (codigo: string, nombre: string) => {
   return nombre
 }
 
+type CatalogosData = {
+  tiposBase: LookupDto[]
+  tiposClienteData: LookupDto[]
+  bloquesData: IdNombreDto[]
+  clasesData: ClaseAgendaDto[]
+}
+
 const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props, ref) {
   const { message } = AntdApp.useApp()
   const screens = useBreakpoint()
@@ -82,10 +89,12 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
 
   const [items, setItems] = useState<ProductoDto[]>([])
   const [tipos, setTipos] = useState<LookupDto[]>([])
-  const [tiposCliente, setTiposCliente] = useState<TipoClienteDto[]>([])
-  const [bloques, setBloques] = useState<LookupDto[]>([])
+  const [tiposCliente, setTiposCliente] = useState<LookupDto[]>([])
+  const [bloques, setBloques] = useState<IdNombreDto[]>([])
   const [clases, setClases] = useState<ClaseAgendaDto[]>([])
   const [loading, setLoading] = useState(true)
+  const [catalogosLoading, setCatalogosLoading] = useState(false)
+  const [catalogosLoaded, setCatalogosLoaded] = useState(false)
   const [open, setOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<ProductoDto | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -103,6 +112,8 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
   const [form] = Form.useForm()
   const [tarifaForm] = Form.useForm()
   const [tarifasBatchForm] = Form.useForm()
+  const productosRequestRef = useRef<Promise<void> | null>(null)
+  const catalogosRequestRef = useRef<Promise<CatalogosData> | null>(null)
 
   const selectedTipoProductoBaseId = Form.useWatch('TipoProductoBaseId', form)
   const selectedModoPrecio = Form.useWatch('ModoPrecio', form)
@@ -144,28 +155,67 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
     Activo: true,
   })
 
-  const load = async () => {
-    setLoading(true)
-    try {
-      const [productos, tiposBase, tiposClienteData, bloquesData, clasesData] = await Promise.all([
-        administracionService.getProductos(),
-        administracionService.getTiposProductoBase(),
-        administracionService.getTiposCliente(),
-        administracionService.getBloques(),
-        administracionService.getClases(),
-      ])
-      setItems(productos)
-      setTipos(tiposBase)
-      setTiposCliente(tiposClienteData)
-      setBloques(bloquesData)
-      setClases(clasesData)
-      setExpandedRowKeys([])
-      setTarifasByProducto({})
-      setTarifasLoadingByProducto({})
-      setTarifasErrorByProducto({})
-    } finally {
-      setLoading(false)
+  const loadProductos = async () => {
+    if (productosRequestRef.current) {
+      return productosRequestRef.current
     }
+
+    const request = (async () => {
+      setLoading(true)
+      try {
+        const productos = await administracionService.getProductos()
+        setItems(productos)
+        setExpandedRowKeys([])
+        setTarifasByProducto({})
+        setTarifasLoadingByProducto({})
+        setTarifasErrorByProducto({})
+      } finally {
+        setLoading(false)
+        productosRequestRef.current = null
+      }
+    })()
+
+    productosRequestRef.current = request
+    return request
+  }
+
+  const ensureCatalogosLoaded = async () => {
+    if (catalogosLoaded) {
+      return {
+        tiposBase: tipos,
+        tiposClienteData: tiposCliente,
+        bloquesData: bloques,
+        clasesData: clases,
+      }
+    }
+
+    if (catalogosRequestRef.current) {
+      return catalogosRequestRef.current
+    }
+
+    const request = (async (): Promise<CatalogosData> => {
+      setCatalogosLoading(true)
+      try {
+        const [tiposBase, tiposClienteData, bloquesData, clasesData] = await Promise.all([
+          administracionService.getTiposProductoBase(),
+          administracionService.getTiposClienteCatalogo(),
+          administracionService.getBloquesCatalogoLite(),
+          administracionService.getClases(),
+        ])
+        setTipos(tiposBase)
+        setTiposCliente(tiposClienteData)
+        setBloques(bloquesData)
+        setClases(clasesData)
+        setCatalogosLoaded(true)
+        return { tiposBase, tiposClienteData, bloquesData, clasesData }
+      } finally {
+        setCatalogosLoading(false)
+        catalogosRequestRef.current = null
+      }
+    })()
+
+    catalogosRequestRef.current = request
+    return request
   }
 
   const loadTarifasByProducto = async (productoEmpresaId: number, force = false) => {
@@ -317,26 +367,40 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
   }
 
   const openTarifaEdit = (record: TarifaProductoResumenDto) => {
-    const isTodoHorario = !record.BloqueHorarioComercialId
-    setTarifaEditing(record)
-    setTarifaTodoHorario(isTodoHorario)
-    tarifaForm.setFieldsValue({
-      TipoDias: (record.TipoDia ?? '').split(',').filter(Boolean),
-      BloqueHorarioComercialId: record.BloqueHorarioComercialId ?? undefined,
-      TodoHorario: isTodoHorario,
-      Precio: record.Precio,
-      VigenciaRango: [dayjs(record.VigenciaDesde), dayjs(record.VigenciaHasta)],
-      Activo: record.Activo,
-    })
-    setTarifaOpen(true)
+    void (async () => {
+      try {
+        await ensureCatalogosLoaded()
+        const isTodoHorario = !record.BloqueHorarioComercialId
+        setTarifaEditing(record)
+        setTarifaTodoHorario(isTodoHorario)
+        tarifaForm.setFieldsValue({
+          TipoDias: (record.TipoDia ?? '').split(',').filter(Boolean),
+          BloqueHorarioComercialId: record.BloqueHorarioComercialId ?? undefined,
+          TodoHorario: isTodoHorario,
+          Precio: record.Precio,
+          VigenciaRango: [dayjs(record.VigenciaDesde), dayjs(record.VigenciaHasta)],
+          Activo: record.Activo,
+        })
+        setTarifaOpen(true)
+      } catch (error) {
+        message.error(getApiErrorMessage(error, 'No se pudieron cargar los catálogos del formulario.'))
+      }
+    })()
   }
 
   const openTarifasBatch = (productoEmpresaId: number) => {
-    setTarifasBatchProductoId(productoEmpresaId)
-    tarifasBatchForm.setFieldsValue({
-      Tarifas: [createTarifaBatchRowDefault()],
-    })
-    setTarifasBatchOpen(true)
+    void (async () => {
+      try {
+        await ensureCatalogosLoaded()
+        setTarifasBatchProductoId(productoEmpresaId)
+        tarifasBatchForm.setFieldsValue({
+          Tarifas: [createTarifaBatchRowDefault()],
+        })
+        setTarifasBatchOpen(true)
+      } catch (error) {
+        message.error(getApiErrorMessage(error, 'No se pudieron cargar los catálogos del formulario.'))
+      }
+    })()
   }
 
   const closeTarifasBatchModal = () => {
@@ -376,7 +440,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
       message.success('Tarifa actualizada correctamente.')
 
       closeTarifaModal()
-      await load()
+      await loadProductos()
       setExpandedRowKeys([tarifaEditing.ProductoEmpresaId])
       await loadTarifasByProducto(tarifaEditing.ProductoEmpresaId, true)
     } catch (error) {
@@ -457,7 +521,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
 
       message.success('Tarifas asociadas correctamente.')
       closeTarifasBatchModal()
-      await load()
+      await loadProductos()
       setExpandedRowKeys([tarifasBatchProductoId])
       await loadTarifasByProducto(tarifasBatchProductoId, true)
     } catch (error) {
@@ -468,7 +532,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
   }
 
   useEffect(() => {
-    void load()
+    void loadProductos()
   }, [])
 
   const openCreate = () => {
@@ -482,33 +546,47 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
       GeneraBeneficio: false,
       AccesoIlimitado: false,
     })
-    setOpen(true)
+    void (async () => {
+      try {
+        await ensureCatalogosLoaded()
+        setOpen(true)
+      } catch (error) {
+        message.error(getApiErrorMessage(error, 'No se pudieron cargar los catálogos del formulario.'))
+      }
+    })()
   }
 
   const openEdit = (record: ProductoDto) => {
-    setEditingItem(record)
-    form.setFieldsValue({
-      TipoProductoBaseId: tipos.find((tipo) => tipo.Codigo === record.TipoProductoBaseCodigo)?.Id,
-      NombreComercial: record.NombreComercial,
-      Descripcion: record.Descripcion ?? undefined,
-      ModoPrecio: record.ModoPrecio,
-      PrecioFijo: record.PrecioFijo ?? undefined,
-      VigenciaDias: record.VigenciaDias ?? undefined,
-      UsosIncluidos: record.UsosIncluidos ?? undefined,
-      BloqueHorarioComercialId: record.BloqueHorarioComercialId ?? undefined,
-      ClaseId: record.ClaseId ?? undefined,
-      VisiblePos: record.VisiblePos,
-      Activo: record.Activo,
-      RequiereCliente: record.RequiereCliente,
-      GeneraBeneficio: record.GeneraBeneficio,
-      AccesoIlimitado: record.AccesoIlimitado,
-    })
-    setOpen(true)
+    void (async () => {
+      try {
+        const { tiposBase } = await ensureCatalogosLoaded()
+        setEditingItem(record)
+        form.setFieldsValue({
+          TipoProductoBaseId: tiposBase.find((tipo) => tipo.Codigo === record.TipoProductoBaseCodigo)?.Id,
+          NombreComercial: record.NombreComercial,
+          Descripcion: record.Descripcion ?? undefined,
+          ModoPrecio: record.ModoPrecio,
+          PrecioFijo: record.PrecioFijo ?? undefined,
+          VigenciaDias: record.VigenciaDias ?? undefined,
+          UsosIncluidos: record.UsosIncluidos ?? undefined,
+          BloqueHorarioComercialId: record.BloqueHorarioComercialId ?? undefined,
+          ClaseId: record.ClaseId ?? undefined,
+          VisiblePos: record.VisiblePos,
+          Activo: record.Activo,
+          RequiereCliente: record.RequiereCliente,
+          GeneraBeneficio: record.GeneraBeneficio,
+          AccesoIlimitado: record.AccesoIlimitado,
+        })
+        setOpen(true)
+      } catch (error) {
+        message.error(getApiErrorMessage(error, 'No se pudieron cargar los catálogos del formulario.'))
+      }
+    })()
   }
 
   useImperativeHandle(ref, () => ({
     openCreate,
-    reload: load,
+    reload: loadProductos,
   }))
 
   useEffect(() => {
@@ -848,7 +926,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
               setOpen(false)
               setEditingItem(null)
               form.resetFields()
-              await load()
+              await loadProductos()
             } catch (error) {
               message.error(getApiErrorMessage(error, `No se pudo ${editingItem ? 'actualizar' : 'crear'} el producto.`))
             } finally {
@@ -971,6 +1049,8 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
         onCancel={closeTarifaModal}
         onOk={() => tarifaForm.submit()}
         confirmLoading={tarifaSubmitting}
+        okButtonProps={{ disabled: catalogosLoading }}
+        cancelButtonProps={{ disabled: catalogosLoading }}
         destroyOnHidden
       >
         <Form form={tarifaForm} layout="vertical" onFinish={handleTarifaSubmit}>
@@ -1018,6 +1098,8 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
         onCancel={closeTarifasBatchModal}
         onOk={() => tarifasBatchForm.submit()}
         confirmLoading={tarifasBatchSubmitting}
+        okButtonProps={{ disabled: catalogosLoading }}
+        cancelButtonProps={{ disabled: catalogosLoading }}
         destroyOnHidden
         width={860}
       >
@@ -1034,7 +1116,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
                           label="Tipo de cliente"
                           rules={[{ required: true, message: 'Selecciona tipo de cliente.' }]}
                         >
-                          <Select options={tiposCliente.map((tipo) => ({ value: tipo.TipoClienteId, label: tipo.Nombre }))} />
+                          <Select options={tiposCliente.map((tipo) => ({ value: tipo.Id, label: tipo.Nombre }))} />
                         </Form.Item>
 
                         <Form.Item

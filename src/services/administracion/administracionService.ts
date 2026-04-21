@@ -1,5 +1,87 @@
 import apiClient from '../apiClient'
 import type { BloqueHorarioDto, ClaseAgendaDto, ClaseDto, ClienteDto, EmpresaDto, IdNombreDto, LookupDto, ProductoDto, TarifaDto, TarifaProductoResumenDto, TipoClienteDto, UsuarioDto } from '../../types/models'
+import { getAdminTargetCompanyKey, getStoredAuth } from '../../utils/storage'
+
+const tiposClienteCatalogoByScope = new Map<string, LookupDto[]>()
+const tiposClienteCatalogoInFlightByScope = new Map<string, Promise<LookupDto[]>>()
+const bloquesCatalogoLiteByScope = new Map<string, IdNombreDto[]>()
+const bloquesCatalogoLiteInFlightByScope = new Map<string, Promise<IdNombreDto[]>>()
+
+const resolveEmpresaScopeKey = () => {
+  const auth = getStoredAuth()
+  const user = auth?.User
+  if (!user) {
+    return 'anonymous'
+  }
+
+  if (user.RoleCodes?.includes('ADMIN_TOTAL')) {
+    const targetKey = getAdminTargetCompanyKey(user.UserId)
+    const targetCompanyId = localStorage.getItem(targetKey) ?? 'none'
+    return `admin-total:${user.UserId}:${targetCompanyId}`
+  }
+
+  return `empresa:${user.EmpresaId ?? 'none'}`
+}
+
+const getTiposClienteCatalogoCached = async () => {
+  const scopeKey = resolveEmpresaScopeKey()
+
+  const cached = tiposClienteCatalogoByScope.get(scopeKey)
+  if (cached) {
+    return cached
+  }
+
+  const inFlight = tiposClienteCatalogoInFlightByScope.get(scopeKey)
+  if (inFlight) {
+    return inFlight
+  }
+
+  const request = apiClient.get<LookupDto[]>('/administracion/catalogos/tipos-cliente')
+    .then((response) => {
+      tiposClienteCatalogoByScope.set(scopeKey, response.data)
+      return response.data
+    })
+    .finally(() => {
+      tiposClienteCatalogoInFlightByScope.delete(scopeKey)
+    })
+
+  tiposClienteCatalogoInFlightByScope.set(scopeKey, request)
+  return request
+}
+
+const getBloquesCatalogoLiteCached = async () => {
+  const scopeKey = resolveEmpresaScopeKey()
+
+  const cached = bloquesCatalogoLiteByScope.get(scopeKey)
+  if (cached) {
+    return cached
+  }
+
+  const inFlight = bloquesCatalogoLiteInFlightByScope.get(scopeKey)
+  if (inFlight) {
+    return inFlight
+  }
+
+  const request = apiClient.get<IdNombreDto[]>('/administracion/catalogos/bloques-lite')
+    .then((response) => {
+      bloquesCatalogoLiteByScope.set(scopeKey, response.data)
+      return response.data
+    })
+    .finally(() => {
+      bloquesCatalogoLiteInFlightByScope.delete(scopeKey)
+    })
+
+  bloquesCatalogoLiteInFlightByScope.set(scopeKey, request)
+  return request
+}
+
+const invalidateComercialCatalogosByScope = () => {
+  const scopeKey = resolveEmpresaScopeKey()
+  tiposClienteCatalogoByScope.delete(scopeKey)
+  tiposClienteCatalogoInFlightByScope.delete(scopeKey)
+  bloquesCatalogoLiteByScope.delete(scopeKey)
+  bloquesCatalogoLiteInFlightByScope.delete(scopeKey)
+}
 
 export const administracionService = {
   getEmpresas: async () => (await apiClient.get<EmpresaDto[]>('/administracion/empresas')).data,
@@ -18,6 +100,10 @@ export const administracionService = {
   createCliente: async (payload: Record<string, unknown>) => (await apiClient.post<ClienteDto>('/administracion/clientes', payload)).data,
   updateCliente: async (clienteEmpresaId: number, payload: Record<string, unknown>) => (await apiClient.put<ClienteDto>(`/administracion/clientes/${clienteEmpresaId}`, payload)).data,
   getProductos: async () => (await apiClient.get<ProductoDto[]>('/administracion/productos')).data,
+  getProductosCatalogo: async () => (await apiClient.get<IdNombreDto[]>('/administracion/catalogos/productos')).data,
+  getTiposClienteCatalogo: async () => getTiposClienteCatalogoCached(),
+  getBloquesCatalogoLite: async () => getBloquesCatalogoLiteCached(),
+  invalidateComercialCatalogos: () => invalidateComercialCatalogosByScope(),
   getTarifasByProducto: async (productoEmpresaId: number) =>
     (await apiClient.get<TarifaProductoResumenDto[]>(`/administracion/productos/${productoEmpresaId}/tarifas`)).data,
   createProducto: async (payload: Record<string, unknown>) => (await apiClient.post<ProductoDto>('/administracion/productos', payload)).data,

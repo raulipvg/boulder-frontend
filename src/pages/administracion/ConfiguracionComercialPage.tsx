@@ -1,6 +1,6 @@
 import { ClockCircleOutlined, DollarOutlined, ShoppingOutlined } from '@ant-design/icons'
 import { Card, Grid, Tabs } from 'antd'
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import BloquesHorariosTab, { type BloquesHorariosTabHandle } from '../../components/administracion/comercial/BloquesHorariosTab'
 import {
   ComercialToolbar,
@@ -65,21 +65,6 @@ export default function ConfiguracionComercialPage() {
     />
   )
 
-  const wrapWithMobileToolbar = (content: ReactNode) => {
-    if (!isMobile) {
-      return content
-    }
-
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ padding: '12px 16px', background: '#fafafa', borderRadius: 8, border: '1px solid #f0f0f0' }}>
-          {toolbar}
-        </div>
-        {content}
-      </div>
-    )
-  }
-
   const tabItems = useMemo(
     () => [
       {
@@ -89,7 +74,7 @@ export default function ConfiguracionComercialPage() {
             <ShoppingOutlined /> Productos
           </span>
         ),
-        children: wrapWithMobileToolbar(<ProductosTab ref={productosRef} />),
+        children: <ProductosTab ref={productosRef} />,
       },
       {
         key: 'tarifas',
@@ -98,7 +83,7 @@ export default function ConfiguracionComercialPage() {
             <DollarOutlined /> Tarifas
           </span>
         ),
-        children: wrapWithMobileToolbar(<TarifasTab ref={tarifasRef} clienteFiltro={clienteFiltro} />),
+        children: <TarifasTab ref={tarifasRef} clienteFiltro={clienteFiltro} />,
       },
       {
         key: 'bloques',
@@ -107,10 +92,10 @@ export default function ConfiguracionComercialPage() {
             <ClockCircleOutlined /> Bloques
           </span>
         ),
-        children: wrapWithMobileToolbar(<BloquesHorariosTab ref={bloquesRef} />),
+        children: <BloquesHorariosTab ref={bloquesRef} />,
       },
     ],
-    [activeTab, clienteFiltro, isMobile],
+    [clienteFiltro],
   )
 
   return (
@@ -127,6 +112,11 @@ export default function ConfiguracionComercialPage() {
         variant="borderless"
         styles={{ body: { paddingTop: 8, paddingBottom: 8 } }}
       >
+        {isMobile && (
+          <div style={{ marginBottom: 12, padding: '12px 16px', background: '#fafafa', borderRadius: 8, border: '1px solid #f0f0f0' }}>
+            {toolbar}
+          </div>
+        )}
         <Tabs
           activeKey={activeTab}
           onChange={(key) => setActiveTab(key as ComercialTabKey)}

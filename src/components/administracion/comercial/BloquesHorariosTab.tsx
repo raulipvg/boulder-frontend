@@ -189,6 +189,8 @@ const BloquesHorariosTab = forwardRef<BloquesHorariosTabHandle>(function Bloques
                 message.success('Bloque horario creado correctamente.')
               }
 
+              administracionService.invalidateComercialCatalogos()
+
               setOpen(false)
               setEditingItem(null)
               form.resetFields()

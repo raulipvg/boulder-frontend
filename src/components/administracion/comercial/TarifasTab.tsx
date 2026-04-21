@@ -18,9 +18,9 @@ import {
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { administracionService } from '../../../services/administracion/administracionService'
-import type { LookupDto, ProductoDto, TarifaDto, TipoClienteDto } from '../../../types/models'
+import type { IdNombreDto, LookupDto, TarifaDto } from '../../../types/models'
 import { getApiErrorMessage } from '../../../utils/getApiErrorMessage'
 
 const DAY_OPTIONS = ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM']
@@ -40,6 +40,12 @@ const { useBreakpoint } = Grid
 
 const activeTag = (value: boolean) => <Tag color={value ? 'green' : 'red'}>{value ? 'Activa' : 'Inactiva'}</Tag>
 
+type CatalogosTarifaData = {
+  productosData: IdNombreDto[]
+  tiposData: LookupDto[]
+  bloquesData: IdNombreDto[]
+}
+
 const TarifasTab = forwardRef<TarifasTabHandle, TarifasTabProps>(function TarifasTab(
   { clienteFiltro },
   ref,
@@ -49,40 +55,78 @@ const TarifasTab = forwardRef<TarifasTabHandle, TarifasTabProps>(function Tarifa
   const isMobile = !screens.md
 
   const [items, setItems] = useState<TarifaDto[]>([])
-  const [productos, setProductos] = useState<ProductoDto[]>([])
-  const [tiposCliente, setTiposCliente] = useState<TipoClienteDto[]>([])
-  const [bloques, setBloques] = useState<LookupDto[]>([])
+  const [productos, setProductos] = useState<IdNombreDto[]>([])
+  const [tiposCliente, setTiposCliente] = useState<LookupDto[]>([])
+  const [bloques, setBloques] = useState<IdNombreDto[]>([])
   const [loading, setLoading] = useState(true)
+  const [catalogosLoading, setCatalogosLoading] = useState(false)
+  const [catalogosLoaded, setCatalogosLoaded] = useState(false)
   const [open, setOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<TarifaDto | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm()
+  const catalogosRequestRef = useRef<Promise<CatalogosTarifaData> | null>(null)
 
   const getTipoClienteIdByCodigo = (codigo: ClienteFiltro) => {
-    return tiposCliente.find((tipoCliente) => tipoCliente.Codigo === codigo)?.TipoClienteId
+    return tiposCliente.find((tipoCliente) => tipoCliente.Codigo === codigo)?.Id
   }
 
-  const load = async () => {
+  const loadTarifas = async () => {
     setLoading(true)
     try {
-      const [tarifas, productosData, tiposData, bloquesData] = await Promise.all([
-        administracionService.getTarifas(clienteFiltro),
-        administracionService.getProductos(),
-        administracionService.getTiposCliente(),
-        administracionService.getBloques(),
-      ])
+      const tarifas = await administracionService.getTarifas(clienteFiltro)
       setItems(tarifas)
-      setProductos(productosData)
-      setTiposCliente(tiposData)
-      setBloques(bloquesData)
     } finally {
       setLoading(false)
     }
   }
 
+  const ensureCatalogosLoaded = async () => {
+    if (catalogosLoaded) {
+      return {
+        productosData: productos,
+        tiposData: tiposCliente,
+        bloquesData: bloques,
+      }
+    }
+
+    if (catalogosRequestRef.current) {
+      return catalogosRequestRef.current
+    }
+
+    const request = (async (): Promise<CatalogosTarifaData> => {
+      setCatalogosLoading(true)
+      try {
+        const [productosData, tiposData, bloquesData] = await Promise.all([
+          administracionService.getProductosCatalogo(),
+          administracionService.getTiposClienteCatalogo(),
+          administracionService.getBloquesCatalogoLite(),
+        ])
+        setProductos(productosData)
+        setTiposCliente(tiposData)
+        setBloques(bloquesData)
+        setCatalogosLoaded(true)
+        return { productosData, tiposData, bloquesData }
+      } finally {
+        setCatalogosLoading(false)
+        catalogosRequestRef.current = null
+      }
+    })()
+
+    catalogosRequestRef.current = request
+    return request
+  }
+
   const openCreate = () => {
-    setEditingItem(null)
-    setOpen(true)
+    void (async () => {
+      try {
+        await ensureCatalogosLoaded()
+        setEditingItem(null)
+        setOpen(true)
+      } catch (error) {
+        message.error(getApiErrorMessage(error, 'No se pudieron cargar los catálogos del formulario.'))
+      }
+    })()
   }
 
   useEffect(() => {
@@ -98,27 +142,34 @@ const TarifasTab = forwardRef<TarifasTabHandle, TarifasTabProps>(function Tarifa
   }, [open, editingItem, clienteFiltro, form])
 
   const openEdit = (record: TarifaDto) => {
-    setEditingItem(record)
-    form.setFieldsValue({
-      ProductoEmpresaId: record.ProductoEmpresaId,
-      TipoClienteId: record.TipoClienteId ?? undefined,
-      TipoDias: (record.TipoDia ?? '').split(',').filter(Boolean),
-      BloqueHorarioComercialId: record.BloqueHorarioComercialId ?? undefined,
-      Precio: record.Precio,
-      VigenciaDesde: dayjs(record.VigenciaDesde),
-      VigenciaHasta: dayjs(record.VigenciaHasta),
-      Activo: record.Activo,
-    })
-    setOpen(true)
+    void (async () => {
+      try {
+        await ensureCatalogosLoaded()
+        setEditingItem(record)
+        form.setFieldsValue({
+          ProductoEmpresaId: record.ProductoEmpresaId,
+          TipoClienteId: record.TipoClienteId ?? undefined,
+          TipoDias: (record.TipoDia ?? '').split(',').filter(Boolean),
+          BloqueHorarioComercialId: record.BloqueHorarioComercialId ?? undefined,
+          Precio: record.Precio,
+          VigenciaDesde: dayjs(record.VigenciaDesde),
+          VigenciaHasta: dayjs(record.VigenciaHasta),
+          Activo: record.Activo,
+        })
+        setOpen(true)
+      } catch (error) {
+        message.error(getApiErrorMessage(error, 'No se pudieron cargar los catálogos del formulario.'))
+      }
+    })()
   }
 
   useImperativeHandle(ref, () => ({
     openCreate,
-    reload: load,
+    reload: loadTarifas,
   }))
 
   useEffect(() => {
-    void load()
+    void loadTarifas()
   }, [clienteFiltro])
 
   const columns: ColumnsType<TarifaDto> = [
@@ -198,7 +249,7 @@ const TarifasTab = forwardRef<TarifasTabHandle, TarifasTabProps>(function Tarifa
           setEditingItem(null)
         }}
         onOk={() => form.submit()}
-        confirmLoading={submitting}
+        confirmLoading={submitting || catalogosLoading}
         destroyOnHidden
       >
         <Form
@@ -232,7 +283,7 @@ const TarifasTab = forwardRef<TarifasTabHandle, TarifasTabProps>(function Tarifa
               setOpen(false)
               setEditingItem(null)
               form.resetFields()
-              await load()
+              await loadTarifas()
             } catch (error) {
               message.error(getApiErrorMessage(error, `No se pudo ${editingItem ? 'actualizar' : 'crear'} la tarifa.`))
             } finally {
@@ -241,10 +292,10 @@ const TarifasTab = forwardRef<TarifasTabHandle, TarifasTabProps>(function Tarifa
           }}
         >
           <Form.Item name="ProductoEmpresaId" label="Producto" rules={[{ required: true }]}>
-            <Select options={productos.map((producto) => ({ value: producto.ProductoEmpresaId, label: producto.NombreComercial }))} />
+            <Select options={productos.map((producto) => ({ value: producto.Id, label: producto.Nombre }))} />
           </Form.Item>
           <Form.Item name="TipoClienteId" label="Tipo cliente">
-            <Select allowClear options={tiposCliente.map((tipo) => ({ value: tipo.TipoClienteId, label: tipo.Nombre }))} />
+            <Select allowClear options={tiposCliente.map((tipo) => ({ value: tipo.Id, label: tipo.Nombre }))} />
           </Form.Item>
           <Form.Item
             name="TipoDias"
