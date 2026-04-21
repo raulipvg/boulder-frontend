@@ -1,7 +1,8 @@
-import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons'
+import { DownloadOutlined, ReloadOutlined, DollarOutlined, FileDoneOutlined, UserOutlined, TagsOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
-import { App as AntdApp, Button, Card, Col, Row, Statistic, Table } from 'antd'
-import { useEffect, useState } from 'react'
+import { App as AntdApp, Button, Card, Col, Row, Statistic, Table, Progress, Space } from 'antd'
+import type { TableProps } from 'antd'
+import { useEffect, useState, useMemo } from 'react'
 import {
   buildFechaReferenciaParam,
   normalizeFechaReferencia,
@@ -91,13 +92,54 @@ export default function VentasReportPage() {
     void load(periodo, fechaReferencia)
   }, [fechaReferencia, periodo])
 
+  // Cálculos para gráficos de barras dentro de la tabla
+  const maxVentaProducto = useMemo(() =>
+    ventasPorProducto.reduce((max, item) => Math.max(max, item.Valor), 0)
+    , [ventasPorProducto])
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(value)
+
+  const formatNumber = (value: number) =>
+    new Intl.NumberFormat('es-CL').format(value)
+
+  const getColumns = (maxGlobal: number, itemName: string): TableProps<SimpleReportItemDto>['columns'] => [
+    {
+      title: itemName,
+      dataIndex: 'Etiqueta',
+      sorter: (a, b) => a.Etiqueta.localeCompare(b.Etiqueta),
+      width: '45%'
+    },
+    {
+      title: 'Ventas (CLP)',
+      dataIndex: 'Valor',
+      sorter: (a, b) => a.Valor - b.Valor,
+      defaultSortOrder: 'descend',
+      render: (valor: number) => {
+        const percent = maxGlobal > 0 ? (valor / maxGlobal) * 100 : 0
+        return (
+          <Space direction="vertical" style={{ width: '100%', gap: 2 }}>
+            <span style={{ fontWeight: 500 }}>{formatCurrency(valor)}</span>
+            <Progress
+              percent={percent}
+              showInfo={false}
+              size="small"
+              strokeColor="#374151"
+              style={{ margin: 0 }}
+            />
+          </Space>
+        )
+      }
+    }
+  ]
+
   return (
     <div className="tms-page">
       <RequireCompanyAlert />
       <PageHeaderCard
         title="Reportes de ventas"
-        subtitle="Indicadores filtrados por dia, mes o anio para producto y tipo de cliente."
-        actions={<Button icon={<ReloadOutlined />} onClick={() => void load()} loading={loading} />}
+        subtitle="Indicadores filtrados por día, mes o año para producto y tipo de cliente."
+        actions={<Button icon={<ReloadOutlined />} onClick={() => void load()} loading={loading}>Actualizar</Button>}
       />
 
       <ReportesPeriodoFilter
@@ -111,19 +153,83 @@ export default function VentasReportPage() {
         actions={<Button icon={<DownloadOutlined />} onClick={() => void exportCsv()} loading={exportingCsv}>Descargar CSV</Button>}
       />
 
-      <Row gutter={16} className="tms-kpi-row">
-        <Col xs={24} md={8}><Card className="tms-compact-card"><Statistic title="Ventas totales del periodo" value={dashboard?.VentasTotales ?? 0} prefix="$" /></Card></Col>
-        <Col xs={24} md={8}><Card className="tms-compact-card"><Statistic title="Ventas emitidas del periodo" value={dashboard?.VentasEmitidas ?? 0} /></Card></Col>
-        <Col xs={24} md={8}><Card className="tms-compact-card"><Statistic title="Clientes activos" value={dashboard?.ClientesActivos ?? 0} /></Card></Col>
+      <Row gutter={[16, 16]} className="tms-kpi-row" style={{ display: 'flex', alignItems: 'stretch' }}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="tms-compact-card" style={{ height: '100%' }}>
+            <Statistic
+              title={<span><DollarOutlined style={{ color: '#52c41a', marginRight: 8 }} /> Ventas totales del periodo</span>}
+              value={dashboard?.VentasTotales ?? 0}
+              prefix="$"
+              formatter={(val) => formatNumber(Number(val))}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="tms-compact-card" style={{ height: '100%' }}>
+            <Statistic
+              title={<span><FileDoneOutlined style={{ color: '#1890ff', marginRight: 8 }} /> Ventas emitidas del periodo</span>}
+              value={dashboard?.VentasEmitidas ?? 0}
+              formatter={(val) => formatNumber(Number(val))}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="tms-compact-card" style={{ height: '100%' }}>
+            <Statistic
+              title={<span><UserOutlined style={{ color: '#722ed1', marginRight: 8 }} /> Clientes activos</span>}
+              value={dashboard?.ClientesActivos ?? 0}
+              formatter={(val) => formatNumber(Number(val))}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="tms-compact-card" style={{ height: '100%' }}>
+            <div style={{ color: 'rgba(0, 0, 0, 0.45)', marginBottom: 4, display: 'flex', alignItems: 'center' }}>
+              <TagsOutlined style={{ color: '#eb2f96', marginRight: 8 }} />
+              <span style={{ fontSize: 14 }}>Distribución por cliente</span>
+            </div>
+            <div style={{ marginTop: 12 }}>
+              {ventasPorTipoCliente.length > 0 ? ventasPorTipoCliente.map(item => {
+                const total = ventasPorTipoCliente.reduce((sum, i) => sum + i.Valor, 0)
+                const pct = total > 0 ? (item.Valor / total) * 100 : 0
+                const isStudent = item.Etiqueta.toLowerCase().includes('estudiante')
+                return (
+                  <div key={item.Etiqueta} style={{ marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 2 }}>
+                      <span>{item.Etiqueta}</span>
+                      <span style={{ fontWeight: 600 }}>{formatCurrency(item.Valor)}</span>
+                    </div>
+                    <Progress
+                      percent={pct}
+                      showInfo={false}
+                      size="small"
+                      strokeColor={isStudent ? '#1890ff' : '#374151'}
+                      style={{ margin: 0 }}
+                    />
+                  </div>
+                )
+              }) : (
+                <div style={{ color: '#bfbfbf', paddingTop: 16 }}>No hay datos</div>
+              )}
+            </div>
+          </Card>
+        </Col>
       </Row>
 
-      <Card title="Ventas por producto" className="tms-page-table-card">
-        <Table rowKey="Etiqueta" loading={loading} pagination={false} dataSource={ventasPorProducto} columns={[{ title: 'Producto', dataIndex: 'Etiqueta' }, { title: 'Valor', dataIndex: 'Valor' }]} />
-      </Card>
-
-      <Card title="Ventas por tipo de cliente" className="tms-page-table-card">
-        <Table rowKey="Etiqueta" loading={loading} pagination={false} dataSource={ventasPorTipoCliente} columns={[{ title: 'Tipo cliente', dataIndex: 'Etiqueta' }, { title: 'Valor', dataIndex: 'Valor' }]} />
-      </Card>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} md={24}>
+          <Card title="Ventas por producto" className="tms-page-table-card">
+            <Table
+              rowKey="Etiqueta"
+              size="middle"
+              loading={loading}
+              pagination={{ pageSize: 15 }}
+              dataSource={ventasPorProducto}
+              columns={getColumns(maxVentaProducto, 'Producto')}
+            />
+          </Card>
+        </Col>
+      </Row>
     </div>
   )
 }

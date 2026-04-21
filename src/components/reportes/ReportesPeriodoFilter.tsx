@@ -1,5 +1,5 @@
 import type { Dayjs } from 'dayjs'
-import { DatePicker, Select, Typography } from 'antd'
+import { DatePicker, Segmented, Typography } from 'antd'
 import type { ReactNode } from 'react'
 import {
   DEFAULT_REPORTE_PERIODO,
@@ -51,9 +51,7 @@ export function ReportesPeriodoFilter({
 
   return (
     <PageFiltersCard>
-      <Typography.Text type="secondary">Periodo</Typography.Text>
-      <Select
-        style={{ minWidth: 140 }}
+      <Segmented
         value={periodo}
         options={REPORTE_PERIODO_OPTIONS}
         onChange={(value) => onPeriodoChange(value as ReportePeriodo)}
