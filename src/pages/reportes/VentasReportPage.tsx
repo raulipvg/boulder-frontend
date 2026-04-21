@@ -118,7 +118,7 @@ export default function VentasReportPage() {
       render: (valor: number) => {
         const percent = maxGlobal > 0 ? (valor / maxGlobal) * 100 : 0
         return (
-          <Space direction="vertical" style={{ width: '100%', gap: 2 }}>
+          <Space orientation="vertical" style={{ width: '100%', gap: 2 }}>
             <span style={{ fontWeight: 500 }}>{formatCurrency(valor)}</span>
             <Progress
               percent={percent}

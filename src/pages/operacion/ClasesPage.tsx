@@ -220,7 +220,7 @@ export default function OperacionClasesPage() {
                 bodyStyle={{ padding: 20 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#374151', backgroundColor: '#eceff3', padding: '6px 12px', borderRadius: 8, fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#374151', backgroundColor: '#eceff3', padding: '2px 4px', borderRadius: 8, fontWeight: 600 }}>
                     <ClockCircleOutlined />
                     <span>{record.HoraInicio.slice(0, 5)} - {record.HoraFin.slice(0, 5)}</span>
                   </div>

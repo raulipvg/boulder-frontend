@@ -33,7 +33,7 @@ import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 
 const { useBreakpoint } = Grid
 
-const estadoTag = (estado: string) => <Tag bordered={false} color={estado === 'activo' ? 'success' : 'default'}>{estado === 'activo' ? 'ACTIVO' : 'INACTIVO'}</Tag>
+const estadoTag = (estado: string) => <Tag variant="filled" color={estado === 'activo' ? 'success' : 'default'}>{estado === 'activo' ? 'ACTIVO' : 'INACTIVO'}</Tag>
 
 export default function UsuariosPage() {
   const { message } = AntdApp.useApp()
@@ -75,38 +75,54 @@ export default function UsuariosPage() {
 
   const openCreate = () => {
     setEditingItem(null)
-    form.resetFields()
     setOpen(true)
   }
 
   const openEdit = (record: UsuarioDto) => {
     setEditingItem(record)
-    form.setFieldsValue({
-      NombreCompleto: record.NombreCompleto,
-      Rut: record.Rut,
-      EmailLogin: record.EmailLogin,
-      Estado: record.Estado,
-      RolCodigo: record.Roles[0],
-      EmpresaId: record.EmpresaId ?? undefined,
-    })
     setOpen(true)
   }
 
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    if (!editingItem) {
+      form.resetFields()
+      return
+    }
+
+    form.setFieldsValue({
+      NombreCompleto: editingItem.NombreCompleto,
+      Rut: editingItem.Rut,
+      EmailLogin: editingItem.EmailLogin,
+      Estado: editingItem.Estado,
+      RolCodigo: editingItem.Roles[0],
+      EmpresaId: editingItem.EmpresaId ?? undefined,
+    })
+  }, [editingItem, form, open])
+
   const openPassword = (record: UsuarioDto) => {
     setPasswordTarget(record)
-    passwordForm.resetFields()
     setPasswordOpen(true)
   }
 
+  useEffect(() => {
+    if (passwordOpen) {
+      passwordForm.resetFields()
+    }
+  }, [passwordForm, passwordOpen])
+
   const roleTags = (record: UsuarioDto) => {
     if (!record.Roles?.length) {
-      return <Tag bordered={false}>Sin roles</Tag>
+      return <Tag variant="filled">Sin roles</Tag>
     }
 
     return (
       <Space size={4} wrap>
         {record.Roles.map((rol) => (
-          <Tag key={rol} color="blue" bordered={false}>{rol}</Tag>
+          <Tag key={rol} color="blue" variant="filled">{rol}</Tag>
         ))}
       </Space>
     )

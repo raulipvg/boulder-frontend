@@ -9,7 +9,6 @@ import {
   Grid,
   Input,
   Modal,
-  Radio,
   Row,
   Segmented,
   Select,
@@ -427,11 +426,9 @@ export default function ClasesPage() {
         subtitle="Programas y horarios asociados a profesor."
         actions={(
           <>
-            <Radio.Group
-              optionType="button"
-              buttonStyle="solid"
+            <Segmented
               value={estadoFiltro}
-              onChange={(event) => setEstadoFiltro(event.target.value as EstadoFiltro)}
+              onChange={(value) => setEstadoFiltro(value as EstadoFiltro)}
               options={[
                 { label: 'Activo', value: 'activo' },
                 { label: 'Inactivo', value: 'inactivo' },
@@ -439,7 +436,7 @@ export default function ClasesPage() {
             />
             <Button icon={<ReloadOutlined />} onClick={() => void load(estadoFiltro)} />
             <Button type="primary" icon={<PlusOutlined />} onClick={() => void openCreate()}>
-              Nueva clase
+              Nueva Clase
             </Button>
           </>
         )}
@@ -539,30 +536,30 @@ export default function ClasesPage() {
                         />
                       ))}
 
-                    {(eventsByDay[day.value] ?? []).map((event) => {
-                      const top = ((event.inicioMin - calendarBounds.startMinute) / 60) * HOUR_HEIGHT
-                      const height = Math.max(((event.finMin - event.inicioMin) / 60) * HOUR_HEIGHT, 28)
-                      const eventWidth = 100 / event.columns
-                      const left = event.column * eventWidth
-                      const isEnabled = event.activoClase && event.horarioActivo
+                      {(eventsByDay[day.value] ?? []).map((event) => {
+                        const top = ((event.inicioMin - calendarBounds.startMinute) / 60) * HOUR_HEIGHT
+                        const height = Math.max(((event.finMin - event.inicioMin) / 60) * HOUR_HEIGHT, 28)
+                        const eventWidth = 100 / event.columns
+                        const left = event.column * eventWidth
+                        const isEnabled = event.activoClase && event.horarioActivo
 
-                      return (
-                        <button
-                          type="button"
-                          key={event.eventId}
-                          className={[
-                            'tms-clases-calendar-event',
-                            isEnabled ? '' : 'tms-clases-calendar-event--inactive',
-                          ].filter(Boolean).join(' ')}
-                          style={{
-                            '--profesor-color': event.profesorColor,
-                            top,
-                            height,
-                            left: `calc(${left}% + 4px)`,
-                            width: `calc(${eventWidth}% - 8px)`,
-                          } as CSSProperties}
-                          onClick={() => openEditFromClaseId(event.claseId)}
-                        >
+                        return (
+                          <button
+                            type="button"
+                            key={event.eventId}
+                            className={[
+                              'tms-clases-calendar-event',
+                              isEnabled ? '' : 'tms-clases-calendar-event--inactive',
+                            ].filter(Boolean).join(' ')}
+                            style={{
+                              '--profesor-color': event.profesorColor,
+                              top,
+                              height,
+                              left: `calc(${left}% + 4px)`,
+                              width: `calc(${eventWidth}% - 8px)`,
+                            } as CSSProperties}
+                            onClick={() => openEditFromClaseId(event.claseId)}
+                          >
                             <div className="tms-clases-calendar-event-title">{event.claseNombre}</div>
                             <div className="tms-clases-calendar-event-meta">
                               <span className="tms-clases-profesor-dot" style={{ backgroundColor: event.profesorColor }} />
