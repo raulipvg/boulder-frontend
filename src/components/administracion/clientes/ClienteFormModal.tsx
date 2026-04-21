@@ -7,6 +7,7 @@ type ClienteFormModalProps = {
   open: boolean
   editingItem: ClienteDto | null
   tipos: TipoClienteDto[]
+  tiposLoading: boolean
   submitting: boolean
   form: FormInstance
   onCancel: () => void
@@ -17,6 +18,7 @@ export function ClienteFormModal({
   open,
   editingItem,
   tipos,
+  tiposLoading,
   submitting,
   form,
   onCancel,
@@ -30,7 +32,7 @@ export function ClienteFormModal({
       onOk={() => form.submit()}
       confirmLoading={submitting}
       destroyOnHidden
-      maskClosable={false}
+      mask={{ closable: false }}
       keyboard={false}
       width={900}
     >
@@ -62,7 +64,7 @@ export function ClienteFormModal({
           </Col>
           <Col xs={24} md={8}>
             <Form.Item name="TipoClienteId" label="Tipo cliente" rules={[{ required: true }]}>
-              <Select options={tipos.map((tipo) => ({ value: tipo.TipoClienteId, label: tipo.Nombre }))} />
+              <Select loading={tiposLoading} options={tipos.map((tipo) => ({ value: tipo.TipoClienteId, label: tipo.Nombre }))} />
             </Form.Item>
           </Col>
         </Row>

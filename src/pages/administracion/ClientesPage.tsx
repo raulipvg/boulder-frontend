@@ -33,6 +33,8 @@ export default function ClientesPage() {
 
   const [items, setItems] = useState<ClienteDto[]>([])
   const [tipos, setTipos] = useState<TipoClienteDto[]>([])
+  const [tiposLoaded, setTiposLoaded] = useState(false)
+  const [tiposLoading, setTiposLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
@@ -43,14 +45,27 @@ export default function ClientesPage() {
   const load = async (searchValue = '') => {
     setLoading(true)
     try {
-      const [clientes, tiposCliente] = await Promise.all([
-        administracionService.getClientes(searchValue),
-        administracionService.getTiposCliente(),
-      ])
+      const clientes = await administracionService.getClientes(searchValue)
       setItems(clientes)
-      setTipos(tiposCliente)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const ensureTiposCliente = async () => {
+    if (tiposLoaded || tiposLoading) {
+      return
+    }
+
+    setTiposLoading(true)
+    try {
+      const tiposCliente = await administracionService.getTiposCliente()
+      setTipos(tiposCliente)
+      setTiposLoaded(true)
+    } catch (error) {
+      message.error(getApiErrorMessage(error, 'No se pudieron cargar los tipos de cliente.'))
+    } finally {
+      setTiposLoading(false)
     }
   }
 
@@ -62,6 +77,8 @@ export default function ClientesPage() {
     if (!open) {
       return
     }
+
+    void ensureTiposCliente()
 
     if (!editingItem) {
       form.resetFields()
@@ -127,6 +144,7 @@ export default function ClientesPage() {
         open={open}
         editingItem={editingItem}
         tipos={tipos}
+        tiposLoading={tiposLoading}
         submitting={submitting}
         form={form}
         onCancel={() => {
