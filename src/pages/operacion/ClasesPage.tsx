@@ -14,10 +14,7 @@ import {
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
-import 'dayjs/locale/es'
 import { useEffect, useState } from 'react'
-
-dayjs.locale('es')
 import { PageFiltersCard } from '../../components/shared/PageFiltersCard'
 import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'

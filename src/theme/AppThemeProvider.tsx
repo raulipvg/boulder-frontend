@@ -1,7 +1,10 @@
 import { App as AntdApp, ConfigProvider } from 'antd'
-import esES from 'antd/locale/es_ES'
+import type { Locale } from 'antd/es/locale'
+import esESModule from 'antd/locale/es_ES'
 import { useEffect, type PropsWithChildren } from 'react'
 import { resolveTheme } from './resolveTheme'
+
+const antdLocale = (esESModule as { default?: Locale }).default ?? (esESModule as Locale)
 
 export function AppThemeProvider({ children }: PropsWithChildren) {
   const activeTheme = resolveTheme('GRAFITO')
@@ -18,7 +21,7 @@ export function AppThemeProvider({ children }: PropsWithChildren) {
   }, [activeTheme])
 
   return (
-    <ConfigProvider locale={esES} theme={activeTheme.antdTheme}>
+    <ConfigProvider locale={antdLocale} theme={activeTheme.antdTheme}>
       <AntdApp>{children}</AntdApp>
     </ConfigProvider>
   )
