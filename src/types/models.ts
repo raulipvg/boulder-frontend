@@ -147,6 +147,11 @@ export interface ClaseAgendaDto {
   Horarios: ClaseAgendaHorarioDto[]
 }
 
+export interface ClaseCatalogoDto {
+  ClaseId: number
+  Nombre: string
+}
+
 export interface ClaseDto {
   ClaseId: number
   Nombre: string

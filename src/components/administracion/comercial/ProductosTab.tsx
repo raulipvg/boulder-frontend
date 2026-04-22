@@ -22,7 +22,7 @@ import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { administracionService } from '../../../services/administracion/administracionService'
-import type { ClaseAgendaDto, IdNombreDto, LookupDto, ProductoDto, TarifaProductoResumenDto } from '../../../types/models'
+import type { ClaseCatalogoDto, IdNombreDto, LookupDto, ProductoDto, TarifaProductoResumenDto } from '../../../types/models'
 import { getApiErrorMessage } from '../../../utils/getApiErrorMessage'
 
 export interface ProductosTabHandle {
@@ -79,7 +79,7 @@ type CatalogosData = {
   tiposBase: LookupDto[]
   tiposClienteData: LookupDto[]
   bloquesData: IdNombreDto[]
-  clasesData: ClaseAgendaDto[]
+  clasesData: ClaseCatalogoDto[]
 }
 
 const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props, ref) {
@@ -91,7 +91,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
   const [tipos, setTipos] = useState<LookupDto[]>([])
   const [tiposCliente, setTiposCliente] = useState<LookupDto[]>([])
   const [bloques, setBloques] = useState<IdNombreDto[]>([])
-  const [clases, setClases] = useState<ClaseAgendaDto[]>([])
+  const [clases, setClases] = useState<ClaseCatalogoDto[]>([])
   const [loading, setLoading] = useState(true)
   const [catalogosLoading, setCatalogosLoading] = useState(false)
   const [catalogosLoaded, setCatalogosLoaded] = useState(false)
@@ -200,7 +200,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
           administracionService.getTiposProductoBase(),
           administracionService.getTiposClienteCatalogo(),
           administracionService.getBloquesCatalogoLite(),
-          administracionService.getClases(),
+          administracionService.getClasesCatalogo(),
         ])
         setTipos(tiposBase)
         setTiposCliente(tiposClienteData)

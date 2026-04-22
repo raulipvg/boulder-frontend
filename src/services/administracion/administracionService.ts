@@ -1,5 +1,5 @@
 import apiClient from '../apiClient'
-import type { BloqueHorarioDto, ClaseAgendaDto, ClaseDto, ClienteDto, EmpresaDto, IdNombreDto, LookupDto, ProductoDto, TarifaDto, TarifaProductoResumenDto, TipoClienteDto, UsuarioDto } from '../../types/models'
+import type { BloqueHorarioDto, ClaseAgendaDto, ClaseCatalogoDto, ClaseDto, ClienteDto, EmpresaDto, IdNombreDto, LookupDto, ProductoDto, TarifaDto, TarifaProductoResumenDto, TipoClienteDto, UsuarioDto } from '../../types/models'
 import { getAdminTargetCompanyKey, getStoredAuth } from '../../utils/storage'
 
 const tiposClienteCatalogoByScope = new Map<string, LookupDto[]>()
@@ -112,6 +112,7 @@ export const administracionService = {
   createTarifa: async (payload: Record<string, unknown>) => (await apiClient.post<TarifaDto>('/administracion/tarifas', payload)).data,
   createTarifasBatch: async (payload: Record<string, unknown>) => (await apiClient.post<TarifaDto[]>('/administracion/tarifas/batch', payload)).data,
   updateTarifa: async (tarifaProductoId: number, payload: Record<string, unknown>) => (await apiClient.put<TarifaDto>(`/administracion/tarifas/${tarifaProductoId}`, payload)).data,
+  getClasesCatalogo: async () => (await apiClient.get<ClaseCatalogoDto[]>('/administracion/catalogos/clases')).data,
   getClases: async (activo?: boolean) => (await apiClient.get<ClaseAgendaDto[]>('/administracion/clases', { params: activo === undefined ? undefined : { activo } })).data,
   getClaseById: async (claseId: number) => (await apiClient.get<ClaseDto>(`/administracion/clases/${claseId}`)).data,
   createClase: async (payload: Record<string, unknown>) => (await apiClient.post<ClaseDto>('/administracion/clases', payload)).data,

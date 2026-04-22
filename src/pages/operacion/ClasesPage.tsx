@@ -260,7 +260,7 @@ export default function OperacionClasesPage() {
         title={sesionSeleccionada ? `Asistencia · ${sesionSeleccionada.ClaseNombre}` : 'Asistencia'}
       >
         {sesionSeleccionada ? (
-          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+          <Space orientation="vertical" style={{ width: '100%' }} size="middle">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <div>
                 <Typography.Text type="secondary">

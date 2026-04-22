@@ -61,7 +61,7 @@ export default function MainLayout() {
       children: [
         { key: '/administracion/clientes', label: 'Clientes', roles: ROLES_ADMIN },
         { key: '/administracion/usuarios', label: 'Usuarios', roles: ROLES_ADMIN },
-        { key: '/administracion/comercial', label: 'Productos y Tarifas', roles: ROLES_ADMIN },
+        { key: '/administracion/comercial', label: 'Comercial', roles: ROLES_ADMIN },
         { key: '/administracion/clases', label: 'Clases Admin', roles: ROLES_ADMIN },
         { key: '/administracion/empresas', label: 'Empresas', roles: ROLES_ADMIN_TOTAL },
       ],

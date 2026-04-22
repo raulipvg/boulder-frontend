@@ -27,7 +27,7 @@ export function VentasTab({
     {
       title: 'Estado',
       render: (_, record) => (
-        <Tag color={record.Estado === 'emitida' ? 'success' : 'error'} bordered={false}>
+        <Tag color={record.Estado === 'emitida' ? 'success' : 'error'} variant="filled">
           {record.Estado.toUpperCase()}
         </Tag>
       ),

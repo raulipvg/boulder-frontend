@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { administracionService } from '../../services/administracion/administracionService'
-import type { ClaseAgendaDto, LookupDto, ProductoDto } from '../../types/models'
+import type { ClaseCatalogoDto, LookupDto, ProductoDto } from '../../types/models'
 import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 
 export default function ProductosPage() {
@@ -12,7 +12,7 @@ export default function ProductosPage() {
   const [items, setItems] = useState<ProductoDto[]>([])
   const [tipos, setTipos] = useState<LookupDto[]>([])
   const [bloques, setBloques] = useState<LookupDto[]>([])
-  const [clases, setClases] = useState<ClaseAgendaDto[]>([])
+  const [clases, setClases] = useState<ClaseCatalogoDto[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<ProductoDto | null>(null)
@@ -35,7 +35,7 @@ export default function ProductosPage() {
         administracionService.getProductos(),
         administracionService.getTiposProductoBase(),
         administracionService.getBloques(),
-        administracionService.getClases(),
+        administracionService.getClasesCatalogo(),
       ])
       setItems(productos)
       setTipos(tiposBase)

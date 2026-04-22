@@ -120,7 +120,7 @@ export default function AccesosPage() {
         notFoundContent={
           searchLoading ? (
             <div style={{ padding: '24px 16px', textAlign: 'center' }}>
-              <Spin tip="Buscando clientes..." size="small" />
+              <Spin description="Buscando clientes..." size="small" />
             </div>
           ) : search.length >= 2 && clientes.length === 0 ? (
             <div style={{ padding: '16px' }}>
@@ -175,7 +175,7 @@ export default function AccesosPage() {
       )}
 
       {preview && (
-        <Card style={{ marginTop: 24, borderRadius: 16, boxShadow: '0 8px 30px rgba(0,0,0,0.06)' }} bordered={false} loading={previewLoading}>
+        <Card style={{ marginTop: 24, borderRadius: 16, boxShadow: '0 8px 30px rgba(0,0,0,0.06)' }} variant="borderless" loading={previewLoading}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
             <Avatar size={64} style={{ backgroundColor: '#374151', fontSize: 24 }}>{preview.ClienteNombre.charAt(0).toUpperCase()}</Avatar>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -191,11 +191,11 @@ export default function AccesosPage() {
               </div>
               <Space style={{ marginTop: 4 }} size="small" wrap>
                 {selectedCliente?.TipoCliente && (
-                  <Tag color="info" bordered={false}>
+                  <Tag color="info" variant="filled">
                     {selectedCliente.TipoCliente.toUpperCase()}
                   </Tag>
                 )}
-                <Tag color={preview.EstadoCliente === 'activo' ? 'success' : 'error'} bordered={false}>
+                <Tag color={preview.EstadoCliente === 'activo' ? 'success' : 'error'} variant="filled">
                   {preview.EstadoCliente.toUpperCase()}
                 </Tag>
               </Space>
@@ -236,8 +236,8 @@ export default function AccesosPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <Typography.Text strong style={{ fontSize: 15 }}>{item.ProductoNombre}</Typography.Text>
                           <Space size="small" wrap>
-                            <Tag color={optionState.color} bordered={false} style={{ fontWeight: 400 }}>{optionState.label}</Tag>
-                            <Tag color="default" bordered={false} style={{ fontWeight: 400 }}>{item.Estado.toUpperCase()}</Tag>
+                            <Tag color={optionState.color} variant="filled" style={{ fontWeight: 400 }}>{optionState.label}</Tag>
+                            <Tag color="default" variant="filled" style={{ fontWeight: 400 }}>{item.Estado.toUpperCase()}</Tag>
                           </Space>
                         </div>
                       )}

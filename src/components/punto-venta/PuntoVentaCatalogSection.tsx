@@ -32,7 +32,7 @@ export function PuntoVentaCatalogSection({
     <Col xs={24} xl={15} xxl={16}>
       <Card className={styles.catalogCard} styles={{ body: { padding: 0 } }}>
         {loading ? (
-          <Space direction="vertical" size="large" className={styles.contentStack}>
+          <Space orientation="vertical" size="large" className={styles.contentStack}>
             <div className={styles.toolbar}>
               <div className={styles.toolbarControls}>
                 <div className={styles.filterWrap}>
@@ -44,7 +44,7 @@ export function PuntoVentaCatalogSection({
             <Row gutter={[14, 14]}>
               {Array.from({ length: 9 }).map((_, index) => (
                 <Col xs={24} md={12} lg={8} key={`skeleton-${index}`}>
-                  <Card className={styles.skeletonCard} bordered={false}>
+                  <Card className={styles.skeletonCard} variant="borderless">
                     <div className={styles.skeletonHeader}>
                       <Skeleton.Avatar active shape="square" size={48} className={styles.skeletonAvatar} />
                       <div className={styles.skeletonHeaderCopy}>
@@ -61,7 +61,7 @@ export function PuntoVentaCatalogSection({
             </Row>
           </Space>
         ) : (
-          <Space direction="vertical" size="large" className={styles.contentStack}>
+          <Space orientation="vertical" size="large" className={styles.contentStack}>
             <div className={styles.toolbar}>
               <div className={styles.toolbarControls}>
                 <div className={styles.filterWrap}>
