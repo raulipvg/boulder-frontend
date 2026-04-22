@@ -166,12 +166,12 @@ export default function AccesosPage() {
       </AutoComplete>
 
       {result && (
-        <Alert
-          type={result.autorizado ? 'success' : 'error'}
-          showIcon
-          message={<Typography.Text strong style={{ fontSize: 16 }}>{result.mensaje}</Typography.Text>}
-          style={{ marginTop: 24, padding: 16, borderRadius: 12, border: result.autorizado ? '1px solid #b7eb8f' : '1px solid #ffa39e' }}
-        />
+          <Alert
+            type={result.autorizado ? 'success' : 'error'}
+            showIcon
+            title={<Typography.Text strong style={{ fontSize: 16 }}>{result.mensaje}</Typography.Text>}
+            style={{ marginTop: 24, padding: 16, borderRadius: 12, border: result.autorizado ? '1px solid #b7eb8f' : '1px solid #ffa39e' }}
+          />
       )}
 
       {preview && (
@@ -207,7 +207,7 @@ export default function AccesosPage() {
           <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 16, textTransform: 'uppercase', fontSize: 12, letterSpacing: 1, fontWeight: 600 }}>Beneficios Disponibles</Typography.Text>
 
           {preview.Opciones.length === 0 ? (
-            <Alert type="warning" showIcon message="No tiene pases o mensualidades activas" style={{ borderRadius: 8 }} />
+            <Alert type="warning" showIcon title="No tiene pases o mensualidades activas" style={{ borderRadius: 8 }} />
           ) : (
             <List
               itemLayout="horizontal"

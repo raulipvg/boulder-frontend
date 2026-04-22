@@ -7,14 +7,16 @@ import {
   Empty,
   Grid,
   Modal,
+  Spin,
   Space,
   Table,
   Tag,
+  Tooltip,
   Typography,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageFiltersCard } from '../../components/shared/PageFiltersCard'
 import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
@@ -24,6 +26,7 @@ import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 import { toCapitalCase } from '../../utils/formatPersonName'
 
 const { useBreakpoint } = Grid
+const DATE_NAVIGATION_DEBOUNCE_MS = 300
 
 export default function OperacionClasesPage() {
   const { message } = AntdApp.useApp()
@@ -31,17 +34,21 @@ export default function OperacionClasesPage() {
   const isMobile = !screens.md
 
   const [fecha, setFecha] = useState(dayjs())
+  const [fechaPendiente, setFechaPendiente] = useState<string | null>(null)
   const [items, setItems] = useState<ClaseSesionDto[]>([])
   const [loading, setLoading] = useState(true)
+  const [navegandoFecha, setNavegandoFecha] = useState(false)
   const [sesionSeleccionada, setSesionSeleccionada] = useState<ClaseSesionDto | null>(null)
   const [inscritos, setInscritos] = useState<ClaseSesionInscritoDto[]>([])
   const [inscritosLoading, setInscritosLoading] = useState(false)
   const [registrandoClienteId, setRegistrandoClienteId] = useState<number | null>(null)
+  const navigationIntentRef = useRef(0)
+  const initialFechaRef = useRef(fecha.format('YYYY-MM-DD'))
 
   const dateOptions = Array.from({ length: 7 }, (_, i) => fecha.subtract(3, 'day').add(i, 'day'))
   const fechaSeleccionada = fecha.format('YYYY-MM-DD')
 
-  const load = async (fechaValue: string) => {
+  const load = useCallback(async (fechaValue: string) => {
     setLoading(true)
     try {
       setItems(await operacionService.getSesiones(fechaValue))
@@ -51,6 +58,24 @@ export default function OperacionClasesPage() {
     } finally {
       setLoading(false)
     }
+  }, [message])
+
+  const requestFecha = (nextFecha: dayjs.Dayjs) => {
+    const nextFechaValue = nextFecha.format('YYYY-MM-DD')
+    const currentTarget = fechaPendiente ?? fechaSeleccionada
+
+    if (nextFechaValue === currentTarget) {
+      return
+    }
+
+    setLoading(true)
+    setNavegandoFecha(true)
+    setFechaPendiente(nextFechaValue)
+  }
+
+  const navigateFecha = (deltaDays: number) => {
+    const base = dayjs(fechaPendiente ?? fechaSeleccionada)
+    requestFecha(base.add(deltaDays, 'day'))
   }
 
   const loadInscritos = async (claseSesionId: number) => {
@@ -134,7 +159,7 @@ export default function OperacionClasesPage() {
       ),
     },
     {
-      title: 'Accion',
+      title: 'Acción',
       key: 'accion',
       width: 180,
       render: (_, record) => (
@@ -154,8 +179,46 @@ export default function OperacionClasesPage() {
   const asistenciasRegistradas = inscritos.filter(x => x.AsistenciaRegistrada).length
 
   useEffect(() => {
-    void load(fechaSeleccionada)
-  }, [fecha])
+    void load(initialFechaRef.current)
+  }, [load])
+
+  useEffect(() => {
+    if (!fechaPendiente) {
+      return
+    }
+
+    const intentId = ++navigationIntentRef.current
+    const timeout = setTimeout(() => {
+      void (async () => {
+        try {
+          const sesiones = await operacionService.getSesiones(fechaPendiente)
+
+          if (intentId !== navigationIntentRef.current) {
+            return
+          }
+
+          setItems(sesiones)
+          setFecha(dayjs(fechaPendiente))
+        } catch (error) {
+          if (intentId !== navigationIntentRef.current) {
+            return
+          }
+
+          message.error(getApiErrorMessage(error, 'No se pudieron cargar las sesiones.'))
+        } finally {
+          if (intentId !== navigationIntentRef.current) {
+            return
+          }
+
+          setLoading(false)
+          setNavegandoFecha(false)
+          setFechaPendiente(null)
+        }
+      })()
+    }, DATE_NAVIGATION_DEBOUNCE_MS)
+
+    return () => clearTimeout(timeout)
+  }, [fechaPendiente, message])
 
   return (
     <div className="tms-page">
@@ -167,38 +230,49 @@ export default function OperacionClasesPage() {
 
       <PageFiltersCard>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
-          <Button type="text" icon={<LeftOutlined />} onClick={() => setFecha(fecha.subtract(1, 'day'))} />
+          <Tooltip title="Día anterior">
+            <Button type="text" icon={navegandoFecha ? <Spin size="small" /> : <LeftOutlined />} onClick={() => navigateFecha(-1)} />
+          </Tooltip>
 
           <div style={{ display: 'flex', overflowX: 'auto', gap: 8, padding: '4px', flex: 1, msOverflowStyle: 'none', scrollbarWidth: 'none', justifyContent: 'center' }}>
             {dateOptions.map(d => {
-              const isSelected = d.format('YYYY-MM-DD') === fecha.format('YYYY-MM-DD');
+              const dateValue = d.format('YYYY-MM-DD')
+              const isSelected = dateValue === fechaSeleccionada
+              const isPending = dateValue === fechaPendiente
+
               return (
                 <div
                   key={d.toISOString()}
-                  onClick={() => setFecha(d)}
+                  onClick={() => requestFecha(d)}
                   style={{
                     minWidth: 64,
                     textAlign: 'center',
                     cursor: 'pointer',
                     borderRadius: 12,
                     padding: '8px 4px',
-                    backgroundColor: isSelected ? '#374151' : 'transparent',
+                    backgroundColor: isSelected ? '#374151' : isPending ? '#eceff3' : 'transparent',
                     color: isSelected ? '#ffffff' : '#595959',
                     transition: 'all 0.2s ease',
                     userSelect: 'none'
                   }}
                 >
                   <div style={{ textTransform: 'capitalize', fontSize: 11, opacity: isSelected ? 0.9 : 0.6 }}>{d.format('ddd')}</div>
-                  <div style={{ fontSize: 18, fontWeight: isSelected ? 700 : 500, margin: '2px 0' }}>{d.format('DD')}</div>
+                  <div style={{ fontSize: 18, fontWeight: isSelected ? 700 : 500, margin: '2px 0', minHeight: 27, display: 'grid', placeItems: 'center' }}>
+                    {isPending ? <Spin size="small" /> : d.format('DD')}
+                  </div>
                   <div style={{ textTransform: 'capitalize', fontSize: 10, opacity: isSelected ? 0.9 : 0.6 }}>{d.format('MMM')}</div>
                 </div>
               )
             })}
           </div>
 
-          <Button type="text" icon={<RightOutlined />} onClick={() => setFecha(fecha.add(1, 'day'))} />
+          <Tooltip title="Día siguiente">
+            <Button type="text" icon={navegandoFecha ? <Spin size="small" /> : <RightOutlined />} onClick={() => navigateFecha(1)} />
+          </Tooltip>
           <div style={{ width: 1, height: 24, backgroundColor: '#f0f0f0', margin: '0 8px' }} />
-          <Button icon={<ReloadOutlined />} onClick={() => void load(fecha.format('YYYY-MM-DD'))} />
+          <Tooltip title="Recargar sesiones">
+            <Button icon={<ReloadOutlined />} onClick={() => void load(fecha.format('YYYY-MM-DD'))} />
+          </Tooltip>
         </div>
       </PageFiltersCard>
 
@@ -217,7 +291,7 @@ export default function OperacionClasesPage() {
                 hoverable
                 onClick={() => abrirAsistenciaSesion(record)}
                 style={{ borderRadius: 16, overflow: 'hidden', borderLeft: record.Estado === 'programada' ? '4px solid #374151' : '4px solid #ff4d4f' }}
-                bodyStyle={{ padding: 20 }}
+                styles={{ body: { padding: 20 } }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#374151', backgroundColor: '#eceff3', padding: '2px 4px', borderRadius: 8, fontWeight: 600 }}>
