@@ -50,7 +50,7 @@ export function PuntoVentaCartSection({
   onConfirmVenta,
 }: PuntoVentaCartSectionProps) {
   return (
-    <Col xs={24} xl={9} xxl={8}>
+    <Col xs={24} xl={9} xxl={8} className={styles.cartCol}>
       <Card title={<Space><ShoppingCartOutlined />Caja</Space>} className={`${styles.cartCard} ${styles.cartSticky}`}>
         <div className={styles.cartLayout}>
           <div className={styles.cartListWrapper}>

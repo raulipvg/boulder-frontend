@@ -1,5 +1,5 @@
-import { FilterOutlined, SearchOutlined } from '@ant-design/icons'
-import { App as AntdApp, Form, Input, Row, Space, Typography } from 'antd'
+import { FilterOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons'
+import { App as AntdApp, Button, Form, Grid, Input, Row, Space, Typography } from 'antd'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   PuntoVentaCartSection,
@@ -25,6 +25,8 @@ import styles from './PuntoVentaPage.module.css'
 export default function PuntoVentaPage() {
   const { message } = AntdApp.useApp()
   const { setHeaderContent } = useHeaderContent()
+  const screens = Grid.useBreakpoint()
+  const isMobile = !screens.md
   const [catalog, setCatalog] = useState<PosCatalogItemDto[]>([])
   const [mediosPago, setMediosPago] = useState<LookupDto[]>([])
   const [tiposCliente, setTiposCliente] = useState<TipoClienteDto[]>([])
@@ -49,23 +51,40 @@ export default function PuntoVentaPage() {
 
   useEffect(() => {
     setHeaderContent(
-      <Space size="middle" style={{ flex: 1, minWidth: 0 }}>
-        <Typography.Text strong style={{ fontSize: 16, whiteSpace: 'nowrap' }}>
-          Productos disponibles
-        </Typography.Text>
-        <Input
-          value={productSearch}
-          onChange={(event) => setProductSearch(event.target.value)}
-          allowClear
-          prefix={<SearchOutlined />}
-          placeholder="Buscar productos..."
-          className="tms-inline-search"
-          style={{ maxWidth: 420 }}
-        />
-      </Space>,
+      isMobile
+        ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+            <Input
+              value={productSearch}
+              onChange={(event) => setProductSearch(event.target.value)}
+              allowClear
+              prefix={<SearchOutlined />}
+              placeholder="Buscar productos..."
+              className="tms-inline-search"
+              style={{ flex: 1, minWidth: 0, width: '100%' }}
+            />
+            <Button icon={<ReloadOutlined />} onClick={() => { void reloadCatalog() }} />
+          </div>
+        )
+        : (
+          <Space size="middle" style={{ flex: 1, minWidth: 0 }}>
+            <Typography.Text strong style={{ fontSize: 16, whiteSpace: 'nowrap' }}>
+              Productos disponibles
+            </Typography.Text>
+            <Input
+              value={productSearch}
+              onChange={(event) => setProductSearch(event.target.value)}
+              allowClear
+              prefix={<SearchOutlined />}
+              placeholder="Buscar productos..."
+              className="tms-inline-search"
+              style={{ maxWidth: 420 }}
+            />
+          </Space>
+        ),
     )
     return () => setHeaderContent(null)
-  }, [productSearch, setHeaderContent])
+  }, [isMobile, productSearch, setHeaderContent])
 
   const nextLineId = () => {
     const id = `line-${lineIdRef.current}`

@@ -1,7 +1,7 @@
 import {
   ReloadOutlined,
 } from '@ant-design/icons'
-import { Button, Card, Col, Empty, Row, Segmented, Skeleton, Space } from 'antd'
+import { Button, Card, Col, Empty, Grid, Row, Segmented, Skeleton, Space } from 'antd'
 import type { ReactNode } from 'react'
 import type { PosCatalogItemDto } from '../../types/models'
 import { PuntoVentaProductCard } from './PuntoVentaProductCard'
@@ -28,6 +28,9 @@ export function PuntoVentaCatalogSection({
   onClearFilters,
   onAddProduct,
 }: PuntoVentaCatalogSectionProps) {
+  const screens = Grid.useBreakpoint()
+  const isMobile = !screens.md
+
   return (
     <Col xs={24} xl={15} xxl={16}>
       <Card className={styles.catalogCard} styles={{ body: { padding: 0 } }}>
@@ -38,7 +41,7 @@ export function PuntoVentaCatalogSection({
                 <div className={styles.filterWrap}>
                   <Skeleton.Button active block size="large" className={styles.skeletonFilterButton} />
                 </div>
-                <Button size="large" icon={<ReloadOutlined />} onClick={onReload} />
+                {!isMobile && <Button size="large" icon={<ReloadOutlined />} onClick={onReload} />}
               </div>
             </div>
             <Row gutter={[14, 14]}>
@@ -74,7 +77,7 @@ export function PuntoVentaCatalogSection({
                     className={styles.filterSegmented}
                   />
                 </div>
-                <Button size="large" icon={<ReloadOutlined />} onClick={onReload} />
+                {!isMobile && <Button size="large" icon={<ReloadOutlined />} onClick={onReload} />}
               </div>
             </div>
 

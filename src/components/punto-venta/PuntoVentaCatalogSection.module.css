@@ -17,15 +17,27 @@
   display: flex;
   gap: 12px;
   align-items: center;
+  min-width: 0;
 }
 
 .filterWrap {
   flex: 1;
   min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.filterWrap::-webkit-scrollbar {
+  display: none;
+  /* Chrome/Safari */
 }
 
 .filterSegmented {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   padding: 3px;
   background: #f1f5f9;
   border-radius: 12px;
@@ -103,12 +115,10 @@
 }
 
 @media (max-width: 1200px) {
-  .toolbarControls {
-    flex-wrap: wrap;
-  }
-
   .filterWrap {
     width: 100%;
-    flex: auto;
+    max-width: 100%;
+    flex: 1 1 100%;
+    min-width: 0;
   }
 }

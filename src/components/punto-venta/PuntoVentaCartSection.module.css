@@ -111,9 +111,20 @@
 }
 
 @media (max-width: 1200px) {
+  .cartCol {
+    padding-top: 12px;
+  }
+
+  .cartListWrapper {
+    padding: 12px;
+  }
+
   .cartSticky {
     position: static;
     height: auto;
     max-height: none;
   }
+}
+.cartCol {
+  min-width: 0;
 }
