@@ -110,6 +110,11 @@
   font-size: inherit;
 }
 
+.cartCol {
+  min-width: 0;
+  scroll-margin-top: 76px;
+}
+
 @media (max-width: 1200px) {
   .cartCol {
     padding-top: 12px;
@@ -124,7 +129,4 @@
     height: auto;
     max-height: none;
   }
-}
-.cartCol {
-  min-width: 0;
 }
