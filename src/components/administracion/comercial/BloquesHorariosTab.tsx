@@ -118,7 +118,12 @@ const BloquesHorariosTab = forwardRef<BloquesHorariosTabHandle>(function Bloques
 
   return (
     <>
-      <Card className="tms-page-table-card" variant="borderless" style={{ boxShadow: 'none' }} loading={loading}>
+      <Card
+        className="tms-page-table-card"
+        variant="borderless"
+        style={{ boxShadow: 'none' }}
+        styles={{ body: { padding: isMobile ? '8px' : undefined } }}
+        loading={loading}>
         {isMobile ? (
           items.length > 0 ? (
             <div style={{ display: 'grid', gap: 10 }}>

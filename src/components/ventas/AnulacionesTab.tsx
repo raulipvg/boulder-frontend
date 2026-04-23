@@ -1,5 +1,6 @@
 import { Typography } from 'antd'
 import type { TableProps } from 'antd'
+import type { ReactNode } from 'react'
 import type { VentaDto, VentaResumenDto } from '../../types/models'
 import { VentasTable } from './VentasTable'
 import styles from './AnulacionesTab.module.css'
@@ -36,11 +37,25 @@ export function AnulacionesTab({
     },
   ]
 
+  const renderMobileExtra = (record: VentaResumenDto): ReactNode => (
+    <div className={styles.mobileExtraRow}>
+      <Typography.Text strong className={styles.totalValue}>
+        ${record.Total.toLocaleString('es-CL')}
+      </Typography.Text>
+      {record.MotivoAnulacion && (
+        <Typography.Text className={styles.motivoValue} ellipsis={{ tooltip: record.MotivoAnulacion }}>
+          {record.MotivoAnulacion}
+        </Typography.Text>
+      )}
+    </div>
+  )
+
   return (
     <VentasTable
       items={items}
       loading={loading}
       extraColumns={extraColumns}
+      renderMobileExtra={renderMobileExtra}
       ventaDetalleById={ventaDetalleById}
       detalleLoadingById={detalleLoadingById}
       detalleErrorById={detalleErrorById}

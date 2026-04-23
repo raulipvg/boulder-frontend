@@ -10,3 +10,95 @@
 .expandedPlaceholder {
   padding: 16px;
 }
+
+/* ── Mobile card list ── */
+.mobileCardList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0 8px;
+}
+
+.mobileLoadingWrapper,
+.mobileEmptyWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px 16px;
+}
+
+/* ── Mobile card ── */
+.mobileCard {
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease;
+}
+
+.mobileCard:hover {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.09);
+}
+
+.mobileCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 4px;
+  gap: 8px;
+}
+
+.mobileCardTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mobileCardDate {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.mobileCardCliente {
+  padding: 2px 14px 8px;
+  font-size: 13px;
+}
+
+.mobileCardExtra {
+  padding: 0 14px 10px;
+}
+
+/* ── Toggle button ── */
+.mobileCardToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 14px;
+  background: #f9fafb;
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  cursor: pointer;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.mobileCardToggle:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.mobileCardToggleIcon {
+  font-size: 10px;
+}
+
+/* ── Expanded comprobante inside card ── */
+.mobileCardExpanded {
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+}

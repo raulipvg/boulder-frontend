@@ -1,3 +1,18 @@
 .totalValue {
   font-size: 15px;
 }
+
+/* ── Mobile extra row ── */
+.mobileExtraRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mobileExtraLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
