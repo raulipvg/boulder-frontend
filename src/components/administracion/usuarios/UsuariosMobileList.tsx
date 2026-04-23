@@ -1,5 +1,5 @@
 import { EditOutlined, KeyOutlined, MailOutlined } from '@ant-design/icons'
-import { Avatar, Button, Card, Empty, Tooltip, Typography } from 'antd'
+import { Avatar, Button, Card, Empty, Typography } from 'antd'
 import type { UsuarioDto } from '../../../types/models'
 import { toCapitalCase } from '../../../utils/formatPersonName'
 import { estadoTag, rolesTagList } from './usuarios'

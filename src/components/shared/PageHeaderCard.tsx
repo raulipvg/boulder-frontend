@@ -13,8 +13,8 @@ interface PageHeaderCardProps {
 export function PageHeaderCard({ title, subtitle, actions, actionsWrap = true, rowStyle, mobileStandard = false }: PageHeaderCardProps) {
   const resolvedSubtitle = mobileStandard ? undefined : subtitle
   const resolvedActionsWrap = mobileStandard ? false : actionsWrap
-  const resolvedRowStyle = mobileStandard
-    ? { flexWrap: 'nowrap', alignItems: 'center', ...rowStyle }
+  const resolvedRowStyle: CSSProperties | undefined = mobileStandard
+    ? { ...rowStyle, flexWrap: 'nowrap', alignItems: 'center' }
     : rowStyle
 
   return (

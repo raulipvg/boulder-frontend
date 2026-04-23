@@ -1,4 +1,9 @@
 ### Dependencies layer (better cache reuse in Dokploy builds)
+FROM node:22-alpine AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -13,11 +18,11 @@ RUN npm run build -- --mode ${VITE_BUILD_MODE}
 
 # ---------- Runtime ----------
 FROM nginx:1.27-alpine AS production
-ENV API_PROXY_URL=http://host.docker.internal:5000
+ENV API_PROXY_URL=http://boulder-backend:8080
 
 # Copiar build de React
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 
-EXPOSE 8080
+EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
