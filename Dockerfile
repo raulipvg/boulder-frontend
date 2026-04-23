@@ -18,7 +18,7 @@ RUN npm run build -- --mode ${VITE_BUILD_MODE}
 
 # ---------- Runtime ----------
 FROM nginx:1.27-alpine AS production
-ENV API_PROXY_URL=http://boulder-backend:8080
+ENV API_PROXY_URL=http://boulder-backend:5001
 
 # Copiar build de React
 COPY --from=build /app/dist /usr/share/nginx/html
