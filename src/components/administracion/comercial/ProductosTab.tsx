@@ -830,7 +830,7 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
         className="tms-page-table-card"
         variant="borderless"
         style={{ boxShadow: 'none' }}
-        styles={{ body: { padding: isMobile ? '8px' : undefined } }}
+        styles={{ body: { padding: '0px' } }}
         loading={loading}
       >
         {isMobile ? (

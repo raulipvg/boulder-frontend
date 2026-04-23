@@ -107,7 +107,9 @@ export default function UsuariosPage() {
     <div className="tms-page">
       <PageHeaderCard
         title="Usuarios"
-        subtitle="Usuarios internos y sus roles operativos."
+        subtitle={isMobile ? undefined : 'Usuarios internos y sus roles operativos.'}
+        actionsWrap={!isMobile}
+        rowStyle={isMobile ? { flexWrap: 'nowrap', alignItems: 'center' } : undefined}
         actions={(
           <>
             <Button icon={<ReloadOutlined />} onClick={() => void load()} />
@@ -118,7 +120,7 @@ export default function UsuariosPage() {
         )}
       />
 
-      <Card className="tms-page-table-card" loading={loading}>
+      <Card className="tms-page-table-card" loading={loading} styles={{ body: { padding: isMobile ? '12px' : undefined } }}>
         {isMobile ? (
           <UsuariosMobileList items={items} onEdit={openEdit} onPassword={openPassword} />
         ) : (

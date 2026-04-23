@@ -202,7 +202,7 @@ const TarifasTab = forwardRef<TarifasTabHandle, TarifasTabProps>(function Tarifa
         className="tms-page-table-card"
         variant="borderless"
         style={{ boxShadow: 'none' }}
-        styles={{ body: { padding: isMobile ? '8px' : undefined } }}
+        styles={{ body: { padding: '0px' } }}
         loading={loading}>
         {isMobile ? (
           items.length > 0 ? (

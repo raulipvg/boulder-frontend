@@ -1,5 +1,5 @@
 import { ClockCircleOutlined, DollarOutlined, ShoppingOutlined } from '@ant-design/icons'
-import { Card, Grid, Tabs } from 'antd'
+import { Card, Tabs } from 'antd'
 import { useMemo, useRef, useState } from 'react'
 import BloquesHorariosTab, { type BloquesHorariosTabHandle } from '../../components/administracion/comercial/BloquesHorariosTab'
 import {
@@ -14,12 +14,7 @@ import TarifasTab, {
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 
-const { useBreakpoint } = Grid
-
 export default function ConfiguracionComercialPage() {
-  const screens = useBreakpoint()
-  const isMobile = !screens.md
-
   const [activeTab, setActiveTab] = useState<ComercialTabKey>('productos')
   const [clienteFiltro, setClienteFiltro] = useState<ClienteFiltro>('GENERAL')
 
@@ -105,6 +100,7 @@ export default function ConfiguracionComercialPage() {
       <PageHeaderCard
         title="Configuracion comercial"
         subtitle="Administra productos, tarifas y bloques horarios de tu empresa."
+        actions={toolbar}
       />
 
       <Card
@@ -112,15 +108,9 @@ export default function ConfiguracionComercialPage() {
         variant="borderless"
         styles={{ body: { paddingTop: 8, paddingBottom: 8 } }}
       >
-        {isMobile && (
-          <div style={{ marginBottom: 12, padding: '12px 16px', background: '#fafafa', borderRadius: 8, border: '1px solid #f0f0f0' }}>
-            {toolbar}
-          </div>
-        )}
         <Tabs
           activeKey={activeTab}
           onChange={(key) => setActiveTab(key as ComercialTabKey)}
-          tabBarExtraContent={!isMobile ? toolbar : undefined}
           items={tabItems}
         />
       </Card>

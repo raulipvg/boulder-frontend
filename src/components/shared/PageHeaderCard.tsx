@@ -1,16 +1,18 @@
 import { Card, Space, Typography } from 'antd'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 
 interface PageHeaderCardProps {
   title: string
   subtitle?: string
   actions?: ReactNode
+  actionsWrap?: boolean
+  rowStyle?: CSSProperties
 }
 
-export function PageHeaderCard({ title, subtitle, actions }: PageHeaderCardProps) {
+export function PageHeaderCard({ title, subtitle, actions, actionsWrap = true, rowStyle }: PageHeaderCardProps) {
   return (
     <Card className="tms-page-header-card" styles={{ body: { padding: '8px 12px' } }}>
-      <div className="tms-page-header-row">
+      <div className="tms-page-header-row" style={rowStyle}>
         <div className="tms-page-header-copy">
           <Typography.Title level={3} className="tms-page-header-title">
             {title}
@@ -21,7 +23,7 @@ export function PageHeaderCard({ title, subtitle, actions }: PageHeaderCardProps
             </Typography.Text>
           ) : null}
         </div>
-        {actions ? <Space wrap>{actions}</Space> : null}
+        {actions ? <Space wrap={actionsWrap}>{actions}</Space> : null}
       </div>
     </Card>
   )
