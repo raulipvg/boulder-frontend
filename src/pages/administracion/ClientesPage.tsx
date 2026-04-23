@@ -121,7 +121,7 @@ export default function ClientesPage() {
           <>
             <Button icon={<ReloadOutlined />} onClick={() => void load(search)} />
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              Nuevo cliente
+              {!isMobile && 'Nuevo cliente'}
             </Button>
           </>
         )}

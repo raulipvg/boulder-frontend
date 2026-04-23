@@ -113,7 +113,7 @@ export default function UsuariosPage() {
           <>
             <Button icon={<ReloadOutlined />} onClick={() => void load()} />
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              Nuevo usuario
+              {!isMobile && 'Nuevo usuario'}
             </Button>
           </>
         )}

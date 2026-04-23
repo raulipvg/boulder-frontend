@@ -21,6 +21,7 @@ import {
 import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { PageFiltersCard } from '../../components/shared/PageFiltersCard'
 import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { administracionService } from '../../services/administracion/administracionService'
@@ -424,25 +425,42 @@ export default function ClasesPage() {
       <PageHeaderCard
         title="Clases"
         subtitle="Programas y horarios asociados a profesor."
+        mobileStandard={isMobile}
         actions={(
           <>
-            <Segmented
-              value={estadoFiltro}
-              onChange={(value) => setEstadoFiltro(value as EstadoFiltro)}
-              options={[
-                { label: 'Activo', value: 'activo' },
-                { label: 'Inactivo', value: 'inactivo' },
-              ]}
-            />
+            {!isMobile ? (
+              <Segmented
+                value={estadoFiltro}
+                onChange={(value) => setEstadoFiltro(value as EstadoFiltro)}
+                options={[
+                  { label: 'Activo', value: 'activo' },
+                  { label: 'Inactivo', value: 'inactivo' },
+                ]}
+              />
+            ) : null}
             <Button icon={<ReloadOutlined />} onClick={() => void load(estadoFiltro)} />
             <Button type="primary" icon={<PlusOutlined />} onClick={() => void openCreate()}>
-              Nueva Clase
+              {!isMobile && 'Nueva Clase'}
             </Button>
           </>
         )}
       />
 
-      <Card className="tms-page-table-card" loading={loading}>
+      {isMobile ? (
+        <PageFiltersCard>
+          <Segmented
+            block
+            value={estadoFiltro}
+            onChange={(value) => setEstadoFiltro(value as EstadoFiltro)}
+            options={[
+              { label: 'Activo', value: 'activo' },
+              { label: 'Inactivo', value: 'inactivo' },
+            ]}
+          />
+        </PageFiltersCard>
+      ) : null}
+
+      <Card className="tms-page-table-card" loading={loading} styles={{ body: { padding: isMobile ? '12px' : undefined } }}>
         {calendarEvents.length > 0 ? (
           <>
             {legendItems.length > 0 ? (
