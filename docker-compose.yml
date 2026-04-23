@@ -1,0 +1,26 @@
+services:
+  web:
+    container_name: boulder-frontend
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+        VITE_BUILD_MODE: production
+    env_file:
+      - .env
+    environment:
+      API_PROXY_URL: ${API_PROXY_URL:-http://boulder-backend:5001}
+      TZ: America/Santiago
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - boulder_shared
+
+networks:
+  boulder_shared:
+    name: ${EXTERNAL_NETWORK_NAME:-boulder-red-interna-kali}
+    external: true
