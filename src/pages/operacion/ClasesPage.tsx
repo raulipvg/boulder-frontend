@@ -226,6 +226,7 @@ export default function OperacionClasesPage() {
       <PageHeaderCard
         title="Sesiones de clases"
         subtitle="Sesiones generadas desde los horarios de clases."
+        mobileStandard={isMobile}
         actions={<Button icon={<ReloadOutlined />} onClick={() => void load(fecha.format('YYYY-MM-DD'))} />}
       />
 
