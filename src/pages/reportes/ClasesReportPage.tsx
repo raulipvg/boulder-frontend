@@ -92,7 +92,6 @@ export default function ClasesReportPage() {
       <PageHeaderCard
         title="Reportes de clases"
         subtitle="Evolucion por dia, mes o anio de beneficios vigentes y uso por clase."
-        actions={<Button icon={<ReloadOutlined />} onClick={() => void load()} loading={loading} />}
       />
 
       <ReportesPeriodoFilter
@@ -103,7 +102,15 @@ export default function ClasesReportPage() {
           setFechaReferencia((value) => normalizeFechaReferencia(nextPeriodo, value))
         }}
         onFechaChange={(value) => setFechaReferencia(normalizeFechaReferencia(periodo, value))}
-        actions={<Button icon={<DownloadOutlined />} onClick={() => void exportCsv()} loading={exportingCsv}>Descargar CSV</Button>}
+        actions={(
+          <>
+            <Button icon={<ReloadOutlined />} onClick={() => void load()} loading={loading}>
+            </Button>
+            <Button type="primary" icon={<DownloadOutlined />} onClick={() => void exportCsv()} loading={exportingCsv}>
+              Descargar CSV
+            </Button>
+          </>
+        )}
       />
 
       <Row gutter={16} className="tms-kpi-row">

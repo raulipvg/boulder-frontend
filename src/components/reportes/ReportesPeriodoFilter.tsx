@@ -51,13 +51,7 @@ export function ReportesPeriodoFilter({
 
   return (
     <PageFiltersCard>
-      <Segmented
-        value={periodo}
-        options={REPORTE_PERIODO_OPTIONS}
-        onChange={(value) => onPeriodoChange(value as ReportePeriodo)}
-      />
-
-      <Typography.Text type="secondary">Fecha base</Typography.Text>
+      <Typography.Text type="secondary">Fecha</Typography.Text>
       <DatePicker
         allowClear={false}
         picker={config.picker}
@@ -69,6 +63,12 @@ export function ReportesPeriodoFilter({
             onFechaChange(value)
           }
         }}
+      />
+
+      <Segmented
+        value={periodo}
+        options={REPORTE_PERIODO_OPTIONS}
+        onChange={(value) => onPeriodoChange(value as ReportePeriodo)}
       />
 
       {actions ? <div style={{ marginInlineStart: 'auto', display: 'flex', gap: 8 }}>{actions}</div> : null}

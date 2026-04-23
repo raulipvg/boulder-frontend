@@ -90,7 +90,6 @@ export default function AccesosReportPage() {
       <PageHeaderCard
         title="Reportes de accesos"
         subtitle="Seguimiento por dia, mes o anio de validaciones y bloque horario."
-        actions={<Button icon={<ReloadOutlined />} onClick={() => void load()} loading={loading} />}
       />
 
       <ReportesPeriodoFilter
@@ -101,7 +100,15 @@ export default function AccesosReportPage() {
           setFechaReferencia((value) => normalizeFechaReferencia(nextPeriodo, value))
         }}
         onFechaChange={(value) => setFechaReferencia(normalizeFechaReferencia(periodo, value))}
-        actions={<Button icon={<DownloadOutlined />} onClick={() => void exportCsv()} loading={exportingCsv}>Descargar CSV</Button>}
+        actions={(
+          <>
+            <Button icon={<ReloadOutlined />} onClick={() => void load()} loading={loading}>
+            </Button>
+            <Button type="primary" icon={<DownloadOutlined />} onClick={() => void exportCsv()} loading={exportingCsv}>
+              Descargar CSV
+            </Button>
+          </>
+        )}
       />
 
       <Card className="tms-compact-card"><Statistic title="Accesos autorizados del periodo" value={dashboard?.AccesosAutorizadosHoy ?? 0} loading={loading} /></Card>

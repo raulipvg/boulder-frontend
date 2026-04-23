@@ -47,10 +47,10 @@ export default function MainLayout() {
     },
     {
       key: 'operacion',
-      label: 'Operacion',
+      label: 'Acceso',
       icon: <ToolOutlined />,
       children: [
-        { key: '/operacion/accesos', label: 'Accesos', roles: ROLES_VENTAS_OPERACION },
+        { key: '/operacion/accesos', label: 'Libre', roles: ROLES_VENTAS_OPERACION },
         { key: '/operacion/clases', label: 'Clases', roles: ROLES_VENTAS_OPERACION },
       ],
     },
@@ -71,9 +71,9 @@ export default function MainLayout() {
       label: 'Reportes',
       icon: <BarChartOutlined />,
       children: [
-        { key: '/reportes/ventas', label: 'Reportes de ventas', roles: ROLES_ADMIN },
-        { key: '/reportes/accesos', label: 'Reportes de accesos', roles: ROLES_ADMIN },
-        { key: '/reportes/clases', label: 'Reportes de clases', roles: ROLES_ADMIN },
+        { key: '/reportes/ventas', label: 'Ventas', roles: ROLES_ADMIN },
+        { key: '/reportes/accesos', label: 'Accesos', roles: ROLES_ADMIN },
+        { key: '/reportes/clases', label: 'Clases', roles: ROLES_ADMIN },
       ],
     },
   ], [])

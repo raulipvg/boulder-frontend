@@ -1,4 +1,4 @@
-import { PlusOutlined, SyncOutlined } from '@ant-design/icons'
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'
 import { Button, Grid, Segmented, Space } from 'antd'
 import type { ClienteFiltro } from './TarifasTab'
 
@@ -37,7 +37,7 @@ export function ComercialToolbar({
             { label: 'Estudiante', value: 'ESTUDIANTE' },
           ]}
         />
-        <Button icon={<SyncOutlined />} onClick={onReload} />
+        <Button icon={<ReloadOutlined />} onClick={onReload} />
         <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
           {!isTabletOrSmaller && 'Nueva tarifa'}
         </Button>
@@ -48,7 +48,7 @@ export function ComercialToolbar({
   if (activeTab === 'bloques') {
     return (
       <Space wrap size={spacing}>
-        <Button icon={<SyncOutlined />} onClick={onReload} />
+        <Button icon={<ReloadOutlined />} onClick={onReload} />
         <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
           {!isTabletOrSmaller && 'Nuevo bloque'}
         </Button>
@@ -58,7 +58,7 @@ export function ComercialToolbar({
 
   return (
     <Space wrap size={spacing}>
-      <Button icon={<SyncOutlined />} onClick={onReload} />
+      <Button icon={<ReloadOutlined />} onClick={onReload} />
       <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
         {!isTabletOrSmaller && 'Nuevo producto'}
       </Button>

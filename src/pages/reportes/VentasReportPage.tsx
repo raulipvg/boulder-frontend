@@ -139,7 +139,6 @@ export default function VentasReportPage() {
       <PageHeaderCard
         title="Reportes de ventas"
         subtitle="Indicadores filtrados por día, mes o año para producto y tipo de cliente."
-        actions={<Button icon={<ReloadOutlined />} onClick={() => void load()} loading={loading}>Actualizar</Button>}
       />
 
       <ReportesPeriodoFilter
@@ -150,7 +149,15 @@ export default function VentasReportPage() {
           setFechaReferencia((value) => normalizeFechaReferencia(nextPeriodo, value))
         }}
         onFechaChange={(value) => setFechaReferencia(normalizeFechaReferencia(periodo, value))}
-        actions={<Button icon={<DownloadOutlined />} onClick={() => void exportCsv()} loading={exportingCsv}>Descargar CSV</Button>}
+        actions={(
+          <>
+            <Button icon={<ReloadOutlined />} onClick={() => void load()} loading={loading}>
+            </Button>
+            <Button type="primary" icon={<DownloadOutlined />} onClick={() => void exportCsv()} loading={exportingCsv}>
+              Descargar CSV
+            </Button>
+          </>
+        )}
       />
 
       <Row gutter={[16, 16]} className="tms-kpi-row" style={{ display: 'flex', alignItems: 'stretch' }}>
