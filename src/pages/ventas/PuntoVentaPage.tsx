@@ -460,7 +460,7 @@ export default function PuntoVentaPage() {
     <div className={styles.page}>
       <RequireCompanyAlert />
 
-      <Row gutter={[16, 0]} className={styles.layoutRow}>
+      <Row gutter={isMobile ? [0, 0] : [16, 0]} className={styles.layoutRow}>
         <PuntoVentaCatalogSection
           loading={loading}
           selectedFamily={selectedFamily}
