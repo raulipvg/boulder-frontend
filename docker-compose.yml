@@ -13,7 +13,7 @@ services:
       API_PROXY_URL: ${API_PROXY_URL:-http://boulder-backend:8080}
       TZ: America/Santiago
     ports:
-      - "8081:80"
+      - "80:80"
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
