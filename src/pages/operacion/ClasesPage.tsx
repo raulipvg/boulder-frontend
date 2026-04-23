@@ -226,6 +226,7 @@ export default function OperacionClasesPage() {
       <PageHeaderCard
         title="Sesiones de clases"
         subtitle="Sesiones generadas desde los horarios de clases."
+        actions={<Button icon={<ReloadOutlined />} onClick={() => void load(fecha.format('YYYY-MM-DD'))} />}
       />
 
       <PageFiltersCard>
@@ -268,10 +269,6 @@ export default function OperacionClasesPage() {
 
           <Tooltip title="Día siguiente">
             <Button type="text" icon={navegandoFecha ? <Spin size="small" /> : <RightOutlined />} onClick={() => navigateFecha(1)} />
-          </Tooltip>
-          <div style={{ width: 1, height: 24, backgroundColor: '#f0f0f0', margin: '0 8px' }} />
-          <Tooltip title="Recargar sesiones">
-            <Button icon={<ReloadOutlined />} onClick={() => void load(fecha.format('YYYY-MM-DD'))} />
           </Tooltip>
         </div>
       </PageFiltersCard>
