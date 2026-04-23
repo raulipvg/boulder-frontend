@@ -1,5 +1,5 @@
 import { ClockCircleOutlined, DollarOutlined, ShoppingOutlined } from '@ant-design/icons'
-import { Card, Tabs } from 'antd'
+import { Card, Grid, Segmented, Tabs } from 'antd'
 import { useMemo, useRef, useState } from 'react'
 import BloquesHorariosTab, { type BloquesHorariosTabHandle } from '../../components/administracion/comercial/BloquesHorariosTab'
 import {
@@ -11,10 +11,16 @@ import TarifasTab, {
   type ClienteFiltro,
   type TarifasTabHandle,
 } from '../../components/administracion/comercial/TarifasTab'
+import { PageFiltersCard } from '../../components/shared/PageFiltersCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
 import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 
+const { useBreakpoint } = Grid
+
 export default function ConfiguracionComercialPage() {
+  const screens = useBreakpoint()
+  const isMobile = !screens.md
+
   const [activeTab, setActiveTab] = useState<ComercialTabKey>('productos')
   const [clienteFiltro, setClienteFiltro] = useState<ClienteFiltro>('GENERAL')
 
@@ -57,6 +63,7 @@ export default function ConfiguracionComercialPage() {
       onClienteFiltroChange={setClienteFiltro}
       onReload={handleReload}
       onCreate={handleCreate}
+      showClienteFiltro={!(isMobile && activeTab === 'tarifas')}
     />
   )
 
@@ -98,15 +105,30 @@ export default function ConfiguracionComercialPage() {
       <RequireCompanyAlert />
 
       <PageHeaderCard
-        title="Configuracion comercial"
+        title="Comercial"
         subtitle="Administra productos, tarifas y bloques horarios de tu empresa."
+        mobileStandard={isMobile}
         actions={toolbar}
       />
+
+      {isMobile && activeTab === 'tarifas' ? (
+        <PageFiltersCard>
+          <Segmented
+            block
+            value={clienteFiltro}
+            onChange={(value) => setClienteFiltro(value as ClienteFiltro)}
+            options={[
+              { label: 'General', value: 'GENERAL' },
+              { label: 'Estudiante', value: 'ESTUDIANTE' },
+            ]}
+          />
+        </PageFiltersCard>
+      ) : null}
 
       <Card
         className="tms-page-table-card"
         variant="borderless"
-        styles={{ body: { paddingTop: 8, paddingBottom: 8 } }}
+        styles={{ body: { padding: isMobile ? '12px' : '8px 12px' } }}
       >
         <Tabs
           activeKey={activeTab}
