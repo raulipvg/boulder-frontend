@@ -116,6 +116,7 @@ export default function ClientesPage() {
       <PageHeaderCard
         title="Clientes"
         subtitle="Escaladores registrados por empresa."
+        mobileStandard={isMobile}
         actions={(
           <>
             <Button icon={<ReloadOutlined />} onClick={() => void load(search)} />
@@ -136,7 +137,7 @@ export default function ClientesPage() {
         />
       </PageFiltersCard>
 
-      <Card className="tms-page-table-card" loading={loading}>
+      <Card className="tms-page-table-card" loading={loading} styles={{ body: { padding: isMobile ? '12px' : undefined } }}>
         {isMobile ? <ClientesMobileList items={items} onEdit={openEdit} /> : <ClientesTable items={items} onEdit={openEdit} />}
       </Card>
 

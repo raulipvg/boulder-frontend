@@ -107,9 +107,8 @@ export default function UsuariosPage() {
     <div className="tms-page">
       <PageHeaderCard
         title="Usuarios"
-        subtitle={isMobile ? undefined : 'Usuarios internos y sus roles operativos.'}
-        actionsWrap={!isMobile}
-        rowStyle={isMobile ? { flexWrap: 'nowrap', alignItems: 'center' } : undefined}
+        subtitle="Usuarios internos y sus roles operativos."
+        mobileStandard={isMobile}
         actions={(
           <>
             <Button icon={<ReloadOutlined />} onClick={() => void load()} />
