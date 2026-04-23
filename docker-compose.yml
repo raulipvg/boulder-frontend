@@ -10,7 +10,7 @@ services:
     env_file:
       - .env
     environment:
-      API_PROXY_URL: ${API_PROXY_URL:-http://boulder-backend:8080}
+      API_PROXY_URL: ${API_PROXY_URL:-http://boulder-backend:5001}
       TZ: America/Santiago
     ports:
       - "8081:80"
