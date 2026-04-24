@@ -13,6 +13,7 @@ interface PuntoVentaCatalogSectionProps {
   selectedFamily: string
   familyFilterOptions: Array<{ value: string, label: ReactNode }>
   filteredCatalog: PosCatalogItemDto[]
+  cartItemsCount: number
   onReload: () => void
   onFamilyChange: (value: string) => void
   onClearFilters: () => void
@@ -24,6 +25,7 @@ export function PuntoVentaCatalogSection({
   selectedFamily,
   familyFilterOptions,
   filteredCatalog,
+  cartItemsCount,
   onReload,
   onFamilyChange,
   onClearFilters,
@@ -95,11 +97,9 @@ export function PuntoVentaCatalogSection({
           </div>
 
           {isMobile && showQuickCart && (
-            <Button
-              icon={<ShoppingCartOutlined />}
-              className={styles.quickCartFab}
-              onClick={handleGoToCart}
-            >
+            <Button className={styles.quickCartFab} onClick={handleGoToCart}>
+              {cartItemsCount > 0 ? <span className={styles.quickCartCount}>{cartItemsCount}</span> : null}
+              <ShoppingCartOutlined />
               Caja
             </Button>
           )}

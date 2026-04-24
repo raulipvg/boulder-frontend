@@ -1,5 +1,6 @@
 export { PuntoVentaCatalogSection } from './PuntoVentaCatalogSection'
 export { PuntoVentaCartSection } from './PuntoVentaCartSection'
+export { PuntoVentaComprobanteSection } from './PuntoVentaComprobanteSection'
 export { PuntoVentaCreateClientModal } from './PuntoVentaCreateClientModal'
 export * from './puntoVenta.helpers'
 export * from './puntoVenta.types'

@@ -68,6 +68,11 @@
   font-size: 14px;
 }
 
+.clearClientIconHidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 
 
 .itemFoot {

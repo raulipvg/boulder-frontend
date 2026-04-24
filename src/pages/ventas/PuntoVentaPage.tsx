@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   PuntoVentaCartSection,
   PuntoVentaCatalogSection,
+  PuntoVentaComprobanteSection,
   PuntoVentaCreateClientModal,
   formatClientLabel,
   getProductTypeMeta,
@@ -17,7 +18,7 @@ import { useHeaderContent } from '../../context/HeaderContentContext'
 import { administracionService } from '../../services/administracion/administracionService'
 import { operacionService } from '../../services/operacion/operacionService'
 import { ventasService } from '../../services/ventas/ventasService'
-import type { ClienteLookupDto, LookupDto, PosCatalogItemDto, TipoClienteDto } from '../../types/models'
+import type { ClienteLookupDto, LookupDto, PosCatalogItemDto, TipoClienteDto, VentaDto } from '../../types/models'
 import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 import { isValidRut, normalizeRut } from '../../utils/rut'
 import styles from './PuntoVentaPage.module.css'
@@ -37,6 +38,7 @@ export default function PuntoVentaPage() {
   const [searchingByItem, setSearchingByItem] = useState<Record<string, boolean>>({})
   const [preview, setPreview] = useState<VentaPreviewDto | null>(null)
   const [previewError, setPreviewError] = useState<string | null>(null)
+  const [ventaConfirmada, setVentaConfirmada] = useState<VentaDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [medioPagoId, setMedioPagoId] = useState<number | null>(null)
@@ -213,6 +215,10 @@ export default function PuntoVentaPage() {
   }
 
   const addProduct = (product: PosCatalogItemDto) => {
+    if (ventaConfirmada) {
+      return
+    }
+
     if (requiresAssignedClient(product)) {
       setCart((current) => [
         ...current,
@@ -274,6 +280,11 @@ export default function PuntoVentaPage() {
 
   const missingAssignedItem = useMemo(
     () => cart.find((item) => requiresAssignedClient(item.Product) && !item.ClienteEmpresaIdAsignado),
+    [cart],
+  )
+
+  const cartItemsCount = useMemo(
+    () => cart.reduce((total, item) => total + item.Quantity, 0),
     [cart],
   )
 
@@ -400,23 +411,28 @@ export default function PuntoVentaPage() {
       })
 
       message.success(`Venta ${result.NumeroComprobante} creada correctamente.`)
-      setCart([])
-      setPreview(null)
-      setPreviewError(null)
-      setClientSearchByItem({})
-      setClientOptionsByItem({})
-      setSearchingByItem({})
-      for (const timeout of Object.values(searchTimeoutsRef.current)) {
-        if (timeout) {
-          clearTimeout(timeout)
-        }
-      }
-      searchTimeoutsRef.current = {}
+      setVentaConfirmada(result)
     } catch (error) {
       message.error(getApiErrorMessage(error, 'No fue posible crear la venta.'))
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleComprobanteOk = () => {
+    setVentaConfirmada(null)
+    setCart([])
+    setPreview(null)
+    setPreviewError(null)
+    setClientSearchByItem({})
+    setClientOptionsByItem({})
+    setSearchingByItem({})
+    for (const timeout of Object.values(searchTimeoutsRef.current)) {
+      if (timeout) {
+        clearTimeout(timeout)
+      }
+    }
+    searchTimeoutsRef.current = {}
   }
 
   const handleCreateClient = async (values: CreateClientFormValues) => {
@@ -466,6 +482,7 @@ export default function PuntoVentaPage() {
           selectedFamily={selectedFamily}
           familyFilterOptions={familyFilterOptions}
           filteredCatalog={filteredCatalog}
+          cartItemsCount={cartItemsCount}
           onReload={() => { void reloadCatalog() }}
           onFamilyChange={setSelectedFamily}
           onClearFilters={() => {
@@ -475,27 +492,31 @@ export default function PuntoVentaPage() {
           onAddProduct={addProduct}
         />
 
-        <PuntoVentaCartSection
-          cart={cart}
-          knownClientes={knownClientes}
-          clientSearchByItem={clientSearchByItem}
-          clientOptionsByItem={clientOptionsByItem}
-          searchingByItem={searchingByItem}
-          mediosPago={mediosPago}
-          medioPagoId={medioPagoId}
-          preview={preview}
-          previewError={previewError}
-          saving={saving}
-          missingAssignedItem={missingAssignedItem}
-          onRemoveItem={removeItem}
-          onClientSearch={onClientSearch}
-          onSetAssignedClient={setAssignedClient}
-          onClearAssignedClient={clearAssignedClient}
-          onOpenCreateClient={openCreateClient}
-          onUpdateItemQuantity={updateItemQuantity}
-          onMedioPagoChange={setMedioPagoId}
-          onConfirmVenta={() => { void handleConfirmVenta() }}
-        />
+        {ventaConfirmada ? (
+          <PuntoVentaComprobanteSection venta={ventaConfirmada} onOk={handleComprobanteOk} />
+        ) : (
+          <PuntoVentaCartSection
+            cart={cart}
+            knownClientes={knownClientes}
+            clientSearchByItem={clientSearchByItem}
+            clientOptionsByItem={clientOptionsByItem}
+            searchingByItem={searchingByItem}
+            mediosPago={mediosPago}
+            medioPagoId={medioPagoId}
+            preview={preview}
+            previewError={previewError}
+            saving={saving}
+            missingAssignedItem={missingAssignedItem}
+            onRemoveItem={removeItem}
+            onClientSearch={onClientSearch}
+            onSetAssignedClient={setAssignedClient}
+            onClearAssignedClient={clearAssignedClient}
+            onOpenCreateClient={openCreateClient}
+            onUpdateItemQuantity={updateItemQuantity}
+            onMedioPagoChange={setMedioPagoId}
+            onConfirmVenta={() => { void handleConfirmVenta() }}
+          />
+        )}
       </Row>
 
       <PuntoVentaCreateClientModal

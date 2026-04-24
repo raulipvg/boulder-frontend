@@ -5,7 +5,7 @@ import {
   MinusOutlined,
   PlusOutlined,
 } from '@ant-design/icons'
-import { AutoComplete, Button, Input, InputNumber, Space, Tag, Typography } from 'antd'
+import { AutoComplete, Button, Grid, Input, InputNumber, Space, Tag, Typography } from 'antd'
 import type { CartItem } from './puntoVenta.types'
 import { formatClientLabel, formatCurrency, requiresAssignedClient } from './puntoVenta.helpers'
 import type { ClienteLookupDto } from '../../types/models'
@@ -38,6 +38,8 @@ export function PuntoVentaCartItem({
   onOpenCreateClient,
   onUpdateItemQuantity,
 }: PuntoVentaCartItemProps) {
+  const screens = Grid.useBreakpoint()
+  const isMobile = !screens.md
   const requiresClient = requiresAssignedClient(item.Product)
   const assignedClient = item.ClienteEmpresaIdAsignado ? knownClientes[item.ClienteEmpresaIdAsignado] : null
   const searchValue = clientSearchByItem[item.Id] ?? ''
@@ -58,7 +60,9 @@ export function PuntoVentaCartItem({
           {assignedClient ? (
             <Tag color="info" icon={null} style={{ margin: 0 }}>{assignedClient.TipoCliente} · {assignedClient.Estado}</Tag>
           ) : requiresClient ? (
-            <Tag color="warning" icon={<ExclamationCircleFilled />} style={{ margin: 0 }}>Requiere cliente</Tag>
+            <Tag color="warning" icon={<ExclamationCircleFilled />} style={{ margin: 0 }} aria-label="Requiere cliente">
+              {isMobile ? null : 'Requiere cliente'}
+            </Tag>
           ) : null}
 
           <Button
@@ -98,15 +102,16 @@ export function PuntoVentaCartItem({
                     readOnly={!!assignedClient}
                     className={styles.clientInput}
                     suffix={
-                      assignedClient ? (
-                        <CloseCircleFilled
-                          className={styles.clearClientIcon}
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            onClearAssignedClient(item.Id)
-                          }}
-                        />
-                      ) : null
+                      <CloseCircleFilled
+                        className={`${styles.clearClientIcon} ${!assignedClient ? styles.clearClientIconHidden : ''}`}
+                        onClick={(event) => {
+                          if (!assignedClient) {
+                            return
+                          }
+                          event.stopPropagation()
+                          onClearAssignedClient(item.Id)
+                        }}
+                      />
                     }
                   />
                 </AutoComplete>
