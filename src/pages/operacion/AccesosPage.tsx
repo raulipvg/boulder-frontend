@@ -1,5 +1,5 @@
 import { CheckCircleOutlined, SafetyCertificateOutlined, SearchOutlined } from '@ant-design/icons'
-import { Alert, App as AntdApp, AutoComplete, Avatar, Button, Card, Divider, Empty, Input, List, Space, Spin, Tag, Typography } from 'antd'
+import { Alert, App as AntdApp, AutoComplete, Avatar, Button, Card, Divider, Empty, Input, List, Space, Spin, Tag, Typography, Grid } from 'antd'
 import { useEffect, useState } from 'react'
 import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { RequireCompanyAlert } from '../../components/shared/RequireCompanyAlert'
@@ -8,8 +8,18 @@ import type { AccessOptionDto, AccessPreviewDto, ClienteLookupDto } from '../../
 import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 import { toCapitalCase } from '../../utils/formatPersonName'
 
+const { useBreakpoint } = Grid;
+
+const formatShortDate = (dateString: string) => {
+  if (!dateString) return '';
+  const parts = dateString.split('T')[0].split('-');
+  if (parts.length !== 3) return dateString;
+  return `${parts[2]}-${parts[1]}-${parts[0].substring(2)}`;
+};
+
 export default function AccesosPage() {
   const { message } = AntdApp.useApp()
+  const screens = useBreakpoint();
 
   const [search, setSearch] = useState('')
   const [clientes, setClientes] = useState<ClienteLookupDto[]>([])
@@ -108,13 +118,12 @@ export default function AccesosPage() {
       <RequireCompanyAlert />
 
       <PageHeaderCard
-        title="Validacion de accesos"
-        subtitle="Selecciona el cliente y el beneficio a consumir o validar."
+        title="Validación de accesos"
+        subtitle="Busca al cliente y selecciona el beneficio a consumir o validar."
       />
 
-
       <AutoComplete
-        style={{ width: '100%' }}
+        style={{ width: '100%', marginBottom: 16 }}
         value={selectedCliente ? `${toCapitalCase(selectedCliente.NombreCompleto)} (${selectedCliente.Rut})` : search}
         onSearch={setSearch}
         notFoundContent={
@@ -139,11 +148,17 @@ export default function AccesosPage() {
         options={clientes.map((cliente) => ({
           value: `${cliente.ClienteEmpresaId}`,
           label: (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Avatar size="small" style={{ backgroundColor: '#374151' }}>{cliente.NombreCompleto.charAt(0).toUpperCase()}</Avatar>
-              <div>
-                <div style={{ fontWeight: 500 }}>{toCapitalCase(cliente.NombreCompleto)}</div>
-                <div style={{ fontSize: 12, color: '#8c8c8c' }}>{cliente.Rut} · {cliente.TipoCliente}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 0' }}>
+              <Avatar size="small" style={{ backgroundColor: '#374151', flexShrink: 0 }}>
+                {cliente.NombreCompleto.charAt(0).toUpperCase()}
+              </Avatar>
+              <div style={{ overflow: 'hidden' }}>
+                <div style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {toCapitalCase(cliente.NombreCompleto)}
+                </div>
+                <div style={{ fontSize: 12, color: '#8c8c8c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {cliente.Rut} · {cliente.TipoCliente}
+                </div>
               </div>
             </div>
           ),
@@ -161,30 +176,37 @@ export default function AccesosPage() {
               setResult(null)
             }
           }}
-          style={{ borderRadius: 12, fontSize: 16, padding: '8px 16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+          style={{ borderRadius: 12, fontSize: 16, padding: '10px 16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
         />
       </AutoComplete>
 
       {result && (
-          <Alert
-            type={result.autorizado ? 'success' : 'error'}
-            showIcon
-            title={<Typography.Text strong style={{ fontSize: 16 }}>{result.mensaje}</Typography.Text>}
-            style={{ marginTop: 24, padding: 16, borderRadius: 12, border: result.autorizado ? '1px solid #b7eb8f' : '1px solid #ffa39e' }}
-          />
+        <Alert
+          type={result.autorizado ? 'success' : 'error'}
+          showIcon
+          title={<Typography.Text strong style={{ fontSize: 16 }}>{result.mensaje}</Typography.Text>}
+          style={{ marginBottom: 24, padding: 16, borderRadius: 12, border: result.autorizado ? '1px solid #b7eb8f' : '1px solid #ffa39e' }}
+        />
       )}
 
       {preview && (
-        <Card style={{ marginTop: 24, borderRadius: 16, boxShadow: '0 8px 30px rgba(0,0,0,0.06)' }} variant="borderless" loading={previewLoading}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
-            <Avatar size={64} style={{ backgroundColor: '#374151', fontSize: 24 }}>{preview.ClienteNombre.charAt(0).toUpperCase()}</Avatar>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <Typography.Title level={4} style={{ margin: 0 }}>
+        <Card
+          style={{ borderRadius: 16, boxShadow: '0 8px 30px rgba(0,0,0,0.06)', overflow: 'hidden' }}
+          styles={{ body: { padding: screens.xs ? 16 : 24 } }}
+          variant="borderless"
+          loading={previewLoading}
+        >
+          <div style={{ display: 'flex', alignItems: screens.xs ? 'flex-start' : 'center', gap: 16, marginBottom: 8 }}>
+            <Avatar size={screens.xs ? 56 : 64} style={{ backgroundColor: '#374151', fontSize: screens.xs ? 20 : 24, flexShrink: 0 }}>
+              {preview.ClienteNombre.charAt(0).toUpperCase()}
+            </Avatar>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                <Typography.Title level={4} style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
                   {toCapitalCase(preview.ClienteNombre)}
                 </Typography.Title>
                 {selectedCliente?.Rut && (
-                  <Typography.Text type="secondary" style={{ fontSize: 14 }}>
+                  <Typography.Text type="secondary" style={{ fontSize: 14, whiteSpace: 'nowrap' }}>
                     {selectedCliente.Rut}
                   </Typography.Text>
                 )}
@@ -204,10 +226,77 @@ export default function AccesosPage() {
 
           <Divider style={{ margin: '20px 0', borderColor: '#f0f0f0' }} />
 
-          <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 16, textTransform: 'uppercase', fontSize: 12, letterSpacing: 1, fontWeight: 600 }}>Beneficios Disponibles</Typography.Text>
+          <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 16, textTransform: 'uppercase', fontSize: 12, letterSpacing: 1, fontWeight: 600 }}>
+            Beneficios Disponibles
+          </Typography.Text>
 
           {preview.Opciones.length === 0 ? (
             <Alert type="warning" showIcon title="No tiene pases o mensualidades activas" style={{ borderRadius: 8 }} />
+          ) : screens.xs ? (
+            <div style={{ display: 'grid', gap: 16 }}>
+              {preview.Opciones.map((item) => {
+                const optionState = getOptionState(item)
+                return (
+                  <Card
+                    key={item.BeneficioClienteId}
+                    size="small"
+                    style={{ background: '#fafafa', borderRadius: 12, border: '1px solid #f0f0f0' }}
+                    styles={{ body: { padding: 16 } }}
+                  >
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                      <SafetyCertificateOutlined style={{ fontSize: 28, color: '#52c41a', flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                          <Typography.Text strong style={{ fontSize: 15, lineHeight: 1.3 }}>
+                            {item.ProductoNombre}
+                          </Typography.Text>
+                        </div>
+
+                        <Space size={4} wrap style={{ marginTop: 2, marginBottom: 2 }}>
+                          <Tag color={optionState.color} variant="filled" style={{ fontWeight: 500, border: 0, margin: 0 }}>
+                            {optionState.label}
+                          </Tag>
+                          <Tag color="default" variant="filled" style={{ border: 0, margin: 0 }}>
+                            {item.Estado.toUpperCase()}
+                          </Tag>
+                        </Space>
+
+                        <div style={{ paddingTop: 2, borderRadius: 8, fontSize: 13, color: '#595959' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <span><strong>Vigencia:</strong></span>
+                            <span>{formatShortDate(item.FechaInicio)} al {formatShortDate(item.FechaTermino)}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span><strong>Usos:</strong></span>
+                            <span>{item.UsosConsumidos} / {item.UsosTotales ?? '∞'}</span>
+                          </div>
+                        </div>
+
+                        {!item.PuedeValidarAhora && item.MotivoNoValidable && (
+                          <div>
+                            <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                              {item.MotivoNoValidable}
+                            </Typography.Text>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <Button
+                      type="primary"
+                      icon={<CheckCircleOutlined />}
+                      onClick={() => void handleValidar(item, preview)}
+                      style={{ borderRadius: 8, height: 44, fontSize: 15, fontWeight: 500 }}
+                      disabled={!item.PuedeValidarAhora}
+                      loading={validandoBeneficioId === item.BeneficioClienteId}
+                      block
+                    >
+                      {item.PuedeValidarAhora ? 'Validar Acceso' : 'No Disponible'}
+                    </Button>
+                  </Card>
+                )
+              })}
+            </div>
           ) : (
             <List
               itemLayout="horizontal"
@@ -226,7 +315,7 @@ export default function AccesosPage() {
                         disabled={!item.PuedeValidarAhora}
                         loading={validandoBeneficioId === item.BeneficioClienteId}
                       >
-                        Validar
+                        {item.PuedeValidarAhora ? 'Validar' : 'No Disponible'}
                       </Button>
                     ]}
                   >
@@ -244,7 +333,7 @@ export default function AccesosPage() {
                       description={
                         <div style={{ marginTop: 4, display: 'grid', gap: 6 }}>
                           <div style={{ color: '#8c8c8c', fontSize: 13, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                            <span>Vigencia: {new Date(`${item.FechaInicio}T00:00:00`).toLocaleDateString('es-CL')} al {new Date(`${item.FechaTermino}T00:00:00`).toLocaleDateString('es-CL')}</span>
+                            <span>Vigencia: {formatShortDate(item.FechaInicio)} al {formatShortDate(item.FechaTermino)}</span>
                             <span>Usos: {item.UsosConsumidos} / {item.UsosTotales ?? '∞'}</span>
                           </div>
                           {!item.PuedeValidarAhora && item.MotivoNoValidable && (
