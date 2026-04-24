@@ -177,6 +177,9 @@ export default function OperacionClasesPage() {
   ]
 
   const asistenciasRegistradas = inscritos.filter(x => x.AsistenciaRegistrada).length
+  const fechaSesionLabel = sesionSeleccionada
+    ? toCapitalCase(dayjs(sesionSeleccionada.Fecha).format('dddd D MMMM'))
+    : ''
 
   useEffect(() => {
     void load(initialFechaRef.current)
@@ -336,7 +339,7 @@ export default function OperacionClasesPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <div>
                 <Typography.Text type="secondary">
-                  {sesionSeleccionada.HoraInicio.slice(0, 5)} - {sesionSeleccionada.HoraFin.slice(0, 5)} · Profesor {toCapitalCase(sesionSeleccionada.ProfesorNombre)}
+                  {fechaSesionLabel} · {sesionSeleccionada.HoraInicio.slice(0, 5)} - {sesionSeleccionada.HoraFin.slice(0, 5)} · Profesor {toCapitalCase(sesionSeleccionada.ProfesorNombre)}
                 </Typography.Text>
                 <div style={{ marginTop: 4 }}>
                   <Tag color="blue" style={{ marginInlineEnd: 8 }}>{`Inscritos ${inscritos.length}`}</Tag>
