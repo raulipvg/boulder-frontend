@@ -1,0 +1,17 @@
+.resultAlert {
+  margin-bottom: 24px;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.resultAlertSuccess {
+  border: 1px solid #b7eb8f;
+}
+
+.resultAlertError {
+  border: 1px solid #ffa39e;
+}
+
+.resultTitle {
+  font-size: 16px;
+}
