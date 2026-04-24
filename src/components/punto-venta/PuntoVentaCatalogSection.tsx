@@ -14,6 +14,7 @@ interface PuntoVentaCatalogSectionProps {
   familyFilterOptions: Array<{ value: string, label: ReactNode }>
   filteredCatalog: PosCatalogItemDto[]
   cartItemsCount: number
+  quickCartEnabled: boolean
   onReload: () => void
   onFamilyChange: (value: string) => void
   onClearFilters: () => void
@@ -26,6 +27,7 @@ export function PuntoVentaCatalogSection({
   familyFilterOptions,
   filteredCatalog,
   cartItemsCount,
+  quickCartEnabled,
   onReload,
   onFamilyChange,
   onClearFilters,
@@ -37,7 +39,7 @@ export function PuntoVentaCatalogSection({
   const [showQuickCart, setShowQuickCart] = useState(false)
 
   useEffect(() => {
-    if (!isMobile) {
+    if (!isMobile || !quickCartEnabled) {
       setShowQuickCart(false)
       return
     }
@@ -63,7 +65,7 @@ export function PuntoVentaCatalogSection({
     return () => {
       observer.disconnect()
     }
-  }, [isMobile])
+  }, [isMobile, quickCartEnabled])
 
   const handleGoToCart = () => {
     document.getElementById('punto-venta-caja')?.scrollIntoView({
@@ -96,7 +98,7 @@ export function PuntoVentaCatalogSection({
             </div>
           </div>
 
-          {isMobile && showQuickCart && (
+          {isMobile && quickCartEnabled && showQuickCart && (
             <Button className={styles.quickCartFab} onClick={handleGoToCart}>
               {cartItemsCount > 0 ? <span className={styles.quickCartCount}>{cartItemsCount}</span> : null}
               <ShoppingCartOutlined />

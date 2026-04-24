@@ -76,58 +76,56 @@ export function PuntoVentaCartItem({
       </div>
 
       {requiresClient ? (
-        <div className={styles.clientBox}>
-          <div className={styles.clientBoxHeader}>
-            <Typography.Text type="secondary">Cliente</Typography.Text>
-            <div className={styles.clientBoxInput}>
-              <Space.Compact className={styles.clientCompact}>
-                <AutoComplete
-                  className={styles.clientAutoComplete}
-                  value={assignedClient ? formatClientLabel(assignedClient) : searchValue}
-                  onSearch={(value) => onClientSearch(item.Id, value)}
-                  onSelect={(value) => {
-                    const cliente = options.find((entry) => `${entry.ClienteEmpresaId}` === value)
-                    if (cliente) {
-                      onSetAssignedClient(item.Id, cliente)
-                    }
-                  }}
-                  options={options.map((cliente) => ({
-                    value: `${cliente.ClienteEmpresaId}`,
-                    label: formatClientLabel(cliente),
-                  }))}
-                >
-                  <Input
-                    size="large"
-                    placeholder="Buscar por nombre o RUT"
-                    readOnly={!!assignedClient}
-                    className={styles.clientInput}
-                    suffix={
-                      <CloseCircleFilled
-                        className={`${styles.clearClientIcon} ${!assignedClient ? styles.clearClientIconHidden : ''}`}
-                        onClick={(event) => {
-                          if (!assignedClient) {
-                            return
-                          }
-                          event.stopPropagation()
-                          onClearAssignedClient(item.Id)
-                        }}
-                      />
-                    }
-                  />
-                </AutoComplete>
-                {canSuggestCreate ? (
-                  <Button
-                    size="large"
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => onOpenCreateClient(item.Id)}
-                  />
-                ) : null}
-              </Space.Compact>
-            </div>
+        <div className={styles.clientBoxHeader}>
+          <Typography.Text type="secondary">Cliente</Typography.Text>
+          <div className={styles.clientBoxInput}>
+            <Space.Compact className={styles.clientCompact}>
+              <AutoComplete
+                className={styles.clientAutoComplete}
+                value={assignedClient ? formatClientLabel(assignedClient) : searchValue}
+                onSearch={(value) => onClientSearch(item.Id, value)}
+                onSelect={(value) => {
+                  const cliente = options.find((entry) => `${entry.ClienteEmpresaId}` === value)
+                  if (cliente) {
+                    onSetAssignedClient(item.Id, cliente)
+                  }
+                }}
+                options={options.map((cliente) => ({
+                  value: `${cliente.ClienteEmpresaId}`,
+                  label: formatClientLabel(cliente),
+                }))}
+              >
+                <Input
+                  size="large"
+                  placeholder="Buscar por nombre o RUT"
+                  readOnly={!!assignedClient}
+                  className={styles.clientInput}
+                  suffix={
+                    <CloseCircleFilled
+                      className={`${styles.clearClientIcon} ${!assignedClient ? styles.clearClientIconHidden : ''}`}
+                      onClick={(event) => {
+                        if (!assignedClient) {
+                          return
+                        }
+                        event.stopPropagation()
+                        onClearAssignedClient(item.Id)
+                      }}
+                    />
+                  }
+                />
+              </AutoComplete>
+              {canSuggestCreate ? (
+                <Button
+                  size="large"
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => onOpenCreateClient(item.Id)}
+                />
+              ) : null}
+            </Space.Compact>
           </div>
-
         </div>
+
       ) : null}
 
       <div className={styles.itemFoot}>
@@ -153,7 +151,6 @@ export function PuntoVentaCartItem({
         )}
 
         <div className={styles.lineTotal}>
-          <Typography.Text type="secondary">Subtotal linea</Typography.Text>
           <Typography.Text strong>{lineSubtotal == null ? 'Se cotiza en tarifa' : formatCurrency(lineSubtotal)}</Typography.Text>
         </div>
       </div>

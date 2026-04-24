@@ -483,6 +483,7 @@ export default function PuntoVentaPage() {
           familyFilterOptions={familyFilterOptions}
           filteredCatalog={filteredCatalog}
           cartItemsCount={cartItemsCount}
+          quickCartEnabled={!ventaConfirmada}
           onReload={() => { void reloadCatalog() }}
           onFamilyChange={setSelectedFamily}
           onClearFilters={() => {
