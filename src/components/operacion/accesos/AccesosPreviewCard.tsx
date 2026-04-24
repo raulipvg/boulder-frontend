@@ -3,7 +3,7 @@ import type { AccessOptionDto, AccessPreviewDto, ClienteLookupDto } from '../../
 import { toCapitalCase } from '../../../utils/formatPersonName'
 import { AccesosList } from './AccesosList'
 import { AccesosMobileList } from './AccesosMobileList'
-import styles from './AccesosPreviewCard.module.css'
+import styles from '../../../styles/components/operacion/accesos/AccesosPreviewCard.module.css'
 
 interface AccesosPreviewCardProps {
   preview: AccessPreviewDto

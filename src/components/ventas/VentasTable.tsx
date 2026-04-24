@@ -4,7 +4,7 @@ import type { TableProps } from 'antd'
 import type { VentaDto, VentaResumenDto } from '../../types/models'
 import { toCapitalCase } from '../../utils/formatPersonName'
 import { ComprobanteVentaPreview } from './ComprobanteVentaPreview'
-import styles from './VentasTable.module.css'
+import styles from '../../styles/components/ventas/VentasTable.module.css'
 
 interface VentasTableProps {
   items: VentaResumenDto[]

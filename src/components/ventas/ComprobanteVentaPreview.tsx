@@ -2,7 +2,7 @@ import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { Divider, Space, Tag, Typography } from 'antd'
 import type { VentaDto } from '../../types/models'
 import { toCapitalCase } from '../../utils/formatPersonName'
-import styles from './ComprobanteVentaPreview.module.css'
+import styles from '../../styles/components/ventas/ComprobanteVentaPreview.module.css'
 
 interface ComprobanteVentaPreviewProps {
   venta: VentaDto

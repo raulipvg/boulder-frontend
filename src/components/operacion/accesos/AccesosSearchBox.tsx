@@ -2,7 +2,7 @@ import { SearchOutlined } from '@ant-design/icons'
 import { AutoComplete, Avatar, Empty, Input, Spin } from 'antd'
 import type { ClienteLookupDto } from '../../../types/models'
 import { toCapitalCase } from '../../../utils/formatPersonName'
-import styles from './AccesosSearchBox.module.css'
+import styles from '../../../styles/components/operacion/accesos/AccesosSearchBox.module.css'
 
 interface AccesosSearchBoxProps {
   value: string

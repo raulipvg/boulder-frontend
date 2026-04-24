@@ -9,7 +9,7 @@ import { AutoComplete, Button, Grid, Input, InputNumber, Space, Tag, Typography 
 import type { CartItem } from './puntoVenta.types'
 import { formatClientLabel, formatCurrency, requiresAssignedClient } from './puntoVenta.helpers'
 import type { ClienteLookupDto } from '../../types/models'
-import styles from './PuntoVentaCartItem.module.css'
+import styles from '../../styles/components/punto-venta/PuntoVentaCartItem.module.css'
 
 interface PuntoVentaCartItemProps {
   item: CartItem

@@ -6,7 +6,7 @@ import { Button, Card, Col, Empty, Grid, Row, Segmented, Skeleton } from 'antd'
 import { useEffect, useState, type ReactNode } from 'react'
 import type { PosCatalogItemDto } from '../../types/models'
 import { PuntoVentaProductCard } from './PuntoVentaProductCard'
-import styles from './PuntoVentaCatalogSection.module.css'
+import styles from '../../styles/components/punto-venta/PuntoVentaCatalogSection.module.css'
 
 interface PuntoVentaCatalogSectionProps {
   loading: boolean

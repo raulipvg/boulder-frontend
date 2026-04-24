@@ -7,7 +7,7 @@ import {
   normalizeTypeCode,
   toDayCapitalCase,
 } from './puntoVenta.helpers'
-import styles from './PuntoVentaProductCard.module.css'
+import styles from '../../styles/components/punto-venta/PuntoVentaProductCard.module.css'
 
 interface PuntoVentaProductCardProps {
   product: PosCatalogItemDto

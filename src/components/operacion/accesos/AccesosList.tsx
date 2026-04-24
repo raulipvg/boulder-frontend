@@ -2,7 +2,7 @@ import { CheckCircleOutlined, SafetyCertificateOutlined } from '@ant-design/icon
 import { Button, List, Space, Tag, Typography } from 'antd'
 import type { AccessOptionDto, AccessPreviewDto } from '../../../types/models'
 import { formatShortDate, getOptionState } from './accesos.helpers'
-import styles from './AccesosList.module.css'
+import styles from '../../../styles/components/operacion/accesos/AccesosList.module.css'
 
 interface AccesosListProps {
   options: AccessOptionDto[]

@@ -3,7 +3,7 @@ import { Button, Card, Col } from 'antd'
 import { useEffect, useRef } from 'react'
 import type { VentaDto } from '../../types/models'
 import { ComprobanteVentaPreview } from '../ventas/ComprobanteVentaPreview'
-import styles from './PuntoVentaComprobanteSection.module.css'
+import styles from '../../styles/components/punto-venta/PuntoVentaComprobanteSection.module.css'
 
 interface PuntoVentaComprobanteSectionProps {
   venta: VentaDto

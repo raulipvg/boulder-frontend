@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react'
 import type { VentaDto, VentaResumenDto } from '../../types/models'
 import { toCapitalCase } from '../../utils/formatPersonName'
 import { ComprobanteVentaPreview } from './ComprobanteVentaPreview'
-import styles from './VentasMobileList.module.css'
+import styles from '../../styles/components/ventas/VentasMobileList.module.css'
 
 interface VentasMobileListProps {
   items: VentaResumenDto[]

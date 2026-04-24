@@ -3,7 +3,7 @@ import type { TableProps } from 'antd'
 import type { VentaDto, VentaResumenDto } from '../../types/models'
 import { VentasMobileList } from './VentasMobileList'
 import { VentasTable } from './VentasTable'
-import styles from './VentasTab.module.css'
+import styles from '../../styles/components/ventas/VentasTab.module.css'
 
 const { useBreakpoint } = Grid
 

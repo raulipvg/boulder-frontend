@@ -4,7 +4,7 @@ import type { ClienteLookupDto, LookupDto } from '../../types/models'
 import { formatCurrency } from './puntoVenta.helpers'
 import { PuntoVentaCartItem } from './PuntoVentaCartItem'
 import type { CartItem, VentaPreviewDto } from './puntoVenta.types'
-import styles from './PuntoVentaCartSection.module.css'
+import styles from '../../styles/components/punto-venta/PuntoVentaCartSection.module.css'
 
 interface PuntoVentaCartSectionProps {
   cart: CartItem[]
