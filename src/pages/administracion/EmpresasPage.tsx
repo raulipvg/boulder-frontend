@@ -1,13 +1,22 @@
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'
-import { App as AntdApp, Button, Card, Form, Input, Modal, Space, Table } from 'antd'
+import { App as AntdApp, Button, Card, Form, Grid } from 'antd'
 import { useEffect, useState } from 'react'
+import { EmpresaFormModal } from '../../components/administracion/empresas/EmpresaFormModal'
+import { EmpresasMobileList } from '../../components/administracion/empresas/EmpresasMobileList'
+import { EmpresasTable } from '../../components/administracion/empresas/EmpresasTable'
+import { isEstadoActivo } from '../../components/administracion/empresas/empresas'
 import { PageHeaderCard } from '../../components/shared/PageHeaderCard'
 import { administracionService } from '../../services/administracion/administracionService'
 import type { EmpresaDto } from '../../types/models'
 import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 
+const { useBreakpoint } = Grid
+
 export default function EmpresasPage() {
   const { message } = AntdApp.useApp()
+  const screens = useBreakpoint()
+  const isMobile = !screens.md
+
   const [items, setItems] = useState<EmpresaDto[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
@@ -28,128 +37,101 @@ export default function EmpresasPage() {
     void load()
   }, [])
 
+  const openCreate = () => {
+    setEditingItem(null)
+    setOpen(true)
+  }
+
+  const openEdit = (record: EmpresaDto) => {
+    setEditingItem(record)
+    setOpen(true)
+  }
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    if (!editingItem) {
+      form.resetFields()
+      form.setFieldsValue({ Estado: true })
+      return
+    }
+
+    form.setFieldsValue({
+      NombreComercial: editingItem.NombreComercial,
+      RazonSocial: editingItem.RazonSocial ?? undefined,
+      Rut: editingItem.Rut,
+      Estado: isEstadoActivo(editingItem.Estado),
+      TelefonoContacto: editingItem.TelefonoContacto ?? undefined,
+      CorreoContacto: editingItem.CorreoContacto ?? undefined,
+    })
+  }, [editingItem, form, open])
+
   return (
     <div className="tms-page">
       <PageHeaderCard
         title="Empresas"
         subtitle="Administración global de tenants SaaS."
+        mobileStandard={isMobile}
         actions={(
           <>
             <Button icon={<ReloadOutlined />} onClick={() => void load()} />
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                setEditingItem(null)
-                form.resetFields()
-                setOpen(true)
-              }}
-            >
-              Nueva empresa
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+              {!isMobile && 'Nueva empresa'}
             </Button>
           </>
         )}
       />
 
-      <Card className="tms-page-table-card">
-        <Table
-          rowKey="EmpresaId"
-          loading={loading}
-          dataSource={items}
-          columns={[
-            { title: 'Nombre comercial', dataIndex: 'NombreComercial' },
-            { title: 'RUT', dataIndex: 'Rut' },
-            { title: 'Estado', dataIndex: 'Estado' },
-            { title: 'Moneda', dataIndex: 'MonedaCodigo' },
-            { title: 'Correo', dataIndex: 'CorreoContacto' },
-            {
-              title: 'Acciones',
-              render: (_, record) => (
-                <Button
-                  type="link"
-                  onClick={() => {
-                    setEditingItem(record)
-                    form.setFieldsValue({
-                      NombreComercial: record.NombreComercial,
-                      RazonSocial: record.RazonSocial ?? undefined,
-                      Rut: record.Rut,
-                      TelefonoContacto: record.TelefonoContacto ?? undefined,
-                      CorreoContacto: record.CorreoContacto ?? undefined,
-                    })
-                    setOpen(true)
-                  }}
-                >
-                  Editar
-                </Button>
-              ),
-            },
-          ]}
-        />
+      <Card className="tms-page-table-card" loading={loading} styles={{ body: { padding: isMobile ? '12px' : undefined } }}>
+        {isMobile ? (
+          <EmpresasMobileList items={items} onEdit={openEdit} />
+        ) : (
+          <EmpresasTable items={items} onEdit={openEdit} />
+        )}
       </Card>
 
-      <Modal
+      <EmpresaFormModal
         open={open}
-        title={editingItem ? 'Editar empresa' : 'Nueva empresa'}
+        editingItem={editingItem}
+        submitting={submitting}
+        form={form}
         onCancel={() => {
           setOpen(false)
           setEditingItem(null)
         }}
-        onOk={() => form.submit()}
-        confirmLoading={submitting}
-        destroyOnHidden
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={async (values) => {
-            setSubmitting(true)
-            try {
-              const payload = {
-                NombreComercial: values.NombreComercial,
-                RazonSocial: values.RazonSocial,
-                Rut: values.Rut,
-                TelefonoContacto: values.TelefonoContacto,
-                CorreoContacto: values.CorreoContacto,
-              }
-
-              if (editingItem) {
-                await administracionService.updateEmpresa(editingItem.EmpresaId, payload)
-                message.success('Empresa actualizada correctamente.')
-              } else {
-                await administracionService.createEmpresa(payload)
-                message.success('Empresa creada correctamente.')
-              }
-
-              setOpen(false)
-              setEditingItem(null)
-              form.resetFields()
-              await load()
-            } catch (error) {
-              message.error(getApiErrorMessage(error, `No se pudo ${editingItem ? 'actualizar' : 'crear'} la empresa.`))
-            } finally {
-              setSubmitting(false)
+        onSubmit={async (values) => {
+          setSubmitting(true)
+          try {
+            const payload = {
+              NombreComercial: values.NombreComercial,
+              RazonSocial: values.RazonSocial,
+              Rut: values.Rut,
+              Estado: values.Estado ? 'activo' : 'inactivo',
+              TelefonoContacto: values.TelefonoContacto,
+              CorreoContacto: values.CorreoContacto,
             }
-          }}
-        >
-          <Form.Item name="NombreComercial" label="Nombre comercial" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="RazonSocial" label="Razón social">
-            <Input />
-          </Form.Item>
-          <Form.Item name="Rut" label="RUT" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Space style={{ width: '100%' }}>
-            <Form.Item name="TelefonoContacto" label="Teléfono" style={{ flex: 1 }}>
-              <Input />
-            </Form.Item>
-            <Form.Item name="CorreoContacto" label="Correo" style={{ flex: 1 }}>
-              <Input />
-            </Form.Item>
-          </Space>
-        </Form>
-      </Modal>
+
+            if (editingItem) {
+              await administracionService.updateEmpresa(editingItem.EmpresaId, payload)
+              message.success('Empresa actualizada correctamente.')
+            } else {
+              await administracionService.createEmpresa(payload)
+              message.success('Empresa creada correctamente.')
+            }
+
+            setOpen(false)
+            setEditingItem(null)
+            form.resetFields()
+            await load()
+          } catch (error) {
+            message.error(getApiErrorMessage(error, `No se pudo ${editingItem ? 'actualizar' : 'crear'} la empresa.`))
+          } finally {
+            setSubmitting(false)
+          }
+        }}
+      />
     </div>
   )
 }

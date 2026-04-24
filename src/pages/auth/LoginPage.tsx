@@ -3,6 +3,7 @@ import { Alert, Button, Card, Form, Input, Space, Typography } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { getApiErrorMessage } from '../../utils/getApiErrorMessage'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -28,7 +29,7 @@ export default function LoginPage() {
         </Typography.Paragraph>
       </Space>
 
-      {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} />}
+      {error && <Alert type="error" title={error} showIcon style={{ marginBottom: 16 }} />}
 
       <Form
         layout="vertical"
@@ -39,7 +40,7 @@ export default function LoginPage() {
             await login(values.email, values.password)
             navigate('/ventas/punto-venta', { replace: true })
           } catch (err) {
-            setError(err instanceof Error ? err.message : 'No fue posible iniciar sesión.')
+            setError(getApiErrorMessage(err, 'Error al iniciar sesión o credenciales incorrectas.'))
           } finally {
             setLoading(false)
           }
