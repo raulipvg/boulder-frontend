@@ -149,6 +149,12 @@ export default function MainLayout() {
     }
   }
 
+  const handleEmpresaObjetivoChange = (value: number) => {
+    setEmpresaObjetivoId(value)
+  }
+
+  const outletKey = isAdminTotal ? `empresa-${empresaObjetivoId ?? 'none'}` : 'empresa-context-static'
+
   const userMenuItems: MenuProps['items'] = [
     {
       key: 'profile',
@@ -233,34 +239,17 @@ export default function MainLayout() {
                 style={{ color: 'var(--tms-header-mobile-text)' }}
               />
 
-              {headerContent ?? (
-                <>
-                  {isAdminTotal && (
-                    <Select
-                      style={{ flex: 1, minWidth: 140 }}
-                      placeholder="Empresa objetivo"
-                      value={empresaObjetivoId ?? undefined}
-                      options={empresas.map((empresa) => ({ value: empresa.EmpresaId, label: empresa.NombreComercial }))}
-                      onChange={(value) => {
-                        setEmpresaObjetivoId(value)
-                        navigate('/ventas/punto-venta')
-                      }}
-                    />
-                  )}
-                  {!isAdminTotal && <div style={{ flex: 1 }} />}
-                </>
-              )}
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
+                {headerContent ?? <div style={{ flex: 1 }} />}
+              </div>
 
-              {headerContent && isAdminTotal && (
+              {isAdminTotal && (
                 <Select
-                  style={{ minWidth: 140 }}
+                  style={{ minWidth: 140, maxWidth: 220 }}
                   placeholder="Empresa objetivo"
                   value={empresaObjetivoId ?? undefined}
                   options={empresas.map((empresa) => ({ value: empresa.EmpresaId, label: empresa.NombreComercial }))}
-                  onChange={(value) => {
-                    setEmpresaObjetivoId(value)
-                    navigate('/ventas/punto-venta')
-                  }}
+                  onChange={handleEmpresaObjetivoChange}
                 />
               )}
 
@@ -274,28 +263,27 @@ export default function MainLayout() {
                     Centro de escalada
                   </Text>
                 )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginLeft: 'auto' }}>
                 {isAdminTotal ? (
                   <Select
                     style={{ minWidth: 240 }}
                     placeholder="Empresa objetivo"
                     value={empresaObjetivoId ?? undefined}
                     options={empresas.map((empresa) => ({ value: empresa.EmpresaId, label: empresa.NombreComercial }))}
-                    onChange={(value) => {
-                      setEmpresaObjetivoId(value)
-                      navigate('/ventas/punto-venta')
-                    }}
+                    onChange={handleEmpresaObjetivoChange}
                   />
                 ) : (
                   <Text type="secondary">{user?.EmpresaNombre || 'Sin empresa'}</Text>
                 )}
+                {userDropdown}
               </div>
-              {userDropdown}
             </>
           )}
         </Header>
 
         <Content style={{ padding: isMobile ? '6px' : '16px', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <Outlet />
+          <Outlet key={outletKey} />
         </Content>
       </Layout>
 
