@@ -8,17 +8,7 @@
   font-size: 15px;
 }
 
-/* ── Mobile extra row ── */
-.mobileExtraRow {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-  min-width: 0;
-}
-
-.mobileExtraRow .motivoValue {
-  flex: 1;
-  min-width: 0;
+.mobileMotivo {
+  color: #d4380d;
   font-size: 12px;
 }

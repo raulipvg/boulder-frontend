@@ -1,9 +1,11 @@
-import { Typography } from 'antd'
+import { Grid, Typography } from 'antd'
 import type { TableProps } from 'antd'
-import type { ReactNode } from 'react'
 import type { VentaDto, VentaResumenDto } from '../../types/models'
+import { VentasMobileList } from './VentasMobileList'
 import { VentasTable } from './VentasTable'
 import styles from './AnulacionesTab.module.css'
+
+const { useBreakpoint } = Grid
 
 interface AnulacionesTabProps {
   items: VentaResumenDto[]
@@ -22,6 +24,9 @@ export function AnulacionesTab({
   detalleErrorById,
   onLoadDetalle,
 }: AnulacionesTabProps) {
+  const screens = useBreakpoint()
+  const isMobile = !screens.md
+
   const extraColumns: NonNullable<TableProps<VentaResumenDto>['columns']> = [
     {
       title: 'Motivo',
@@ -37,22 +42,29 @@ export function AnulacionesTab({
     },
   ]
 
-  const renderMobileExtra = (record: VentaResumenDto): ReactNode => (
-    <div className={styles.mobileExtraRow}>
-      {record.MotivoAnulacion && (
-        <Typography.Text className={styles.motivoValue} ellipsis={{ tooltip: record.MotivoAnulacion }}>
-          {record.MotivoAnulacion}
-        </Typography.Text>
-      )}
-    </div>
-  )
+  if (isMobile) {
+    return (
+      <VentasMobileList
+        items={items}
+        loading={loading}
+        ventaDetalleById={ventaDetalleById}
+        detalleLoadingById={detalleLoadingById}
+        detalleErrorById={detalleErrorById}
+        onLoadDetalle={onLoadDetalle}
+        renderExtra={(record) => (
+          <Typography.Text className={styles.mobileMotivo} ellipsis={{ tooltip: record.MotivoAnulacion ?? undefined }}>
+            {record.MotivoAnulacion || 'Sin motivo registrado'}
+          </Typography.Text>
+        )}
+      />
+    )
+  }
 
   return (
     <VentasTable
       items={items}
       loading={loading}
       extraColumns={extraColumns}
-      renderMobileExtra={renderMobileExtra}
       ventaDetalleById={ventaDetalleById}
       detalleLoadingById={detalleLoadingById}
       detalleErrorById={detalleErrorById}

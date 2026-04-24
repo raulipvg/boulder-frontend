@@ -1,8 +1,11 @@
-import { Button, Tag, Typography } from 'antd'
+import { Button, Grid, Tag, Typography } from 'antd'
 import type { TableProps } from 'antd'
 import type { VentaDto, VentaResumenDto } from '../../types/models'
+import { VentasMobileList } from './VentasMobileList'
 import { VentasTable } from './VentasTable'
 import styles from './VentasTab.module.css'
+
+const { useBreakpoint } = Grid
 
 interface VentasTabProps {
   items: VentaResumenDto[]
@@ -23,6 +26,9 @@ export function VentasTab({
   detalleErrorById,
   onLoadDetalle,
 }: VentasTabProps) {
+  const screens = useBreakpoint()
+  const isMobile = !screens.md
+
   const extraColumns: NonNullable<TableProps<VentaResumenDto>['columns']> = [
     {
       title: 'Estado',
@@ -61,32 +67,45 @@ export function VentasTab({
     },
   ]
 
+  if (isMobile) {
+    return (
+      <VentasMobileList
+        items={items}
+        loading={loading}
+        ventaDetalleById={ventaDetalleById}
+        detalleLoadingById={detalleLoadingById}
+        detalleErrorById={detalleErrorById}
+        onLoadDetalle={onLoadDetalle}
+        renderHeaderAside={(record) => (
+          <div className={styles.mobileHeaderActions}>
+            <Tag color={record.Estado === 'emitida' ? 'success' : 'error'} variant="filled">
+              {record.Estado.toUpperCase()}
+            </Tag>
+            {record.Estado === 'emitida' && (
+              <Button
+                size="small"
+                type="primary"
+                danger
+                ghost
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onAnularVenta(record)
+                }}
+              >
+                Anular
+              </Button>
+            )}
+          </div>
+        )}
+      />
+    )
+  }
+
   return (
     <VentasTable
       items={items}
       loading={loading}
       extraColumns={extraColumns}
-      renderMobileHeaderAside={(record) => (
-        <div className={styles.mobileHeaderActions}>
-          <Tag color={record.Estado === 'emitida' ? 'success' : 'error'} variant="filled">
-            {record.Estado.toUpperCase()}
-          </Tag>
-          {record.Estado === 'emitida' && (
-            <Button
-              size="small"
-              type="primary"
-              danger
-              ghost
-              onClick={(event) => {
-                event.stopPropagation()
-                onAnularVenta(record)
-              }}
-            >
-              Anular
-            </Button>
-          )}
-        </div>
-      )}
       ventaDetalleById={ventaDetalleById}
       detalleLoadingById={detalleLoadingById}
       detalleErrorById={detalleErrorById}
