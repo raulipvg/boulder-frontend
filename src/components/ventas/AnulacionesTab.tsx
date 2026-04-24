@@ -39,9 +39,6 @@ export function AnulacionesTab({
 
   const renderMobileExtra = (record: VentaResumenDto): ReactNode => (
     <div className={styles.mobileExtraRow}>
-      <Typography.Text strong className={styles.totalValue}>
-        ${record.Total.toLocaleString('es-CL')}
-      </Typography.Text>
       {record.MotivoAnulacion && (
         <Typography.Text className={styles.motivoValue} ellipsis={{ tooltip: record.MotivoAnulacion }}>
           {record.MotivoAnulacion}

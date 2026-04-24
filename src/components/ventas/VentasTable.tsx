@@ -14,6 +14,7 @@ interface VentasTableProps {
   loading: boolean
   extraColumns: NonNullable<TableProps<VentaResumenDto>['columns']>
   renderMobileExtra?: (record: VentaResumenDto) => ReactNode
+  renderMobileHeaderAside?: (record: VentaResumenDto) => ReactNode
   ventaDetalleById: Record<number, VentaDto>
   detalleLoadingById: Record<number, boolean>
   detalleErrorById: Record<number, string>
@@ -56,6 +57,7 @@ const BASE_COLUMNS: NonNullable<TableProps<VentaResumenDto>['columns']> = [
 
 function MobileCard({
   record,
+  renderMobileHeaderAside,
   renderMobileExtra,
   ventaDetalleById,
   detalleLoadingById,
@@ -63,6 +65,7 @@ function MobileCard({
   onLoadDetalle,
 }: {
   record: VentaResumenDto
+  renderMobileHeaderAside?: (record: VentaResumenDto) => ReactNode
   renderMobileExtra?: (record: VentaResumenDto) => ReactNode
   ventaDetalleById: Record<number, VentaDto>
   detalleLoadingById: Record<number, boolean>
@@ -85,34 +88,38 @@ function MobileCard({
 
   return (
     <div className={styles.mobileCard}>
-      {/* Header row: comprobante + fecha */}
-      <div className={styles.mobileCardHeader}>
-        <div className={styles.mobileCardTitle}>
-          <FileTextOutlined className={styles.comprobanteIcon} />
-          <Typography.Text strong>#{record.NumeroComprobante}</Typography.Text>
+      <div className={styles.mobileCardTop}>
+        {/* Header block: comprobante + fecha + total */}
+        <div className={styles.mobileCardHeader}>
+          <div className={styles.mobileCardTitle}>
+            <FileTextOutlined className={styles.comprobanteIcon} />
+            <Typography.Text strong>#{record.NumeroComprobante}</Typography.Text>
+          </div>
+          <Typography.Text type="secondary" className={styles.mobileCardDate}>
+            {new Date(record.FechaHora).toLocaleString('es-CL', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            })}
+          </Typography.Text>
+          <div className={styles.mobileCardCliente}>
+            {record.ClienteNombre ? (
+              <Typography.Text>{toCapitalCase(record.ClienteNombre)}</Typography.Text>
+            ) : (
+              <Typography.Text type="secondary">Consumidor Final</Typography.Text>
+            )}
+          </div>
+          <Typography.Text strong className={`${styles.mobileCardTotal} ${record.Estado === 'anulada' ? styles.mobileCardTotalAnulada : ''}`}>
+            ${record.Total.toLocaleString('es-CL')}
+          </Typography.Text>
         </div>
-        <Typography.Text type="secondary" className={styles.mobileCardDate}>
-          {new Date(record.FechaHora).toLocaleString('es-CL', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false,
-          })}
-        </Typography.Text>
+        {renderMobileHeaderAside && <div className={styles.mobileCardHeaderAside}>{renderMobileHeaderAside(record)}</div>}
       </div>
 
-      {/* Cliente */}
-      <div className={styles.mobileCardCliente}>
-        {record.ClienteNombre ? (
-          <Typography.Text>{toCapitalCase(record.ClienteNombre)}</Typography.Text>
-        ) : (
-          <Typography.Text type="secondary">Consumidor Final</Typography.Text>
-        )}
-      </div>
-
-      {/* Extra info (estado/motivo + total + acciones) */}
+      {/* Extra info (estado/motivo + acciones) */}
       {renderMobileExtra && (
         <div className={styles.mobileCardExtra}>{renderMobileExtra(record)}</div>
       )}
@@ -166,6 +173,7 @@ export function VentasTable({
   items,
   loading,
   extraColumns,
+  renderMobileHeaderAside,
   renderMobileExtra,
   ventaDetalleById,
   detalleLoadingById,
@@ -234,12 +242,13 @@ export function VentasTable({
     return (
       <div className={styles.mobileCardList}>
         {items.map((record) => (
-          <MobileCard
-            key={record.VentaId}
-            record={record}
-            renderMobileExtra={renderMobileExtra}
-            ventaDetalleById={ventaDetalleById}
-            detalleLoadingById={detalleLoadingById}
+            <MobileCard
+              key={record.VentaId}
+              record={record}
+              renderMobileHeaderAside={renderMobileHeaderAside}
+              renderMobileExtra={renderMobileExtra}
+              ventaDetalleById={ventaDetalleById}
+              detalleLoadingById={detalleLoadingById}
             detalleErrorById={detalleErrorById}
             onLoadDetalle={onLoadDetalle}
           />

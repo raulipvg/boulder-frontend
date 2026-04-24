@@ -2,17 +2,10 @@
   font-size: 15px;
 }
 
-/* ── Mobile extra row ── */
-.mobileExtraRow {
+.mobileHeaderActions {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 8px;
-}
-
-.mobileExtraLeft {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  height: 100%;
 }

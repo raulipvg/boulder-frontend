@@ -1,5 +1,5 @@
 import { Card, Grid, Input, Modal, Space, Tabs, Typography } from 'antd'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AnulacionesTab } from '../../components/ventas/AnulacionesTab'
 import { VentasTab } from '../../components/ventas/VentasTab'
@@ -112,29 +112,12 @@ export default function VentasPage() {
     setSearchParams(nextSearchParams, { replace: true })
   }
 
-  const toolbar = <VentasToolbar loading={activeLoading} onReload={() => void loadTab(activeTab, true)} />
-
-  const wrapWithMobileToolbar = (content: ReactNode) => {
-    if (!isMobile) {
-      return content
-    }
-
-    return (
-      <div className={styles.mobileToolbarLayout}>
-        <div className={styles.mobileToolbarBox}>
-          {toolbar}
-        </div>
-        {content}
-      </div>
-    )
-  }
-
   const tabItems = useMemo(
     () => [
       {
         key: 'ventas',
         label: 'Ventas',
-        children: wrapWithMobileToolbar(
+        children: (
           <VentasTab
             items={ventasItems}
             loading={loadingByTab.ventas}
@@ -143,13 +126,13 @@ export default function VentasPage() {
             detalleLoadingById={detalleLoadingById}
             detalleErrorById={detalleErrorById}
             onLoadDetalle={loadDetalle}
-          />,
+          />
         ),
       },
       {
         key: 'anulaciones',
         label: 'Anulaciones',
-        children: wrapWithMobileToolbar(
+        children: (
           <AnulacionesTab
             items={anulacionesItems}
             loading={loadingByTab.anulaciones}
@@ -157,7 +140,7 @@ export default function VentasPage() {
             detalleLoadingById={detalleLoadingById}
             detalleErrorById={detalleErrorById}
             onLoadDetalle={loadDetalle}
-          />,
+          />
         ),
       },
     ],
@@ -165,7 +148,6 @@ export default function VentasPage() {
       anulacionesItems,
       detalleErrorById,
       detalleLoadingById,
-      isMobile,
       loadingByTab.anulaciones,
       loadingByTab.ventas,
       ventaDetalleById,
@@ -179,13 +161,14 @@ export default function VentasPage() {
       <PageHeaderCard
         title="Ventas"
         subtitle="Historial operativo de ventas y anulaciones."
+        mobileStandard={isMobile}
+        actions={<VentasToolbar loading={activeLoading} onReload={() => void loadTab(activeTab, true)} />}
       />
 
       <Card className={styles.tableCard}>
         <Tabs
           activeKey={activeTab}
           onChange={(key) => handleTabChange(key as VentasTabKey)}
-          tabBarExtraContent={!isMobile ? toolbar : undefined}
           items={tabItems}
         />
       </Card>

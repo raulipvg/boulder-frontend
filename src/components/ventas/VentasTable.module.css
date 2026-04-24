@@ -41,27 +41,50 @@
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.09);
 }
 
+.mobileCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px 4px;
+}
+
 .mobileCardHeader {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px 4px;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
 }
 
 .mobileCardTitle {
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 
 .mobileCardDate {
   font-size: 12px;
-  white-space: nowrap;
+}
+
+.mobileCardTotal {
+  font-size: 15px;
+}
+
+.mobileCardTotalAnulada {
+  color: #bfbfbf;
+  text-decoration: line-through;
+}
+
+.mobileCardHeaderAside {
+  display: flex;
+  justify-content: flex-end;
+  align-self: stretch;
 }
 
 .mobileCardCliente {
-  padding: 2px 14px 8px;
+  padding: 0;
   font-size: 13px;
 }
 

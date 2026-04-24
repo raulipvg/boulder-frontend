@@ -1,6 +1,5 @@
-import { Button, Space, Tag, Typography } from 'antd'
+import { Button, Tag, Typography } from 'antd'
 import type { TableProps } from 'antd'
-import type { ReactNode } from 'react'
 import type { VentaDto, VentaResumenDto } from '../../types/models'
 import { VentasTable } from './VentasTable'
 import styles from './VentasTab.module.css'
@@ -62,41 +61,32 @@ export function VentasTab({
     },
   ]
 
-  const renderMobileExtra = (record: VentaResumenDto): ReactNode => (
-    <div className={styles.mobileExtraRow}>
-      <div className={styles.mobileExtraLeft}>
-        <Tag color={record.Estado === 'emitida' ? 'success' : 'error'} variant="filled">
-          {record.Estado.toUpperCase()}
-        </Tag>
-        <Typography.Text strong className={styles.totalValue}>
-          ${record.Total.toLocaleString('es-CL')}
-        </Typography.Text>
-      </div>
-      {record.Estado === 'emitida' && (
-        <Space>
-          <Button
-            size="small"
-            type="primary"
-            danger
-            ghost
-            onClick={(event) => {
-              event.stopPropagation()
-              onAnularVenta(record)
-            }}
-          >
-            Anular
-          </Button>
-        </Space>
-      )}
-    </div>
-  )
-
   return (
     <VentasTable
       items={items}
       loading={loading}
       extraColumns={extraColumns}
-      renderMobileExtra={renderMobileExtra}
+      renderMobileHeaderAside={(record) => (
+        <div className={styles.mobileHeaderActions}>
+          <Tag color={record.Estado === 'emitida' ? 'success' : 'error'} variant="filled">
+            {record.Estado.toUpperCase()}
+          </Tag>
+          {record.Estado === 'emitida' && (
+            <Button
+              size="small"
+              type="primary"
+              danger
+              ghost
+              onClick={(event) => {
+                event.stopPropagation()
+                onAnularVenta(record)
+              }}
+            >
+              Anular
+            </Button>
+          )}
+        </div>
+      )}
       ventaDetalleById={ventaDetalleById}
       detalleLoadingById={detalleLoadingById}
       detalleErrorById={detalleErrorById}
