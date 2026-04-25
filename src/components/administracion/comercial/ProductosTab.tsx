@@ -849,13 +849,14 @@ const ProductosTab = forwardRef<ProductosTabHandle>(function ProductosTab(_props
                           <CloseOutlined style={{ color: '#999999', fontSize: 16 }} />
                         )}
                         <span style={{ marginLeft: 4 }}>POS</span>
-                        {yesNoTag(record.Activo, 'Activo', 'Inactivo')}
                         {record.TarifaAsociada ? (
                           <CheckOutlined style={{ color: '#52c41a', fontSize: 16 }} />
                         ) : (
                           <CloseOutlined style={{ color: '#999999', fontSize: 16 }} />
                         )}
                         <span style={{ marginLeft: 4 }}>Tarifa</span>
+
+                        {yesNoTag(record.Activo, 'Activo', 'Inactivo')}
                       </div>
                     </div>
 

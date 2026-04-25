@@ -786,6 +786,7 @@ export default function ClasesPage() {
                               }
                             }}
                           />
+
                         </Form.Item>
 
                         <div className="tms-clases-horario-actions">

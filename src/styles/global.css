@@ -79,14 +79,6 @@ body {
   margin-bottom: 0;
 }
 
-.tms-page-filters-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
 .tms-page-table-card {
   margin-bottom: 0;
 }
